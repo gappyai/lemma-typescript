@@ -5,6 +5,16 @@
 
 import type { AuthManager } from "./auth.js";
 
+type RequestParams = Record<string, string | number | boolean | undefined | null>;
+
+interface RequestOptions {
+  params?: RequestParams;
+  body?: unknown;
+  isFormData?: boolean;
+  headers?: HeadersInit;
+  signal?: AbortSignal;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly statusCode: number,
@@ -24,6 +34,43 @@ export class HttpClient {
     private readonly auth: AuthManager,
   ) {}
 
+  getBaseUrl(): string {
+    return this.apiUrl;
+  }
+
+  private buildUrl(path: string, params?: RequestParams): string {
+    let url = `${this.apiUrl}${path}`;
+    if (!params) {
+      return url;
+    }
+
+    const qs = Object.entries(params)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+      .join("&");
+
+    if (qs) {
+      url += `?${qs}`;
+    }
+
+    return url;
+  }
+
+  private mergeHeaders(base: RequestInit, extra?: HeadersInit): RequestInit {
+    if (!extra) {
+      return base;
+    }
+
+    const merged = new Headers(base.headers ?? {});
+    const extraHeaders = new Headers(extra);
+    extraHeaders.forEach((value, key) => merged.set(key, value));
+
+    return {
+      ...base,
+      headers: merged,
+    };
+  }
+
   private async parseError(response: Response): Promise<ApiError> {
     let message = response.statusText || "Request failed";
     let code: string | undefined;
@@ -34,9 +81,14 @@ export class HttpClient {
       const body = await response.json();
       raw = body;
       if (body && typeof body === "object") {
-        message = (body as Record<string, unknown>).message as string ?? message;
-        code = (body as Record<string, unknown>).code as string | undefined;
-        details = (body as Record<string, unknown>).details;
+        const record = body as Record<string, unknown>;
+        if (typeof record.message === "string") {
+          message = record.message;
+        }
+        if (typeof record.code === "string") {
+          code = record.code;
+        }
+        details = record.details;
       }
     } catch {
       // non-JSON error body
@@ -45,45 +97,47 @@ export class HttpClient {
     return new ApiError(response.status, message, code, details, raw);
   }
 
-  async request<T = unknown>(
-    method: string,
-    path: string,
-    options: {
-      params?: Record<string, string | number | boolean | undefined | null>;
-      body?: unknown;
-      isFormData?: boolean;
-    } = {},
-  ): Promise<T> {
-    let url = `${this.apiUrl}${path}`;
-    if (options.params) {
-      const qs = Object.entries(options.params)
-        .filter(([, v]) => v !== undefined && v !== null)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-        .join("&");
-      if (qs) {
-        url += `?${qs}`;
-      }
+  private getRequestBody(options: RequestOptions): BodyInit | undefined {
+    if (options.body === undefined) {
+      return undefined;
     }
 
-    const initBase: RequestInit = { method };
-
-    if (options.body !== undefined && !options.isFormData) {
-      initBase.body = JSON.stringify(options.body);
-    } else if (options.isFormData && options.body instanceof FormData) {
-      initBase.body = options.body;
+    if (options.isFormData && options.body instanceof FormData) {
+      return options.body;
     }
 
-    // For FormData, let the browser set Content-Type with boundary
-    const init = options.isFormData
+    return JSON.stringify(options.body);
+  }
+
+  private buildRequestInit(method: string, options: RequestOptions): RequestInit {
+    const initBase: RequestInit = {
+      method,
+      body: this.getRequestBody(options),
+      signal: options.signal,
+    };
+
+    // For FormData, let the browser set Content-Type with boundary.
+    const withAuth = options.isFormData
       ? {
           ...this.auth.getRequestInit(initBase),
           headers: Object.fromEntries(
             Object.entries(
               (this.auth.getRequestInit(initBase).headers as Record<string, string>) ?? {},
-            ).filter(([k]) => k.toLowerCase() !== "content-type"),
+            ).filter(([key]) => key.toLowerCase() !== "content-type"),
           ),
         }
       : this.auth.getRequestInit(initBase);
+
+    return this.mergeHeaders(withAuth, options.headers);
+  }
+
+  async request<T = unknown>(
+    method: string,
+    path: string,
+    options: RequestOptions = {},
+  ): Promise<T> {
+    const url = this.buildUrl(path, options.params);
+    const init = this.buildRequestInit(method, options);
 
     const response = await fetch(url, init);
 
@@ -106,6 +160,36 @@ export class HttpClient {
     }
 
     return response.text() as unknown as T;
+  }
+
+  async stream(
+    path: string,
+    options: Omit<RequestOptions, "isFormData"> & { method?: "GET" | "POST" | "PATCH" } = {},
+  ): Promise<ReadableStream<Uint8Array>> {
+    const response = await fetch(
+      this.buildUrl(path, options.params),
+      this.buildRequestInit(options.method ?? "GET", {
+        ...options,
+        headers: {
+          Accept: "text/event-stream",
+          ...options.headers,
+        },
+      }),
+    );
+
+    if (response.status === 401) {
+      this.auth.markUnauthenticated();
+    }
+
+    if (!response.ok) {
+      throw await this.parseError(response);
+    }
+
+    if (!response.body) {
+      throw new ApiError(response.status, "Stream response had no body.");
+    }
+
+    return response.body;
   }
 
   async requestBytes(method: string, path: string): Promise<Blob> {

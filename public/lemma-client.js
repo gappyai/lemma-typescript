@@ -42,6 +42,7 @@ const assistants_js_1 = require("./namespaces/assistants.js");
 const workflows_js_1 = require("./namespaces/workflows.js");
 const desks_js_1 = require("./namespaces/desks.js");
 const integrations_js_1 = require("./namespaces/integrations.js");
+const resources_js_1 = require("./namespaces/resources.js");
 class LemmaClient {
     constructor(overrides = {}) {
         this._config = (0, config_js_1.resolveConfig)(overrides);
@@ -62,12 +63,13 @@ class LemmaClient {
         this.files = new files_js_1.FilesNamespace(this._generated, this._http, podIdFn);
         this.functions = new functions_js_1.FunctionsNamespace(this._generated, podIdFn);
         this.agents = new agents_js_1.AgentsNamespace(this._generated, podIdFn);
-        this.tasks = new tasks_js_1.TasksNamespace(this._generated, podIdFn);
-        this.assistants = new assistants_js_1.AssistantsNamespace(this._generated, podIdFn);
-        this.conversations = new assistants_js_1.ConversationsNamespace(this._generated, podIdFn);
+        this.tasks = new tasks_js_1.TasksNamespace(this._http, podIdFn);
+        this.assistants = new assistants_js_1.AssistantsNamespace(this._http, podIdFn);
+        this.conversations = new assistants_js_1.ConversationsNamespace(this._http, podIdFn);
         this.workflows = new workflows_js_1.WorkflowsNamespace(this._generated, podIdFn);
         this.desks = new desks_js_1.DesksNamespace(this._generated, this._http, podIdFn);
         this.integrations = new integrations_js_1.IntegrationsNamespace(this._generated);
+        this.resources = new resources_js_1.ResourcesNamespace(this._http);
     }
     /** Change the active pod ID for subsequent calls. */
     setPodId(podId) {
@@ -479,6 +481,35 @@ class HttpClient {
         this.apiUrl = apiUrl;
         this.auth = auth;
     }
+    getBaseUrl() {
+        return this.apiUrl;
+    }
+    buildUrl(path, params) {
+        let url = `${this.apiUrl}${path}`;
+        if (!params) {
+            return url;
+        }
+        const qs = Object.entries(params)
+            .filter(([, value]) => value !== undefined && value !== null)
+            .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)
+            .join("&");
+        if (qs) {
+            url += `?${qs}`;
+        }
+        return url;
+    }
+    mergeHeaders(base, extra) {
+        if (!extra) {
+            return base;
+        }
+        const merged = new Headers(base.headers ?? {});
+        const extraHeaders = new Headers(extra);
+        extraHeaders.forEach((value, key) => merged.set(key, value));
+        return {
+            ...base,
+            headers: merged,
+        };
+    }
     async parseError(response) {
         let message = response.statusText || "Request failed";
         let code;
@@ -488,9 +519,14 @@ class HttpClient {
             const body = await response.json();
             raw = body;
             if (body && typeof body === "object") {
-                message = body.message ?? message;
-                code = body.code;
-                details = body.details;
+                const record = body;
+                if (typeof record.message === "string") {
+                    message = record.message;
+                }
+                if (typeof record.code === "string") {
+                    code = record.code;
+                }
+                details = record.details;
             }
         }
         catch {
@@ -498,31 +534,33 @@ class HttpClient {
         }
         return new ApiError(response.status, message, code, details, raw);
     }
-    async request(method, path, options = {}) {
-        let url = `${this.apiUrl}${path}`;
-        if (options.params) {
-            const qs = Object.entries(options.params)
-                .filter(([, v]) => v !== undefined && v !== null)
-                .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-                .join("&");
-            if (qs) {
-                url += `?${qs}`;
-            }
+    getRequestBody(options) {
+        if (options.body === undefined) {
+            return undefined;
         }
-        const initBase = { method };
-        if (options.body !== undefined && !options.isFormData) {
-            initBase.body = JSON.stringify(options.body);
+        if (options.isFormData && options.body instanceof FormData) {
+            return options.body;
         }
-        else if (options.isFormData && options.body instanceof FormData) {
-            initBase.body = options.body;
-        }
-        // For FormData, let the browser set Content-Type with boundary
-        const init = options.isFormData
+        return JSON.stringify(options.body);
+    }
+    buildRequestInit(method, options) {
+        const initBase = {
+            method,
+            body: this.getRequestBody(options),
+            signal: options.signal,
+        };
+        // For FormData, let the browser set Content-Type with boundary.
+        const withAuth = options.isFormData
             ? {
                 ...this.auth.getRequestInit(initBase),
-                headers: Object.fromEntries(Object.entries(this.auth.getRequestInit(initBase).headers ?? {}).filter(([k]) => k.toLowerCase() !== "content-type")),
+                headers: Object.fromEntries(Object.entries(this.auth.getRequestInit(initBase).headers ?? {}).filter(([key]) => key.toLowerCase() !== "content-type")),
             }
             : this.auth.getRequestInit(initBase);
+        return this.mergeHeaders(withAuth, options.headers);
+    }
+    async request(method, path, options = {}) {
+        const url = this.buildUrl(path, options.params);
+        const init = this.buildRequestInit(method, options);
         const response = await fetch(url, init);
         // Only 401 means the session is gone — 403 is a permission/RLS error, not an auth failure
         if (response.status === 401) {
@@ -539,6 +577,25 @@ class HttpClient {
             return response.json();
         }
         return response.text();
+    }
+    async stream(path, options = {}) {
+        const response = await fetch(this.buildUrl(path, options.params), this.buildRequestInit(options.method ?? "GET", {
+            ...options,
+            headers: {
+                Accept: "text/event-stream",
+                ...options.headers,
+            },
+        }));
+        if (response.status === 401) {
+            this.auth.markUnauthenticated();
+        }
+        if (!response.ok) {
+            throw await this.parseError(response);
+        }
+        if (!response.body) {
+            throw new ApiError(response.status, "Stream response had no body.");
+        }
+        return response.body;
     }
     async requestBytes(method, path) {
         const url = `${this.apiUrl}${path}`;
@@ -2478,574 +2535,205 @@ exports.AgentsService = AgentsService;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TasksNamespace = void 0;
-const TasksService_js_1 = require("./openapi_client/services/TasksService.js");
 class TasksNamespace {
-    constructor(client, podId) {
-        this.client = client;
+    constructor(http, podId) {
+        this.http = http;
         this.podId = podId;
         this.messages = {
-            list: (taskId, options = {}) => this.client.request(() => TasksService_js_1.TasksService.taskMessageList(this.podId(), taskId, options.limit ?? 100, options.pageToken)),
+            list: (taskId, options = {}) => this.http.request("GET", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
+                params: {
+                    limit: options.limit ?? 100,
+                    page_token: options.pageToken ?? options.cursor,
+                    cursor: options.cursor,
+                },
+            }),
             add: (taskId, content) => {
                 const payload = { content };
-                return this.client.request(() => TasksService_js_1.TasksService.taskMessageAdd(this.podId(), taskId, payload));
+                return this.http.request("POST", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
+                    body: payload,
+                });
             },
         };
     }
     list(options = {}) {
-        return this.client.request(() => TasksService_js_1.TasksService.taskList(this.podId(), options.agentName, options.limit ?? 100, options.pageToken));
+        return this.http.request("GET", `/pods/${this.podId()}/tasks`, {
+            params: {
+                agent_name: options.agentName,
+                agent_id: options.agentId,
+                limit: options.limit ?? 100,
+                page_token: options.pageToken ?? options.cursor,
+                cursor: options.cursor,
+            },
+        });
     }
     create(options) {
-        const payload = { agent_name: options.agentName, input_data: options.input };
-        return this.client.request(() => TasksService_js_1.TasksService.taskCreate(this.podId(), payload));
+        if (!options.agentId && !options.agentName) {
+            throw new Error("Either agentId or agentName is required.");
+        }
+        return this.http.request("POST", `/pods/${this.podId()}/tasks`, {
+            body: {
+                agent_id: options.agentId,
+                agent_name: options.agentName ?? options.agentId,
+                input_data: options.input,
+                runtime_account_ids: options.runtimeAccountIds,
+            },
+        });
     }
     get(taskId) {
-        return this.client.request(() => TasksService_js_1.TasksService.taskGet(this.podId(), taskId));
+        return this.http.request("GET", `/pods/${this.podId()}/tasks/${taskId}`);
     }
     stop(taskId) {
-        return this.client.request(() => TasksService_js_1.TasksService.taskStop(this.podId(), taskId));
+        return this.http.request("PATCH", `/pods/${this.podId()}/tasks/${taskId}/stop`);
+    }
+    stream(taskId, options = {}) {
+        return this.http.stream(`/pods/${this.podId()}/tasks/${taskId}/stream`, {
+            signal: options.signal,
+            headers: {
+                Accept: "text/event-stream",
+            },
+        });
     }
 }
 exports.TasksNamespace = TasksNamespace;
-
-},
-"./openapi_client/services/TasksService.js": function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TasksService = void 0;
-const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
-const request_js_1 = require("./openapi_client/core/request.js");
-class TasksService {
-    /**
-     * Create Task
-     * Create and start a new task
-     * @param podId
-     * @param requestBody
-     * @returns TaskResponse Successful Response
-     * @throws ApiError
-     */
-    static taskCreate(podId, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/tasks',
-            path: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Tasks
-     * List all tasks in a pod
-     * @param podId
-     * @param agentName
-     * @param limit
-     * @param pageToken
-     * @returns TaskListResponse Successful Response
-     * @throws ApiError
-     */
-    static taskList(podId, agentName, limit = 100, pageToken) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/tasks',
-            path: {
-                'pod_id': podId,
-            },
-            query: {
-                'agent_name': agentName,
-                'limit': limit,
-                'page_token': pageToken,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Task
-     * Get a task by ID
-     * @param podId
-     * @param taskId
-     * @returns TaskResponse Successful Response
-     * @throws ApiError
-     */
-    static taskGet(podId, taskId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/tasks/{task_id}',
-            path: {
-                'pod_id': podId,
-                'task_id': taskId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Stop Task
-     * Stop a running task
-     * @param podId
-     * @param taskId
-     * @returns TaskResponse Successful Response
-     * @throws ApiError
-     */
-    static taskStop(podId, taskId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'PATCH',
-            url: '/pods/{pod_id}/tasks/{task_id}/stop',
-            path: {
-                'pod_id': podId,
-                'task_id': taskId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Add Message
-     * Add a message to a task
-     * @param podId
-     * @param taskId
-     * @param requestBody
-     * @returns TaskResponse Successful Response
-     * @throws ApiError
-     */
-    static taskMessageAdd(podId, taskId, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/tasks/{task_id}/messages',
-            path: {
-                'pod_id': podId,
-                'task_id': taskId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Messages
-     * List messages for a task
-     * @param podId
-     * @param taskId
-     * @param limit
-     * @param pageToken
-     * @returns TaskMessageListResponse Successful Response
-     * @throws ApiError
-     */
-    static taskMessageList(podId, taskId, limit = 100, pageToken) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/tasks/{task_id}/messages',
-            path: {
-                'pod_id': podId,
-                'task_id': taskId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Stream Task Updates
-     * Stream task updates via Server-Sent Events
-     * @param podId
-     * @param taskId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    static taskStream(podId, taskId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/tasks/{task_id}/stream',
-            path: {
-                'pod_id': podId,
-                'task_id': taskId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-}
-exports.TasksService = TasksService;
 
 },
 "./namespaces/assistants.js": function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ConversationsNamespace = exports.AssistantsNamespace = void 0;
-const AssistantsService_js_1 = require("./openapi_client/services/AssistantsService.js");
-const ConversationsService_js_1 = require("./openapi_client/services/ConversationsService.js");
 class AssistantsNamespace {
-    constructor(client, podId) {
-        this.client = client;
+    constructor(http, podId) {
+        this.http = http;
         this.podId = podId;
     }
     list(options = {}) {
-        return this.client.request(() => AssistantsService_js_1.AssistantsService.assistantList(this.podId(), options.limit ?? 100, options.pageToken));
+        return this.http.request("GET", `/pods/${this.podId()}/assistants`, {
+            params: {
+                limit: options.limit ?? 100,
+                page_token: options.pageToken ?? options.cursor,
+                cursor: options.cursor,
+            },
+        });
     }
     create(payload) {
-        return this.client.request(() => AssistantsService_js_1.AssistantsService.assistantCreate(this.podId(), payload));
+        return this.http.request("POST", `/pods/${this.podId()}/assistants`, { body: payload });
     }
     get(assistantName) {
-        return this.client.request(() => AssistantsService_js_1.AssistantsService.assistantGet(this.podId(), assistantName));
+        return this.http.request("GET", `/pods/${this.podId()}/assistants/${assistantName}`);
     }
     update(assistantName, payload) {
-        return this.client.request(() => AssistantsService_js_1.AssistantsService.assistantUpdate(this.podId(), assistantName, payload));
+        return this.http.request("PATCH", `/pods/${this.podId()}/assistants/${assistantName}`, {
+            body: payload,
+        });
     }
     delete(assistantName) {
-        return this.client.request(() => AssistantsService_js_1.AssistantsService.assistantDelete(this.podId(), assistantName));
+        return this.http.request("DELETE", `/pods/${this.podId()}/assistants/${assistantName}`);
     }
 }
 exports.AssistantsNamespace = AssistantsNamespace;
 class ConversationsNamespace {
-    constructor(client, podId) {
-        this.client = client;
+    constructor(http, podId) {
+        this.http = http;
         this.podId = podId;
         this.messages = {
-            list: (conversationId, options = {}) => this.client.request(() => ConversationsService_js_1.ConversationsService.conversationMessageList(conversationId, this.podId(), options.pageToken, options.limit ?? 20)),
-            send: (conversationId, payload) => this.client.request(() => ConversationsService_js_1.ConversationsService.conversationMessageCreate(conversationId, payload, this.podId())),
+            list: (conversationId, options = {}) => this.http.request("GET", `/conversations/${conversationId}/messages`, {
+                params: {
+                    pod_id: options.podId ?? this.podId(),
+                    limit: options.limit ?? 20,
+                    page_token: options.pageToken ?? options.cursor,
+                    cursor: options.cursor,
+                    order: options.order,
+                },
+            }),
+            send: (conversationId, payload, options = {}) => this.http.request("POST", `/conversations/${conversationId}/messages`, {
+                params: {
+                    pod_id: options.podId ?? this.podId(),
+                },
+                body: payload,
+            }),
         };
     }
     list(options = {}) {
-        return this.client.request(() => ConversationsService_js_1.ConversationsService.conversationList(undefined, this.podId(), undefined, options.pageToken, options.limit ?? 20));
+        return this.http.request("GET", "/conversations", {
+            params: {
+                assistant_id: options.assistantName ?? options.assistantId,
+                pod_id: options.podId ?? this.podId(),
+                organization_id: options.organizationId,
+                limit: options.limit ?? 20,
+                page_token: options.pageToken ?? options.cursor,
+                cursor: options.cursor,
+            },
+        });
+    }
+    listByAssistant(assistantName, options = {}) {
+        return this.list({ ...options, assistantName });
     }
     create(payload) {
-        return this.client.request(() => ConversationsService_js_1.ConversationsService.conversationCreate({ ...payload, pod_id: this.podId() }));
+        return this.http.request("POST", "/conversations", {
+            body: {
+                ...payload,
+                assistant_id: payload.assistant_id ?? payload.assistant_name,
+                pod_id: payload.pod_id ?? this.podId(),
+            },
+        });
     }
-    get(conversationId) {
-        return this.client.request(() => ConversationsService_js_1.ConversationsService.conversationGet(conversationId, this.podId()));
+    createForAssistant(assistantName, payload = {}) {
+        return this.create({
+            ...payload,
+            assistant_name: assistantName,
+            pod_id: payload.pod_id ?? this.podId(),
+        });
+    }
+    get(conversationId, options = {}) {
+        return this.http.request("GET", `/conversations/${conversationId}`, {
+            params: {
+                pod_id: options.podId ?? this.podId(),
+            },
+        });
+    }
+    update(conversationId, payload, options = {}) {
+        return this.http.request("PATCH", `/conversations/${conversationId}`, {
+            params: {
+                pod_id: options.podId ?? this.podId(),
+            },
+            body: payload,
+        });
+    }
+    sendMessageStream(conversationId, payload, options = {}) {
+        return this.http.stream(`/conversations/${conversationId}/messages`, {
+            method: "POST",
+            params: {
+                pod_id: options.podId ?? this.podId(),
+            },
+            body: payload,
+            signal: options.signal,
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "text/event-stream",
+            },
+        });
+    }
+    resumeStream(conversationId, options = {}) {
+        return this.http.stream(`/conversations/${conversationId}/stream`, {
+            params: {
+                pod_id: options.podId ?? this.podId(),
+            },
+            signal: options.signal,
+            headers: {
+                Accept: "text/event-stream",
+            },
+        });
+    }
+    stopRun(conversationId, options = {}) {
+        return this.http.request("PATCH", `/conversations/${conversationId}/stop`, {
+            params: {
+                pod_id: options.podId ?? this.podId(),
+            },
+            body: {},
+        });
     }
 }
 exports.ConversationsNamespace = ConversationsNamespace;
-
-},
-"./openapi_client/services/AssistantsService.js": function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AssistantsService = void 0;
-const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
-const request_js_1 = require("./openapi_client/core/request.js");
-class AssistantsService {
-    /**
-     * Create Assistant
-     * @param podId
-     * @param requestBody
-     * @returns AssistantResponse Successful Response
-     * @throws ApiError
-     */
-    static assistantCreate(podId, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/assistants',
-            path: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Assistants
-     * @param podId
-     * @param limit
-     * @param pageToken
-     * @returns AssistantListResponse Successful Response
-     * @throws ApiError
-     */
-    static assistantList(podId, limit = 100, pageToken) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/assistants',
-            path: {
-                'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Assistant
-     * @param podId
-     * @param assistantName
-     * @returns AssistantResponse Successful Response
-     * @throws ApiError
-     */
-    static assistantGet(podId, assistantName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/assistants/{assistant_name}',
-            path: {
-                'pod_id': podId,
-                'assistant_name': assistantName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update Assistant
-     * @param podId
-     * @param assistantName
-     * @param requestBody
-     * @returns AssistantResponse Successful Response
-     * @throws ApiError
-     */
-    static assistantUpdate(podId, assistantName, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'PATCH',
-            url: '/pods/{pod_id}/assistants/{assistant_name}',
-            path: {
-                'pod_id': podId,
-                'assistant_name': assistantName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Assistant
-     * @param podId
-     * @param assistantName
-     * @returns void
-     * @throws ApiError
-     */
-    static assistantDelete(podId, assistantName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/assistants/{assistant_name}',
-            path: {
-                'pod_id': podId,
-                'assistant_name': assistantName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-}
-exports.AssistantsService = AssistantsService;
-
-},
-"./openapi_client/services/ConversationsService.js": function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConversationsService = void 0;
-const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
-const request_js_1 = require("./openapi_client/core/request.js");
-class ConversationsService {
-    /**
-     * Create Conversation
-     * @param requestBody
-     * @returns ConversationResponse Successful Response
-     * @throws ApiError
-     */
-    static conversationCreate(requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/conversations',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Conversations
-     * @param assistantId
-     * @param podId
-     * @param organizationId
-     * @param pageToken
-     * @param limit
-     * @returns ConversationListResponse Successful Response
-     * @throws ApiError
-     */
-    static conversationList(assistantId, podId, organizationId, pageToken, limit = 20) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/conversations',
-            query: {
-                'assistant_id': assistantId,
-                'pod_id': podId,
-                'organization_id': organizationId,
-                'page_token': pageToken,
-                'limit': limit,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Conversation
-     * @param conversationId
-     * @param podId
-     * @returns ConversationResponse Successful Response
-     * @throws ApiError
-     */
-    static conversationGet(conversationId, podId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/conversations/{conversation_id}',
-            path: {
-                'conversation_id': conversationId,
-            },
-            query: {
-                'pod_id': podId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update Conversation
-     * @param conversationId
-     * @param requestBody
-     * @param podId
-     * @returns ConversationResponse Successful Response
-     * @throws ApiError
-     */
-    static conversationUpdate(conversationId, requestBody, podId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'PATCH',
-            url: '/conversations/{conversation_id}',
-            path: {
-                'conversation_id': conversationId,
-            },
-            query: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Messages
-     * List messages in a conversation with token pagination. Use `page_token` to fetch older messages.
-     * @param conversationId
-     * @param podId
-     * @param pageToken
-     * @param limit
-     * @returns ConversationMessageListResponse Successful Response
-     * @throws ApiError
-     */
-    static conversationMessageList(conversationId, podId, pageToken, limit = 20) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/conversations/{conversation_id}/messages',
-            path: {
-                'conversation_id': conversationId,
-            },
-            query: {
-                'pod_id': podId,
-                'page_token': pageToken,
-                'limit': limit,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Send Message (Stream)
-     * @param conversationId
-     * @param requestBody
-     * @param podId
-     * @returns any Server-Sent Events
-     * @throws ApiError
-     */
-    static conversationMessageCreate(conversationId, requestBody, podId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/conversations/{conversation_id}/messages',
-            path: {
-                'conversation_id': conversationId,
-            },
-            query: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Resume Conversation Stream
-     * @param conversationId
-     * @param podId
-     * @returns any Server-Sent Events for an already-running conversation.
-     * @throws ApiError
-     */
-    static conversationStreamResume(conversationId, podId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/conversations/{conversation_id}/stream',
-            path: {
-                'conversation_id': conversationId,
-            },
-            query: {
-                'pod_id': podId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Stop Conversation Run
-     * @param conversationId
-     * @param podId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    static conversationRunStop(conversationId, podId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'PATCH',
-            url: '/conversations/{conversation_id}/stop',
-            path: {
-                'conversation_id': conversationId,
-            },
-            query: {
-                'pod_id': podId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-}
-exports.ConversationsService = ConversationsService;
 
 },
 "./namespaces/workflows.js": function (module, exports, require) {
@@ -3995,6 +3683,44 @@ class IntegrationsService {
     }
 }
 exports.IntegrationsService = IntegrationsService;
+
+},
+"./namespaces/resources.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ResourcesNamespace = void 0;
+class ResourcesNamespace {
+    constructor(http) {
+        this.http = http;
+    }
+    list(resourceType, resourceId, options = {}) {
+        return this.http.request("GET", `/files/${resourceType}/${resourceId}/list`, {
+            params: {
+                path: options.path,
+            },
+        });
+    }
+    upload(resourceType, resourceId, file, options = {}) {
+        const formData = new FormData();
+        const fieldName = options.fieldName ?? "file";
+        const name = options.name ?? (file instanceof File ? file.name : "upload.bin");
+        formData.append(fieldName, file, name);
+        return this.http.request("POST", `/files/${resourceType}/${resourceId}/upload`, {
+            params: {
+                path: options.path,
+            },
+            body: formData,
+            isFormData: true,
+        });
+    }
+    delete(resourceType, resourceId, filePath) {
+        return this.http.request("DELETE", `/files/${resourceType}/${resourceId}/delete/${filePath}`);
+    }
+    download(resourceType, resourceId, filePath) {
+        return this.http.requestBytes("GET", `/files/${resourceType}/${resourceId}/download/${filePath}`);
+    }
+}
+exports.ResourcesNamespace = ResourcesNamespace;
 
 }
   };

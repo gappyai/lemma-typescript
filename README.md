@@ -1,11 +1,6 @@
-# Lemma TypeScript SDK
+# Lemma TypeScript SDK (`lemma-sdk`)
 
-Official TypeScript SDK for Lemma pod-scoped APIs.
-
-- High-level `LemmaClient` namespaces for common workflows
-- React helpers (`lemma-sdk/react`) for auth-gated apps
-- Re-exported generated OpenAPI services and model types
-- Browser standalone bundle (`dist/browser/lemma-client.js`)
+Official TypeScript SDK for Lemma APIs with pod-scoped namespaces, auth helpers, streaming support, and reusable React hooks.
 
 ## Install
 
@@ -19,20 +14,128 @@ If you want to import as `lemma`, use npm aliasing:
 npm i lemma@npm:lemma-sdk
 ```
 
-## Quick usage
+## Quick Start
 
 ```ts
 import { LemmaClient } from "lemma-sdk";
 
 const client = new LemmaClient({
-  apiUrl: "/api",
-  authUrl: "http://localhost:4173",
+  apiUrl: "https://api-next.asur.work",
+  authUrl: "https://auth.asur.work/auth",
   podId: "<pod-id>",
 });
 
 await client.initialize();
-const todos = await client.records.list("default", "todos", { limit: 20 });
+
+const datastores = await client.datastores.list();
+const assistants = await client.assistants.list({ limit: 20 });
+const supportAssistant = await client.assistants.get("support_assistant");
 ```
+
+## Core Concepts
+
+- `LemmaClient`: entrypoint with auth + API transport.
+- Namespace APIs (`client.agents`, `client.tasks`, `client.conversations`, etc.) for typed operations.
+- `client.request(method, path, options)` escape hatch for endpoints not yet modeled.
+- `client.resources` for generic file resource APIs (`conversation`, `assistant`, `task`, etc.).
+- Ergonomic type aliases exported at top level: `Agent`, `Assistant`, `Conversation`, `Task`, `TaskMessage`, `CreateAgentInput`, `CreateAssistantInput`, etc.
+
+## Assistants + Agent Runs
+
+### Assistant names (resource key)
+
+Assistant CRUD is name-based:
+
+```ts
+await client.assistants.get("support_assistant");
+await client.assistants.update("support_assistant", { description: "Handles support triage" });
+await client.assistants.delete("old_assistant");
+```
+
+### Conversation scoping by assistant name
+
+```ts
+const conversations = await client.conversations.list({
+  assistantName: "support_assistant",
+  limit: 20,
+});
+
+const conversation = await client.conversations.createForAssistant("support_assistant", {
+  title: "Ticket triage",
+});
+```
+
+### Conversations with SSE streaming
+
+```ts
+const stream = await client.conversations.sendMessageStream(conversationId, {
+  content: "Find open support tickets from yesterday",
+});
+
+for await (const event of readSSE(stream)) {
+  const payload = parseSSEJson(event);
+  if (!payload) continue;
+  console.log(payload);
+}
+```
+
+### Task runs with SSE streaming
+
+```ts
+const task = await client.tasks.create({
+  agentId: "triage-agent",
+  input: { ticketId: "TCK-1042" },
+  runtimeAccountIds: ["acc_123"],
+});
+
+const stream = await client.tasks.stream(task.id);
+for await (const event of readSSE(stream)) {
+  const payload = parseSSEJson(event);
+  if (!payload) continue;
+  console.log(payload);
+}
+```
+
+## React Helpers
+
+Import from `lemma-sdk/react`:
+
+- `useAuth(client)`
+- `AuthGuard`
+- `useAgentRunStream(...)`
+- `useAssistantRun(...)`
+
+Example:
+
+```tsx
+import { useAssistantRun } from "lemma-sdk/react";
+
+const { sendMessage, stop, isStreaming } = useAssistantRun({
+  client,
+  podId,
+  conversationId,
+  onEvent: (event, payload) => {
+    console.log(event.event, payload);
+  },
+});
+```
+
+## File Resources
+
+```ts
+await client.resources.upload("conversation", conversationId, file);
+const files = await client.resources.list("conversation", conversationId);
+```
+
+## Migration Tips
+
+When migrating from direct `fetch`/custom API clients:
+
+1. Replace auth/session bootstrapping with `LemmaClient`.
+2. Move pod-scoped calls into namespaces (`tasks`, `assistants`, `conversations`, etc.).
+3. Keep rare/unmodeled endpoints on `client.request(...)` temporarily.
+4. Replace SSE parsing code with `readSSE` + `parseSSEJson`.
+5. Gradually lift app-specific run/chat logic into reusable hooks in `lemma-sdk/react`.
 
 ## Development
 
@@ -54,20 +157,16 @@ Output:
 - `dist/browser/lemma-client.js` standalone browser bundle
 - `public/lemma-client.js` committed copy for static serving
 
-## Publishing
-
-As of March 26, 2026, npm package name `lemma` is already taken. This repo is configured to publish as `lemma-sdk`.
-
-Release check:
+### Release check
 
 ```bash
 npm run release:check
 ```
 
-Publish:
+### Publish
 
 ```bash
 npm publish
 ```
 
-`lemma-sdk` is unscoped, so npm publishes it as public by default.
+As of March 26, 2026, npm package name `lemma` is already taken. This package publishes as `lemma-sdk`.

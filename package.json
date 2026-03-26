@@ -1,6 +1,6 @@
 {
   "name": "lemma-sdk",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Official TypeScript SDK for Lemma pod-scoped APIs",
   "type": "module",
   "main": "dist/index.js",
@@ -47,7 +47,9 @@
     "react": ">=17"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true }
+    "react": {
+      "optional": true
+    }
   },
   "dependencies": {
     "supertokens-web-js": "^0.16.0"

@@ -3,7 +3,29 @@ export type { LemmaConfig } from "./client.js";
 export { AuthManager } from "./auth.js";
 export type { AuthState, AuthListener, AuthStatus, UserInfo } from "./auth.js";
 export { ApiError } from "./http.js";
-export type { ListRecordsOptions, RecordFilter, RecordSort, RunFunctionOptions, CreateTaskOptions, WorkflowRunInputs } from "./types.js";
+export type {
+  ListRecordsOptions,
+  RecordFilter,
+  RecordSort,
+  RunFunctionOptions,
+  CreateTaskOptions,
+  WorkflowRunInputs,
+  StreamOptions,
+  Agent,
+  CreateAgentInput,
+  UpdateAgentInput,
+  Assistant,
+  CreateAssistantInput,
+  UpdateAssistantInput,
+  Conversation,
+  ConversationMessage,
+  ConversationModel,
+  Task,
+  TaskMessage,
+  CursorPage,
+} from "./types.js";
+export { readSSE, parseSSEJson } from "./streams.js";
+export type { SseRawEvent } from "./streams.js";
 export * from "./openapi_client/index.js";
 
 // Namespace types (for advanced usage)
@@ -18,3 +40,4 @@ export type { AssistantsNamespace, ConversationsNamespace } from "./namespaces/a
 export type { WorkflowsNamespace } from "./namespaces/workflows.js";
 export type { DesksNamespace } from "./namespaces/desks.js";
 export type { IntegrationsNamespace } from "./namespaces/integrations.js";
+export type { ResourcesNamespace, ResourceType } from "./namespaces/resources.js";

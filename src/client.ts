@@ -13,6 +13,7 @@ import { AssistantsNamespace, ConversationsNamespace } from "./namespaces/assist
 import { WorkflowsNamespace } from "./namespaces/workflows.js";
 import { DesksNamespace } from "./namespaces/desks.js";
 import { IntegrationsNamespace } from "./namespaces/integrations.js";
+import { ResourcesNamespace } from "./namespaces/resources.js";
 
 export type { LemmaConfig };
 export { AuthManager };
@@ -42,6 +43,7 @@ export class LemmaClient {
   readonly workflows: WorkflowsNamespace;
   readonly desks: DesksNamespace;
   readonly integrations: IntegrationsNamespace;
+  readonly resources: ResourcesNamespace;
 
   constructor(overrides: Partial<LemmaConfig> = {}) {
     this._config = resolveConfig(overrides);
@@ -67,12 +69,13 @@ export class LemmaClient {
     this.files = new FilesNamespace(this._generated, this._http, podIdFn);
     this.functions = new FunctionsNamespace(this._generated, podIdFn);
     this.agents = new AgentsNamespace(this._generated, podIdFn);
-    this.tasks = new TasksNamespace(this._generated, podIdFn);
-    this.assistants = new AssistantsNamespace(this._generated, podIdFn);
-    this.conversations = new ConversationsNamespace(this._generated, podIdFn);
+    this.tasks = new TasksNamespace(this._http, podIdFn);
+    this.assistants = new AssistantsNamespace(this._http, podIdFn);
+    this.conversations = new ConversationsNamespace(this._http, podIdFn);
     this.workflows = new WorkflowsNamespace(this._generated, podIdFn);
     this.desks = new DesksNamespace(this._generated, this._http, podIdFn);
     this.integrations = new IntegrationsNamespace(this._generated);
+    this.resources = new ResourcesNamespace(this._http);
   }
 
   /** Change the active pod ID for subsequent calls. */
