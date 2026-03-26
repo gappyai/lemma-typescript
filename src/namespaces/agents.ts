@@ -1,21 +1,24 @@
-import type { HttpClient } from "../http.js";
+import type { GeneratedClientAdapter } from "../generated.js";
+import { AgentsService } from "../openapi_client/services/AgentsService.js";
+import type { CreateAgentRequest } from "../openapi_client/models/CreateAgentRequest.js";
+import type { UpdateAgentRequest } from "../openapi_client/models/UpdateAgentRequest.js";
 
 export class AgentsNamespace {
-  constructor(private readonly http: HttpClient, private readonly podId: () => string) {}
+  constructor(private readonly client: GeneratedClientAdapter, private readonly podId: () => string) {}
 
   list(options: { limit?: number; pageToken?: string } = {}) {
-    return this.http.request("GET", `/pods/${this.podId()}/agents`, { params: options });
+    return this.client.request(() => AgentsService.agentList(this.podId(), options.limit ?? 100, options.pageToken));
   }
-  create(payload: Record<string, unknown>) {
-    return this.http.request("POST", `/pods/${this.podId()}/agents`, { body: payload });
+  create(payload: CreateAgentRequest) {
+    return this.client.request(() => AgentsService.agentCreate(this.podId(), payload));
   }
-  get(agentId: string) {
-    return this.http.request("GET", `/pods/${this.podId()}/agents/${agentId}`);
+  get(agentName: string) {
+    return this.client.request(() => AgentsService.agentGet(this.podId(), agentName));
   }
-  update(agentId: string, payload: Record<string, unknown>) {
-    return this.http.request("PATCH", `/pods/${this.podId()}/agents/${agentId}`, { body: payload });
+  update(agentName: string, payload: UpdateAgentRequest) {
+    return this.client.request(() => AgentsService.agentUpdate(this.podId(), agentName, payload));
   }
-  delete(agentId: string) {
-    return this.http.request("DELETE", `/pods/${this.podId()}/agents/${agentId}`);
+  delete(agentName: string) {
+    return this.client.request(() => AgentsService.agentDelete(this.podId(), agentName));
   }
 }

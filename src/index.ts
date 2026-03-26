@@ -4,6 +4,7 @@ export { AuthManager } from "./auth.js";
 export type { AuthState, AuthListener, AuthStatus, UserInfo } from "./auth.js";
 export { ApiError } from "./http.js";
 export type { ListRecordsOptions, RecordFilter, RecordSort, RunFunctionOptions, CreateTaskOptions, WorkflowRunInputs } from "./types.js";
+export * from "./openapi_client/index.js";
 
 // Namespace types (for advanced usage)
 export type { DatastoresNamespace } from "./namespaces/datastores.js";

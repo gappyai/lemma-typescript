@@ -1,33 +1,38 @@
-import type { HttpClient } from "../http.js";
+import type { GeneratedClientAdapter } from "../generated.js";
+import type { CreateFunctionRequest } from "../openapi_client/models/CreateFunctionRequest.js";
+import type { ExecuteFunctionRequest } from "../openapi_client/models/ExecuteFunctionRequest.js";
+import type { UpdateFunctionRequest } from "../openapi_client/models/UpdateFunctionRequest.js";
+import { FunctionsService } from "../openapi_client/services/FunctionsService.js";
 import type { RunFunctionOptions } from "../types.js";
 
 export class FunctionsNamespace {
-  constructor(private readonly http: HttpClient, private readonly podId: () => string) {}
+  constructor(private readonly client: GeneratedClientAdapter, private readonly podId: () => string) {}
 
   list(options: { limit?: number; pageToken?: string } = {}) {
-    return this.http.request("GET", `/pods/${this.podId()}/functions`, { params: options });
+    return this.client.request(() => FunctionsService.functionList(this.podId(), options.limit ?? 100, options.pageToken));
   }
-  create(payload: Record<string, unknown>) {
-    return this.http.request("POST", `/pods/${this.podId()}/functions`, { body: payload });
+  create(payload: CreateFunctionRequest) {
+    return this.client.request(() => FunctionsService.functionCreate(this.podId(), payload));
   }
   get(name: string) {
-    return this.http.request("GET", `/pods/${this.podId()}/functions/${name}`);
+    return this.client.request(() => FunctionsService.functionGet(this.podId(), name));
   }
-  update(name: string, payload: Record<string, unknown>) {
-    return this.http.request("PATCH", `/pods/${this.podId()}/functions/${name}`, { body: payload });
+  update(name: string, payload: UpdateFunctionRequest) {
+    return this.client.request(() => FunctionsService.functionUpdate(this.podId(), name, payload));
   }
   delete(name: string) {
-    return this.http.request("DELETE", `/pods/${this.podId()}/functions/${name}`);
+    return this.client.request(() => FunctionsService.functionDelete(this.podId(), name));
   }
 
   readonly runs = {
     create: (name: string, options: RunFunctionOptions = {}) =>
-      this.http.request("POST", `/pods/${this.podId()}/functions/${name}/run`, {
-        body: { input_data: options.input, runtime_account_ids: options.runtimeAccounts },
+      this.client.request(() => {
+        const payload: ExecuteFunctionRequest = { input_data: options.input };
+        return FunctionsService.functionRun(this.podId(), name, payload);
       }),
     list: (name: string, params: { limit?: number; pageToken?: string } = {}) =>
-      this.http.request("GET", `/pods/${this.podId()}/functions/${name}/runs`, { params }),
+      this.client.request(() => FunctionsService.functionRunList(this.podId(), name, params.limit ?? 100, params.pageToken)),
     get: (name: string, runId: string) =>
-      this.http.request("GET", `/pods/${this.podId()}/functions/${name}/runs/${runId}`),
+      this.client.request(() => FunctionsService.functionRunGet(this.podId(), name, runId)),
   };
 }

@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SDK_DIR="$SCRIPT_DIR/.."
-BACKEND_ROOT="${LEMMA_BACKEND_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
+BACKEND_ROOT="${LEMMA_BACKEND_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 SPEC_TMP="$SDK_DIR/.generated/openapi.json"
 OUT_DIR="$SDK_DIR/src/openapi_client"
 
@@ -18,10 +18,19 @@ if [[ -n "${LEMMA_API_URL:-}" ]]; then
 fi
 OPENAPI_URL="${OPENAPI_URL:-http://127.0.0.1:8000/openapi.json}"
 
+CURL_ARGS=()
+if [[ "${OPENAPI_INSECURE:-0}" == "1" || "${LEMMA_SSL_NO_VERIFY:-0}" == "1" ]]; then
+  CURL_ARGS+=("-k")
+fi
+
 mkdir -p "$SDK_DIR/.generated"
 
 if [[ "${OPENAPI_SOURCE:-app}" == "url" ]]; then
-  curl -fsS "$OPENAPI_URL" -o "$SPEC_TMP"
+  if [[ ${#CURL_ARGS[@]} -gt 0 ]]; then
+    curl "${CURL_ARGS[@]}" -fsS "$OPENAPI_URL" -o "$SPEC_TMP"
+  else
+    curl -fsS "$OPENAPI_URL" -o "$SPEC_TMP"
+  fi
   echo "Fetched OpenAPI spec from $OPENAPI_URL"
 else
   (

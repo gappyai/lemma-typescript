@@ -1,45 +1,50 @@
-import type { HttpClient } from "../http.js";
+import type { GeneratedClientAdapter } from "../generated.js";
+import type { WorkflowCreateRequest } from "../openapi_client/models/WorkflowCreateRequest.js";
+import type { WorkflowGraphUpdateRequest } from "../openapi_client/models/WorkflowGraphUpdateRequest.js";
+import type { WorkflowInstallRequest } from "../openapi_client/models/WorkflowInstallRequest.js";
+import type { WorkflowUpdateRequest } from "../openapi_client/models/WorkflowUpdateRequest.js";
+import { WorkflowsService } from "../openapi_client/services/WorkflowsService.js";
 import type { WorkflowRunInputs } from "../types.js";
 
 export class WorkflowsNamespace {
-  constructor(private readonly http: HttpClient, private readonly podId: () => string) {}
+  constructor(private readonly client: GeneratedClientAdapter, private readonly podId: () => string) {}
 
   list(options: { limit?: number; pageToken?: string } = {}) {
-    return this.http.request("GET", `/pods/${this.podId()}/flows`, { params: options });
+    return this.client.request(() => WorkflowsService.workflowList(this.podId(), options.limit ?? 100, options.pageToken));
   }
-  create(payload: Record<string, unknown>) {
-    return this.http.request("POST", `/pods/${this.podId()}/flows`, { body: payload });
+  create(payload: WorkflowCreateRequest) {
+    return this.client.request(() => WorkflowsService.workflowCreate(this.podId(), payload));
   }
-  get(flowId: string) {
-    return this.http.request("GET", `/pods/${this.podId()}/flows/${flowId}`);
+  get(workflowName: string) {
+    return this.client.request(() => WorkflowsService.workflowGet(this.podId(), workflowName));
   }
-  update(flowId: string, payload: Record<string, unknown>) {
-    return this.http.request("PATCH", `/pods/${this.podId()}/flows/${flowId}`, { body: payload });
+  update(workflowName: string, payload: WorkflowUpdateRequest) {
+    return this.client.request(() => WorkflowsService.workflowUpdate(this.podId(), workflowName, payload));
   }
-  delete(flowId: string) {
-    return this.http.request("DELETE", `/pods/${this.podId()}/flows/${flowId}`);
+  delete(workflowName: string) {
+    return this.client.request(() => WorkflowsService.workflowDelete(this.podId(), workflowName));
   }
 
   readonly graph = {
-    update: (flowId: string, graph: { nodes: unknown[]; edges: unknown[]; start?: unknown }) =>
-      this.http.request("PUT", `/pods/${this.podId()}/flows/${flowId}/graph`, { body: graph }),
+    update: (workflowName: string, graph: WorkflowGraphUpdateRequest) =>
+      this.client.request(() => WorkflowsService.workflowGraphUpdate(this.podId(), workflowName, graph)),
   };
 
   readonly installs = {
-    create: (flowId: string, payload: Record<string, unknown> = {}) =>
-      this.http.request("POST", `/pods/${this.podId()}/flows/${flowId}/installs`, { body: payload }),
-    delete: (flowId: string, installId: string) =>
-      this.http.request("DELETE", `/pods/${this.podId()}/flows/${flowId}/installs/${installId}`),
+    create: (workflowName: string, payload: WorkflowInstallRequest = {}) =>
+      this.client.request(() => WorkflowsService.workflowInstallCreate(this.podId(), workflowName, payload)),
+    delete: (workflowName: string, installId: string) =>
+      this.client.request(() => WorkflowsService.workflowInstallDelete(this.podId(), workflowName, installId)),
   };
 
   readonly runs = {
-    start: (flowId: string, inputs: WorkflowRunInputs = {}) =>
-      this.http.request("POST", `/pods/${this.podId()}/flows/${flowId}/runs`, { body: inputs }),
-    list: (flowId: string, options: { limit?: number; pageToken?: string } = {}) =>
-      this.http.request("GET", `/pods/${this.podId()}/flows/${flowId}/runs`, { params: options }),
-    get: (podId: string, runId: string) =>
-      this.http.request("GET", `/pods/${podId}/flows/runs/${runId}`),
-    resume: (podId: string, runId: string, inputs: WorkflowRunInputs = {}) =>
-      this.http.request("POST", `/pods/${podId}/flows/runs/${runId}/resume`, { body: inputs }),
+    start: (workflowName: string, inputs: WorkflowRunInputs = {}) =>
+      this.client.request(() => WorkflowsService.workflowStart(this.podId(), workflowName, inputs)),
+    list: (workflowName: string, options: { limit?: number; pageToken?: string } = {}) =>
+      this.client.request(() => WorkflowsService.workflowRunList(this.podId(), workflowName, options.limit ?? 100, options.pageToken)),
+    get: (runId: string, podId = this.podId()) =>
+      this.client.request(() => WorkflowsService.workflowRunGet(podId, runId)),
+    resume: (runId: string, inputs: WorkflowRunInputs = {}, podId = this.podId()) =>
+      this.client.request(() => WorkflowsService.workflowRunResume(podId, runId, inputs)),
   };
 }

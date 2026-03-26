@@ -1,28 +1,32 @@
-import type { HttpClient } from "../http.js";
+import type { GeneratedClientAdapter } from "../generated.js";
+import type { AddMessageRequest } from "../openapi_client/models/AddMessageRequest.js";
+import type { CreateTaskRequest } from "../openapi_client/models/CreateTaskRequest.js";
+import { TasksService } from "../openapi_client/services/TasksService.js";
 import type { CreateTaskOptions } from "../types.js";
 
 export class TasksNamespace {
-  constructor(private readonly http: HttpClient, private readonly podId: () => string) {}
+  constructor(private readonly client: GeneratedClientAdapter, private readonly podId: () => string) {}
 
-  list(options: { limit?: number; pageToken?: string } = {}) {
-    return this.http.request("GET", `/pods/${this.podId()}/tasks`, { params: options });
+  list(options: { agentName?: string; limit?: number; pageToken?: string } = {}) {
+    return this.client.request(() => TasksService.taskList(this.podId(), options.agentName, options.limit ?? 100, options.pageToken));
   }
   create(options: CreateTaskOptions) {
-    return this.http.request("POST", `/pods/${this.podId()}/tasks`, {
-      body: { agent_id: options.agentId, input_data: options.input, runtime_account_ids: options.runtimeAccounts },
-    });
+    const payload: CreateTaskRequest = { agent_name: options.agentName, input_data: options.input };
+    return this.client.request(() => TasksService.taskCreate(this.podId(), payload));
   }
   get(taskId: string) {
-    return this.http.request("GET", `/pods/${this.podId()}/tasks/${taskId}`);
+    return this.client.request(() => TasksService.taskGet(this.podId(), taskId));
   }
   stop(taskId: string) {
-    return this.http.request("POST", `/pods/${this.podId()}/tasks/${taskId}/stop`);
+    return this.client.request(() => TasksService.taskStop(this.podId(), taskId));
   }
 
   readonly messages = {
     list: (taskId: string, options: { limit?: number; pageToken?: string } = {}) =>
-      this.http.request("GET", `/pods/${this.podId()}/tasks/${taskId}/messages`, { params: options }),
-    add: (taskId: string, content: string) =>
-      this.http.request("POST", `/pods/${this.podId()}/tasks/${taskId}/messages`, { body: { content } }),
+      this.client.request(() => TasksService.taskMessageList(this.podId(), taskId, options.limit ?? 100, options.pageToken)),
+    add: (taskId: string, content: string) => {
+      const payload: AddMessageRequest = { content };
+      return this.client.request(() => TasksService.taskMessageAdd(this.podId(), taskId, payload));
+    },
   };
 }

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import type { RecordListResponse, RecordResponse } from "@lemma/client";
 import { getClient, DATASTORE, TABLE, type Todo } from "../lib/client.ts";
 
 // ---------------------------------------------------------------------------
@@ -15,27 +16,47 @@ interface NewTodoForm {
   priority: Priority;
 }
 
+function toTodo(record: Record<string, unknown>): Todo {
+  const status = record.status;
+  const priority = record.priority;
+
+  return {
+    id: String(record.id ?? ""),
+    title: String(record.title ?? ""),
+    description: typeof record.description === "string" ? record.description : null,
+    status:
+      status === "todo" || status === "in_progress" || status === "done"
+        ? status
+        : "todo",
+    priority:
+      priority === "low" || priority === "medium" || priority === "high"
+        ? priority
+        : null,
+    due_date: typeof record.due_date === "string" ? record.due_date : null,
+    created_at: typeof record.created_at === "string" ? record.created_at : "",
+    updated_at: typeof record.updated_at === "string" ? record.updated_at : "",
+  };
+}
+
 // ---------------------------------------------------------------------------
 // API helpers
 // ---------------------------------------------------------------------------
 
 async function fetchTodos(): Promise<Todo[]> {
   const client = getClient();
-  const response = (await client.records.list(DATASTORE, TABLE, { limit: 100 })) as {
-    items: Todo[];
-  };
-  return response.items;
+  const response = await client.records.list(DATASTORE, TABLE, { limit: 100 }) as RecordListResponse;
+  return response.items.map(toTodo);
 }
 
 async function createTodo(form: NewTodoForm): Promise<Todo> {
   const client = getClient();
-  const response = (await client.records.create(DATASTORE, TABLE, {
+  const response = await client.records.create(DATASTORE, TABLE, {
     title: form.title,
     description: form.description || null,
     status: form.status,
     priority: form.priority,
-  })) as { data: Todo };
-  return response.data;
+  }) as RecordResponse;
+  return toTodo(response.data);
 }
 
 async function updateTodoStatus(id: string, status: Status): Promise<void> {

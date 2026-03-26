@@ -33,6 +33,9 @@
   "peerDependenciesMeta": {
     "react": { "optional": true }
   },
+  "dependencies": {
+    "supertokens-web-js": "^0.16.0"
+  },
   "devDependencies": {
     "@types/react": "^18.3.28",
     "openapi-typescript-codegen": "^0.29.0",

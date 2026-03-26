@@ -9,11 +9,15 @@
  *
  * If a token is found in (1) or (2), all requests use Authorization: Bearer <token>.
  * Otherwise requests rely on cookies, and the server must set the session cookie
- * after the user authenticates at the auth service.
+ * after the user authenticates at the auth service. In cookie mode we initialise
+ * the SuperTokens browser SDK so fetch/XHR automatically handles anti-CSRF and
+ * refresh-token flows for mutating requests.
  *
  * Auth state is determined by calling GET /users/me (user.current.get).
  * 401 → unauthenticated. 200 → authenticated.
  */
+
+import { ensureCookieSessionSupport } from "./supertokens.js";
 
 export interface UserInfo {
   id: string;
@@ -73,11 +77,20 @@ export class AuthManager {
     this.apiUrl = apiUrl;
     this.authUrl = authUrl;
     this.injectedToken = detectInjectedToken();
+
+    if (!this.injectedToken) {
+      ensureCookieSessionSupport(this.apiUrl, () => this.markUnauthenticated());
+    }
   }
 
   /** Whether requests will use an injected Bearer token (testing mode). */
   get isTokenMode(): boolean {
     return this.injectedToken !== null;
+  }
+
+  /** The current injected Bearer token, if token-mode auth is active. */
+  getBearerToken(): string | null {
+    return this.injectedToken;
   }
 
   /** The current auth state. */

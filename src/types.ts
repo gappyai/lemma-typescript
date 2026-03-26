@@ -1,4 +1,7 @@
-/** Public ergonomic types. All field names use camelCase. */
+import type { RecordFilter as GeneratedRecordFilter } from "./openapi_client/models/RecordFilter.js";
+import type { RecordSort as GeneratedRecordSort } from "./openapi_client/models/RecordSort.js";
+
+/** Public ergonomic types. */
 
 export interface PageResult<T> {
   items: T[];
@@ -6,36 +9,25 @@ export interface PageResult<T> {
   total?: number;
 }
 
-export interface RecordFilter {
-  field: string;
-  op: "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "like" | "in";
-  value: unknown;
-}
+export type RecordFilter = GeneratedRecordFilter;
 
-export interface RecordSort {
-  field: string;
-  direction: "asc" | "desc";
-}
+export type RecordSort = GeneratedRecordSort;
 
 export interface ListRecordsOptions {
   filters?: RecordFilter[];
   sort?: RecordSort[];
   limit?: number;
-  offset?: number;
   pageToken?: string;
 }
 
 export interface RunFunctionOptions {
   /** Input payload for the function */
   input?: Record<string, unknown>;
-  /** Runtime integration account IDs */
-  runtimeAccounts?: string[];
 }
 
 export interface CreateTaskOptions {
-  agentId: string;
+  agentName: string;
   input?: Record<string, unknown>;
-  runtimeAccounts?: string[];
 }
 
 export interface WorkflowRunInputs {

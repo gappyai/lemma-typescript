@@ -1,5 +1,6 @@
 import { resolveConfig, type LemmaConfig } from "./config.js";
 import { AuthManager, type AuthState, type AuthListener } from "./auth.js";
+import { GeneratedClientAdapter } from "./generated.js";
 import { HttpClient } from "./http.js";
 import { DatastoresNamespace } from "./namespaces/datastores.js";
 import { TablesNamespace } from "./namespaces/tables.js";
@@ -26,6 +27,7 @@ export class LemmaClient {
   readonly auth: AuthManager;
 
   private readonly _http: HttpClient;
+  private readonly _generated: GeneratedClientAdapter;
 
   // Namespaces
   readonly datastores: DatastoresNamespace;
@@ -48,6 +50,7 @@ export class LemmaClient {
 
     this.auth = new AuthManager(this._config.apiUrl, this._config.authUrl);
     this._http = new HttpClient(this._config.apiUrl, this.auth);
+    this._generated = new GeneratedClientAdapter(this._config.apiUrl, this.auth);
 
     const podIdFn = () => {
       if (!this._currentPodId) {
@@ -58,18 +61,18 @@ export class LemmaClient {
       return this._currentPodId;
     };
 
-    this.datastores = new DatastoresNamespace(this._http, podIdFn);
-    this.tables = new TablesNamespace(this._http, podIdFn);
-    this.records = new RecordsNamespace(this._http, podIdFn);
-    this.files = new FilesNamespace(this._http, podIdFn);
-    this.functions = new FunctionsNamespace(this._http, podIdFn);
-    this.agents = new AgentsNamespace(this._http, podIdFn);
-    this.tasks = new TasksNamespace(this._http, podIdFn);
-    this.assistants = new AssistantsNamespace(this._http, podIdFn);
-    this.conversations = new ConversationsNamespace(this._http, podIdFn);
-    this.workflows = new WorkflowsNamespace(this._http, podIdFn);
-    this.desks = new DesksNamespace(this._http, podIdFn);
-    this.integrations = new IntegrationsNamespace(this._http);
+    this.datastores = new DatastoresNamespace(this._generated, podIdFn);
+    this.tables = new TablesNamespace(this._generated, podIdFn);
+    this.records = new RecordsNamespace(this._generated, podIdFn);
+    this.files = new FilesNamespace(this._generated, this._http, podIdFn);
+    this.functions = new FunctionsNamespace(this._generated, podIdFn);
+    this.agents = new AgentsNamespace(this._generated, podIdFn);
+    this.tasks = new TasksNamespace(this._generated, podIdFn);
+    this.assistants = new AssistantsNamespace(this._generated, podIdFn);
+    this.conversations = new ConversationsNamespace(this._generated, podIdFn);
+    this.workflows = new WorkflowsNamespace(this._generated, podIdFn);
+    this.desks = new DesksNamespace(this._generated, this._http, podIdFn);
+    this.integrations = new IntegrationsNamespace(this._generated);
   }
 
   /** Change the active pod ID for subsequent calls. */
