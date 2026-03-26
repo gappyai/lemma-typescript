@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import type { RecordListResponse, RecordResponse } from "@lemma/client";
+import type { RecordListResponse, RecordResponse } from "lemma-sdk";
 import { getClient, DATASTORE, TABLE, type Todo } from "../lib/client.ts";
 
 // ---------------------------------------------------------------------------
@@ -422,7 +422,7 @@ export default function TodoApp() {
           <span style={{
             fontSize: "11px", padding: "2px 8px",
             background: "#f3f4f6", color: "#6b7280", borderRadius: "4px",
-          }}>@lemma/client demo</span>
+          }}>lemma-sdk demo</span>
         </div>
         <button
           onClick={refresh}
@@ -523,7 +523,7 @@ export default function TodoApp() {
           lineHeight: 1.6,
         }}>
           <strong style={{ color: "#374151" }}>SDK info</strong>
-          <div>Using <code>@lemma/client</code> TypeScript SDK via Vite path alias</div>
+          <div>Using <code>lemma-sdk</code> TypeScript SDK via Vite path alias</div>
           <div>Auth: <code>?lemma_token=&lt;token&gt;</code> (Bearer) or session cookie</div>
           <div>Pod: <code>{getClient().podId}</code></div>
           <div>API: <code>{getClient().apiUrl}</code> (proxied via Vite)</div>

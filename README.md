@@ -1,62 +1,28 @@
 # Lemma TypeScript SDK
 
-TypeScript/browser SDK for Lemma pod-scoped APIs, with a generated OpenAPI client plus a higher-level `LemmaClient` facade.
+Official TypeScript SDK for Lemma pod-scoped APIs.
 
-## What is in this repo
+- High-level `LemmaClient` namespaces for common workflows
+- React helpers (`lemma-sdk/react`) for auth-gated apps
+- Re-exported generated OpenAPI services and model types
+- Browser standalone bundle (`dist/browser/lemma-client.js`)
 
-- `src/openapi_client/`: generated typed OpenAPI client
-- `src/`: ergonomic SDK facade, auth helpers, React helpers
-- `scripts/generate_openapi_client.sh`: regenerate `src/openapi_client`
-- `examples/todo-app/`: sample React app for local verification
-
-## Regenerate the typed client
-
-From this directory:
+## Install
 
 ```bash
-bash scripts/generate_openapi_client.sh
+npm i lemma-sdk
 ```
 
-To generate from the running local HTTPS API:
+If you want to import as `lemma`, use npm aliasing:
 
 ```bash
-OPENAPI_SOURCE=url \
-OPENAPI_URL=https://localhost/openapi.json \
-OPENAPI_INSECURE=1 \
-bash scripts/generate_openapi_client.sh
+npm i lemma@npm:lemma-sdk
 ```
 
-Useful environment variables:
-
-- `LEMMA_BACKEND_ROOT=/abs/path/to/gappy-backend`
-- `OPENAPI_SOURCE=app|url`
-- `OPENAPI_URL=https://localhost/openapi.json`
-- `OPENAPI_INSECURE=1` for self-signed local HTTPS
-
-## Build the SDK
-
-```bash
-npm run build
-```
-
-This produces:
-
-- `dist/` for package consumers
-- `public/lemma-client.js` for the browser bundle
-
-## Auth model
-
-The SDK supports both:
-
-- cookie/session auth via `credentials: "include"` for the normal browser flow
-- Bearer token injection via `?lemma_token=...` or `sessionStorage/localStorage`
-
-`LemmaClient` uses the generated OpenAPI services underneath, but keeps auth/session behavior aligned with the browser app flow.
-
-## Using the SDK
+## Quick usage
 
 ```ts
-import { LemmaClient } from "@lemma/client";
+import { LemmaClient } from "lemma-sdk";
 
 const client = new LemmaClient({
   apiUrl: "/api",
@@ -68,27 +34,40 @@ await client.initialize();
 const todos = await client.records.list("default", "todos", { limit: 20 });
 ```
 
-The package also re-exports the generated models and services from `src/openapi_client`.
+## Development
 
-## Local sample app
-
-The sample app runs on `5173` and proxies `/api` to `https://localhost` with `secure: false`, so the browser can exercise the local cookie-auth flow without CORS trouble.
-
-Run it from this directory:
+### Regenerate OpenAPI client
 
 ```bash
-cd examples/todo-app
-npm install
-npm run dev
+bash scripts/generate_openapi_client.sh
 ```
 
-Environment variables:
+### Build SDK
 
-- `VITE_LEMMA_API_URL=/api`
-- `VITE_LEMMA_AUTH_URL=http://localhost:4173`
-- `VITE_LEMMA_POD_ID=<pod-id>`
+```bash
+npm run build
+```
 
-## Notes
+Output:
 
-- Regenerate `src/openapi_client` whenever the backend OpenAPI changes.
-- The ergonomic namespaces should stay thin and defer to generated services/models wherever possible.
+- `dist/` npm package artifacts
+- `dist/browser/lemma-client.js` standalone browser bundle
+- `public/lemma-client.js` committed copy for static serving
+
+## Publishing
+
+As of March 26, 2026, npm package name `lemma` is already taken. This repo is configured to publish as `lemma-sdk`.
+
+Release check:
+
+```bash
+npm run release:check
+```
+
+Publish:
+
+```bash
+npm publish
+```
+
+`lemma-sdk` is unscoped, so npm publishes it as public by default.

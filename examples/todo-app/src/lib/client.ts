@@ -10,7 +10,7 @@
  * in the browser console.
  */
 
-import { LemmaClient } from "@lemma/client";
+import { LemmaClient } from "lemma-sdk";
 
 let _client: LemmaClient | null = null;
 

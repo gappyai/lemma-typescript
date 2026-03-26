@@ -1,5 +1,5 @@
 import React from "react";
-import { AuthGuard } from "@lemma/client/react";
+import { AuthGuard } from "lemma-sdk/react";
 import { getClient } from "./lib/client.ts";
 import TodoApp from "./components/TodoApp.tsx";
 

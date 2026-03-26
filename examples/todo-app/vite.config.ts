@@ -6,9 +6,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      // Resolve @lemma/client to the SDK source directly (no build step needed)
-      "@lemma/client/react": path.resolve(__dirname, "../../src/react/index.ts"),
-      "@lemma/client": path.resolve(__dirname, "../../src/index.ts"),
+      // Resolve lemma-sdk to the SDK source directly (no build step needed)
+      "lemma-sdk/react": path.resolve(__dirname, "../../src/react/index.ts"),
+      "lemma-sdk": path.resolve(__dirname, "../../src/index.ts"),
     },
   },
   server: {

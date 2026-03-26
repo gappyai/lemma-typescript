@@ -1,10 +1,25 @@
 {
-  "name": "@lemma/client",
+  "name": "lemma-sdk",
   "version": "0.2.0",
-  "description": "TypeScript client SDK for Lemma pod-scoped APIs",
+  "description": "Official TypeScript SDK for Lemma pod-scoped APIs",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gappyai/lemma-typescript.git"
+  },
+  "homepage": "https://github.com/gappyai/lemma-typescript#readme",
+  "bugs": {
+    "url": "https://github.com/gappyai/lemma-typescript/issues"
+  },
+  "keywords": [
+    "lemma",
+    "sdk",
+    "typescript",
+    "api",
+    "react"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,14 +33,15 @@
   },
   "unpkg": "dist/browser/lemma-client.js",
   "files": [
-    "dist",
-    "public"
+    "dist"
   ],
   "scripts": {
     "generate:client": "./scripts/generate_openapi_client.sh",
     "build": "npm run clean && tsc -p tsconfig.json && npm run build:bundle",
     "build:bundle": "tsc -p tsconfig.bundle.json && node ./scripts/build_browser_bundle.mjs",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build",
+    "release:check": "npm run build && npm_config_cache=.npm-cache npm pack --dry-run"
   },
   "peerDependencies": {
     "react": ">=17"
