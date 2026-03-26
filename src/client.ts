@@ -2,18 +2,24 @@ import { resolveConfig, type LemmaConfig } from "./config.js";
 import { AuthManager, type AuthState, type AuthListener } from "./auth.js";
 import { GeneratedClientAdapter } from "./generated.js";
 import { HttpClient } from "./http.js";
+import { AgentsNamespace } from "./namespaces/agents.js";
+import { AssistantsNamespace, ConversationsNamespace } from "./namespaces/assistants.js";
 import { DatastoresNamespace } from "./namespaces/datastores.js";
-import { TablesNamespace } from "./namespaces/tables.js";
-import { RecordsNamespace } from "./namespaces/records.js";
+import { DesksNamespace } from "./namespaces/desks.js";
 import { FilesNamespace } from "./namespaces/files.js";
 import { FunctionsNamespace } from "./namespaces/functions.js";
-import { AgentsNamespace } from "./namespaces/agents.js";
-import { TasksNamespace } from "./namespaces/tasks.js";
-import { AssistantsNamespace, ConversationsNamespace } from "./namespaces/assistants.js";
-import { WorkflowsNamespace } from "./namespaces/workflows.js";
-import { DesksNamespace } from "./namespaces/desks.js";
+import { IconsNamespace } from "./namespaces/icons.js";
 import { IntegrationsNamespace } from "./namespaces/integrations.js";
+import { OrganizationsNamespace } from "./namespaces/organizations.js";
+import { PodMembersNamespace } from "./namespaces/pod-members.js";
+import { PodsNamespace } from "./namespaces/pods.js";
+import { PodSurfacesNamespace } from "./namespaces/pod-surfaces.js";
+import { RecordsNamespace } from "./namespaces/records.js";
 import { ResourcesNamespace } from "./namespaces/resources.js";
+import { TablesNamespace } from "./namespaces/tables.js";
+import { TasksNamespace } from "./namespaces/tasks.js";
+import { UsersNamespace } from "./namespaces/users.js";
+import { WorkflowsNamespace } from "./namespaces/workflows.js";
 
 export type { LemmaConfig };
 export { AuthManager };
@@ -45,6 +51,13 @@ export class LemmaClient {
   readonly integrations: IntegrationsNamespace;
   readonly resources: ResourcesNamespace;
 
+  readonly users: UsersNamespace;
+  readonly icons: IconsNamespace;
+  readonly pods: PodsNamespace;
+  readonly podMembers: PodMembersNamespace;
+  readonly organizations: OrganizationsNamespace;
+  readonly podSurfaces: PodSurfacesNamespace;
+
   constructor(overrides: Partial<LemmaConfig> = {}) {
     this._config = resolveConfig(overrides);
     this._currentPodId = this._config.podId;
@@ -65,17 +78,24 @@ export class LemmaClient {
 
     this.datastores = new DatastoresNamespace(this._generated, podIdFn);
     this.tables = new TablesNamespace(this._generated, podIdFn);
-    this.records = new RecordsNamespace(this._generated, podIdFn);
+    this.records = new RecordsNamespace(this._generated, this._http, podIdFn);
     this.files = new FilesNamespace(this._generated, this._http, podIdFn);
     this.functions = new FunctionsNamespace(this._generated, podIdFn);
     this.agents = new AgentsNamespace(this._generated, podIdFn);
     this.tasks = new TasksNamespace(this._http, podIdFn);
     this.assistants = new AssistantsNamespace(this._http, podIdFn);
     this.conversations = new ConversationsNamespace(this._http, podIdFn);
-    this.workflows = new WorkflowsNamespace(this._generated, podIdFn);
+    this.workflows = new WorkflowsNamespace(this._generated, this._http, podIdFn);
     this.desks = new DesksNamespace(this._generated, this._http, podIdFn);
     this.integrations = new IntegrationsNamespace(this._generated);
     this.resources = new ResourcesNamespace(this._http);
+
+    this.users = new UsersNamespace(this._generated);
+    this.icons = new IconsNamespace(this._generated);
+    this.pods = new PodsNamespace(this._generated, this._http);
+    this.podMembers = new PodMembersNamespace(this._generated);
+    this.organizations = new OrganizationsNamespace(this._generated, this._http);
+    this.podSurfaces = new PodSurfacesNamespace(this._generated);
   }
 
   /** Change the active pod ID for subsequent calls. */
@@ -115,6 +135,9 @@ export class LemmaClient {
     options?: {
       params?: Record<string, string | number | boolean | undefined | null>;
       body?: unknown;
+      headers?: HeadersInit;
+      isFormData?: boolean;
+      signal?: AbortSignal;
     },
   ): Promise<T> {
     return this._http.request<T>(method, path, options);

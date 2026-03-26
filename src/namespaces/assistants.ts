@@ -1,8 +1,8 @@
 import type { HttpClient } from "../http.js";
 import type { CreateAssistantRequest } from "../openapi_client/models/CreateAssistantRequest.js";
-import type { UpdateAssistantRequest } from "../openapi_client/models/UpdateAssistantRequest.js";
 import type { CreateConversationRequest } from "../openapi_client/models/CreateConversationRequest.js";
 import type { CreateMessageRequest } from "../openapi_client/models/CreateMessageRequest.js";
+import type { UpdateAssistantRequest } from "../openapi_client/models/UpdateAssistantRequest.js";
 
 export class AssistantsNamespace {
   constructor(
@@ -45,6 +45,26 @@ export class ConversationsNamespace {
     private readonly podId: () => string,
   ) {}
 
+  private resolvePodId(explicitPodId?: string | null): string | undefined {
+    if (typeof explicitPodId === "string") {
+      return explicitPodId;
+    }
+
+    try {
+      return this.podId();
+    } catch {
+      return undefined;
+    }
+  }
+
+  private requirePodId(explicitPodId?: string | null): string {
+    const podId = this.resolvePodId(explicitPodId);
+    if (!podId) {
+      throw new Error("pod_id is required for this conversation operation.");
+    }
+    return podId;
+  }
+
   list(options: {
     assistantId?: string;
     assistantName?: string;
@@ -57,7 +77,7 @@ export class ConversationsNamespace {
     return this.http.request("GET", "/conversations", {
       params: {
         assistant_id: options.assistantName ?? options.assistantId,
-        pod_id: options.podId ?? this.podId(),
+        pod_id: this.resolvePodId(options.podId),
         organization_id: options.organizationId,
         limit: options.limit ?? 20,
         page_token: options.pageToken ?? options.cursor,
@@ -89,7 +109,7 @@ export class ConversationsNamespace {
       body: {
         ...payload,
         assistant_id: payload.assistant_id ?? payload.assistant_name,
-        pod_id: payload.pod_id ?? this.podId(),
+        pod_id: this.resolvePodId(payload.pod_id),
       },
     });
   }
@@ -101,14 +121,14 @@ export class ConversationsNamespace {
     return this.create({
       ...payload,
       assistant_name: assistantName,
-      pod_id: payload.pod_id ?? this.podId(),
+      pod_id: payload.pod_id,
     });
   }
 
   get(conversationId: string, options: { podId?: string } = {}) {
     return this.http.request("GET", `/conversations/${conversationId}`, {
       params: {
-        pod_id: options.podId ?? this.podId(),
+        pod_id: this.resolvePodId(options.podId),
       },
     });
   }
@@ -120,10 +140,15 @@ export class ConversationsNamespace {
   ) {
     return this.http.request("PATCH", `/conversations/${conversationId}`, {
       params: {
-        pod_id: options.podId ?? this.podId(),
+        pod_id: this.resolvePodId(options.podId),
       },
       body: payload,
     });
+  }
+
+  delete(conversationId: string, options: { podId?: string } = {}) {
+    const scopedPodId = this.requirePodId(options.podId);
+    return this.http.request("DELETE", `/pods/${scopedPodId}/conversations/${conversationId}`);
   }
 
   sendMessageStream(
@@ -134,7 +159,7 @@ export class ConversationsNamespace {
     return this.http.stream(`/conversations/${conversationId}/messages`, {
       method: "POST",
       params: {
-        pod_id: options.podId ?? this.podId(),
+        pod_id: this.resolvePodId(options.podId),
       },
       body: payload,
       signal: options.signal,
@@ -151,7 +176,7 @@ export class ConversationsNamespace {
   ) {
     return this.http.stream(`/conversations/${conversationId}/stream`, {
       params: {
-        pod_id: options.podId ?? this.podId(),
+        pod_id: this.resolvePodId(options.podId),
       },
       signal: options.signal,
       headers: {
@@ -163,7 +188,7 @@ export class ConversationsNamespace {
   stopRun(conversationId: string, options: { podId?: string } = {}) {
     return this.http.request("PATCH", `/conversations/${conversationId}/stop`, {
       params: {
-        pod_id: options.podId ?? this.podId(),
+        pod_id: this.resolvePodId(options.podId),
       },
       body: {},
     });
@@ -182,13 +207,14 @@ export class ConversationsNamespace {
     ) =>
       this.http.request("GET", `/conversations/${conversationId}/messages`, {
         params: {
-          pod_id: options.podId ?? this.podId(),
+          pod_id: this.resolvePodId(options.podId),
           limit: options.limit ?? 20,
           page_token: options.pageToken ?? options.cursor,
           cursor: options.cursor,
           order: options.order,
         },
       }),
+
     send: (
       conversationId: string,
       payload: CreateMessageRequest,
@@ -196,7 +222,7 @@ export class ConversationsNamespace {
     ) =>
       this.http.request("POST", `/conversations/${conversationId}/messages`, {
         params: {
-          pod_id: options.podId ?? this.podId(),
+          pod_id: this.resolvePodId(options.podId),
         },
         body: payload,
       }),

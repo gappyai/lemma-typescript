@@ -8,10 +8,18 @@ import type {
   ConversationResponse,
   CreateAgentRequest,
   CreateAssistantRequest,
+  IconUploadResponse,
+  OrganizationInvitationResponse,
+  OrganizationMemberResponse,
+  OrganizationResponse,
+  PodConfigResponse,
+  PodMemberResponse,
+  PodResponse,
   TaskMessageResponse,
   TaskResponse,
   UpdateAgentRequest,
   UpdateAssistantRequest,
+  UserResponse,
 } from "./openapi_client/index.js";
 
 /** Public ergonomic types. */
@@ -31,6 +39,10 @@ export interface ListRecordsOptions {
   sort?: RecordSort[];
   limit?: number;
   pageToken?: string;
+  offset?: number;
+  sortBy?: string;
+  order?: "asc" | "desc" | string;
+  params?: Record<string, string | number | boolean | undefined | null>;
 }
 
 export interface RunFunctionOptions {
@@ -70,6 +82,17 @@ export type ConversationModel = `${AvailableModels}`;
 
 export type Task = TaskResponse;
 export type TaskMessage = TaskMessageResponse;
+
+export type Pod = PodResponse;
+export type PodConfig = PodConfigResponse;
+export type PodMember = PodMemberResponse;
+
+export type Organization = OrganizationResponse;
+export type OrganizationMember = OrganizationMemberResponse;
+export type OrganizationInvitation = OrganizationInvitationResponse;
+
+export type User = UserResponse;
+export type UploadedIcon = IconUploadResponse;
 
 /** Generic cursor-style page shape used by many list endpoints. */
 export interface CursorPage<T> {
