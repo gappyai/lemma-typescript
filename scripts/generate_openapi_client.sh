@@ -7,6 +7,15 @@ SDK_DIR="$SCRIPT_DIR/.."
 BACKEND_ROOT="${LEMMA_BACKEND_ROOT:-$(cd "$SCRIPT_DIR/../../.." && pwd)}"
 SPEC_TMP="$SDK_DIR/.generated/openapi.json"
 OUT_DIR="$SDK_DIR/src/openapi_client"
+
+# Derive the OpenAPI URL from LEMMA_API_URL if set (recommended pattern):
+#   LEMMA_API_URL=https://api.lemma.work OPENAPI_SOURCE=url bash generate_openapi_client.sh
+# Or explicitly:
+#   OPENAPI_URL=https://api.lemma.work/openapi.json OPENAPI_SOURCE=url bash generate_openapi_client.sh
+if [[ -n "${LEMMA_API_URL:-}" ]]; then
+  OPENAPI_URL="${OPENAPI_URL:-${LEMMA_API_URL%/}/openapi.json}"
+  OPENAPI_SOURCE="${OPENAPI_SOURCE:-url}"
+fi
 OPENAPI_URL="${OPENAPI_URL:-http://127.0.0.1:8000/openapi.json}"
 
 mkdir -p "$SDK_DIR/.generated"

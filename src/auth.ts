@@ -35,28 +35,30 @@ const LOCALSTORAGE_TOKEN_KEY = "lemma_token";
 const QUERY_PARAM_TOKEN_KEY = "lemma_token";
 
 function detectInjectedToken(): string | null {
-  // 1. Query param
-  if (typeof window !== "undefined") {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const qpToken = params.get(QUERY_PARAM_TOKEN_KEY);
-      if (qpToken) {
-        return qpToken;
-      }
-    } catch {
-      // not in browser
-    }
+  if (typeof window === "undefined") return null;
 
-    // 2. localStorage
-    try {
-      const stored = localStorage.getItem(LOCALSTORAGE_TOKEN_KEY);
-      if (stored) {
-        return stored;
-      }
-    } catch {
-      // localStorage not available
+  // 1. Query param — highest priority, persist to sessionStorage for this session
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const qpToken = params.get(QUERY_PARAM_TOKEN_KEY);
+    if (qpToken) {
+      try { sessionStorage.setItem(LOCALSTORAGE_TOKEN_KEY, qpToken); } catch { /* ignore */ }
+      return qpToken;
     }
-  }
+  } catch { /* ignore */ }
+
+  // 2. sessionStorage — survives HMR and same-tab navigation
+  try {
+    const stored = sessionStorage.getItem(LOCALSTORAGE_TOKEN_KEY);
+    if (stored) return stored;
+  } catch { /* ignore */ }
+
+  // 3. localStorage — set manually by dev/agent for persistent testing
+  try {
+    const stored = localStorage.getItem(LOCALSTORAGE_TOKEN_KEY);
+    if (stored) return stored;
+  } catch { /* ignore */ }
+
   return null;
 }
 
@@ -138,14 +140,15 @@ export class AuthManager {
         this.getRequestInit({ method: "GET" }),
       );
 
-      if (response.status === 401 || response.status === 403) {
+      // Only 401 means not authenticated — 403 means authenticated but forbidden
+      if (response.status === 401) {
         const next: AuthState = { status: "unauthenticated", user: null };
         this.setState(next);
         return next;
       }
 
       if (!response.ok) {
-        // Treat other errors as unauthenticated (conservative)
+        // For non-401 errors on /users/me, treat as unauthenticated (conservative)
         const next: AuthState = { status: "unauthenticated", user: null };
         this.setState(next);
         return next;

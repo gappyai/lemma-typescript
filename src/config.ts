@@ -18,7 +18,8 @@ function fromEnv(key: string): string | undefined {
   // CRA / webpack: process.env.REACT_APP_*
   // Node: process.env.*
   try {
-    const meta = (import.meta as { env?: Record<string, string | undefined> }).env;
+    // @ts-ignore — import.meta is valid in ESM/Vite builds; try/catch guards CJS bundles
+    const meta = (import.meta as { env?: Record<string, string | undefined> }).env; // eslint-disable-line
     if (meta) {
       return (
         meta[`VITE_LEMMA_${key}`] ??
@@ -27,7 +28,7 @@ function fromEnv(key: string): string | undefined {
       );
     }
   } catch {
-    // not available
+    // not available in CJS/browser bundle context
   }
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

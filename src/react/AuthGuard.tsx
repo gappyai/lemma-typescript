@@ -1,14 +1,14 @@
-import React from "react";
+import type { ReactNode, CSSProperties } from "react";
 import type { LemmaClient } from "../client.js";
 import { useAuth } from "./useAuth.js";
 
 export interface AuthGuardProps {
   client: LemmaClient;
-  children: React.ReactNode;
+  children: ReactNode;
   /** Optional custom loading element. Defaults to a blank screen. */
-  loadingFallback?: React.ReactNode;
+  loadingFallback?: ReactNode;
   /** Optional custom unauthenticated element. Defaults to a centered sign-in page. */
-  unauthenticatedFallback?: React.ReactNode;
+  unauthenticatedFallback?: ReactNode;
 }
 
 function DefaultSignInPage({ onSignIn }: { onSignIn: () => void }) {

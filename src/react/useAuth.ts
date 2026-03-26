@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect } from "react"; // peer dependency
 import type { LemmaClient } from "../client.js";
 import type { AuthState } from "../auth.js";
 

@@ -87,7 +87,8 @@ export class HttpClient {
 
     const response = await fetch(url, init);
 
-    if (response.status === 401 || response.status === 403) {
+    // Only 401 means the session is gone — 403 is a permission/RLS error, not an auth failure
+    if (response.status === 401) {
       this.auth.markUnauthenticated();
     }
 
@@ -111,7 +112,7 @@ export class HttpClient {
     const url = `${this.apiUrl}${path}`;
     const response = await fetch(url, this.auth.getRequestInit({ method }));
 
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       this.auth.markUnauthenticated();
     }
 

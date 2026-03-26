@@ -27,7 +27,14 @@
     "build:bundle": "tsc -p tsconfig.bundle.json && node ./scripts/build_browser_bundle.mjs",
     "clean": "rm -rf dist"
   },
+  "peerDependencies": {
+    "react": ">=17"
+  },
+  "peerDependenciesMeta": {
+    "react": { "optional": true }
+  },
   "devDependencies": {
+    "@types/react": "^18.3.28",
     "openapi-typescript-codegen": "^0.29.0",
     "typescript": "^5.6.3"
   }
