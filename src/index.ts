@@ -3,38 +3,9 @@ export type { LemmaConfig } from "./client.js";
 export { AuthManager } from "./auth.js";
 export type { AuthState, AuthListener, AuthStatus, UserInfo } from "./auth.js";
 export { ApiError } from "./http.js";
-export type {
-  Agent,
-  Assistant,
-  Conversation,
-  ConversationMessage,
-  ConversationModel,
-  CreateAgentInput,
-  CreateAssistantInput,
-  CreateTaskOptions,
-  CursorPage,
-  ListRecordsOptions,
-  Organization,
-  OrganizationInvitation,
-  OrganizationMember,
-  Pod,
-  PodConfig,
-  PodMember,
-  RecordFilter,
-  RecordSort,
-  RunFunctionOptions,
-  StreamOptions,
-  Task,
-  TaskMessage,
-  UpdateAgentInput,
-  UpdateAssistantInput,
-  UploadedIcon,
-  User,
-  WorkflowRunInputs,
-} from "./types.js";
+export * from "./types.js";
 export { readSSE, parseSSEJson } from "./streams.js";
 export type { SseRawEvent } from "./streams.js";
-export * from "./openapi_client/index.js";
 
 // Namespace types (for advanced usage)
 export type { AgentsNamespace } from "./namespaces/agents.js";

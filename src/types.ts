@@ -8,6 +8,7 @@ import type {
   ConversationResponse,
   CreateAgentRequest,
   CreateAssistantRequest,
+  CreateTaskRequest,
   IconUploadResponse,
   OrganizationInvitationResponse,
   OrganizationMemberResponse,
@@ -50,14 +51,8 @@ export interface RunFunctionOptions {
   input?: Record<string, unknown>;
 }
 
-export interface CreateTaskOptions {
-  /** Preferred field in newer APIs */
-  agentId?: string;
-  /** Backward-compatible alias supported by older APIs */
-  agentName?: string;
-  input?: Record<string, unknown>;
-  runtimeAccountIds?: string[];
-}
+/** Alias kept for backward compatibility; shape follows generated OpenAPI schema exactly. */
+export type CreateTaskOptions = CreateTaskRequest;
 
 export interface WorkflowRunInputs {
   [key: string]: unknown;
@@ -100,3 +95,9 @@ export interface CursorPage<T> {
   limit: number;
   next_page_token?: string | null;
 }
+
+/**
+ * Re-export generated OpenAPI models/enums/services from the same module so this
+ * file remains the single public type surface for the SDK.
+ */
+export * from "./openapi_client/index.js";

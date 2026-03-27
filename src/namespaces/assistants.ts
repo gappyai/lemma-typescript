@@ -1,8 +1,14 @@
 import type { HttpClient } from "../http.js";
+import type { AssistantListResponse } from "../openapi_client/models/AssistantListResponse.js";
+import type { AssistantResponse } from "../openapi_client/models/AssistantResponse.js";
+import type { ConversationListResponse } from "../openapi_client/models/ConversationListResponse.js";
+import type { ConversationMessageListResponse } from "../openapi_client/models/ConversationMessageListResponse.js";
+import type { ConversationResponse } from "../openapi_client/models/ConversationResponse.js";
 import type { CreateAssistantRequest } from "../openapi_client/models/CreateAssistantRequest.js";
 import type { CreateConversationRequest } from "../openapi_client/models/CreateConversationRequest.js";
 import type { CreateMessageRequest } from "../openapi_client/models/CreateMessageRequest.js";
 import type { UpdateAssistantRequest } from "../openapi_client/models/UpdateAssistantRequest.js";
+import type { UpdateConversationRequest } from "../openapi_client/models/UpdateConversationRequest.js";
 
 export class AssistantsNamespace {
   constructor(
@@ -10,32 +16,31 @@ export class AssistantsNamespace {
     private readonly podId: () => string,
   ) {}
 
-  list(options: { limit?: number; pageToken?: string; cursor?: string } = {}) {
-    return this.http.request("GET", `/pods/${this.podId()}/assistants`, {
+  list(options: { limit?: number; page_token?: string } = {}): Promise<AssistantListResponse> {
+    return this.http.request<AssistantListResponse>("GET", `/pods/${this.podId()}/assistants`, {
       params: {
         limit: options.limit ?? 100,
-        page_token: options.pageToken ?? options.cursor,
-        cursor: options.cursor,
+        page_token: options.page_token,
       },
     });
   }
 
-  create(payload: CreateAssistantRequest | Record<string, unknown>) {
-    return this.http.request("POST", `/pods/${this.podId()}/assistants`, { body: payload });
+  create(payload: CreateAssistantRequest): Promise<AssistantResponse> {
+    return this.http.request<AssistantResponse>("POST", `/pods/${this.podId()}/assistants`, { body: payload });
   }
 
-  get(assistantName: string) {
-    return this.http.request("GET", `/pods/${this.podId()}/assistants/${assistantName}`);
+  get(assistantName: string): Promise<AssistantResponse> {
+    return this.http.request<AssistantResponse>("GET", `/pods/${this.podId()}/assistants/${assistantName}`);
   }
 
-  update(assistantName: string, payload: UpdateAssistantRequest | Record<string, unknown>) {
-    return this.http.request("PATCH", `/pods/${this.podId()}/assistants/${assistantName}`, {
+  update(assistantName: string, payload: UpdateAssistantRequest): Promise<AssistantResponse> {
+    return this.http.request<AssistantResponse>("PATCH", `/pods/${this.podId()}/assistants/${assistantName}`, {
       body: payload,
     });
   }
 
-  delete(assistantName: string) {
-    return this.http.request("DELETE", `/pods/${this.podId()}/assistants/${assistantName}`);
+  delete(assistantName: string): Promise<void> {
+    return this.http.request<void>("DELETE", `/pods/${this.podId()}/assistants/${assistantName}`);
   }
 }
 
@@ -66,100 +71,89 @@ export class ConversationsNamespace {
   }
 
   list(options: {
-    assistantId?: string;
-    assistantName?: string;
-    podId?: string;
-    organizationId?: string;
+    assistant_id?: string;
+    pod_id?: string;
+    organization_id?: string;
     limit?: number;
-    pageToken?: string;
-    cursor?: string;
-  } = {}) {
-    return this.http.request("GET", "/conversations", {
+    page_token?: string;
+  } = {}): Promise<ConversationListResponse> {
+    return this.http.request<ConversationListResponse>("GET", "/conversations", {
       params: {
-        assistant_id: options.assistantName ?? options.assistantId,
-        pod_id: this.resolvePodId(options.podId),
-        organization_id: options.organizationId,
+        assistant_id: options.assistant_id,
+        pod_id: this.resolvePodId(options.pod_id),
+        organization_id: options.organization_id,
         limit: options.limit ?? 20,
-        page_token: options.pageToken ?? options.cursor,
-        cursor: options.cursor,
+        page_token: options.page_token,
       },
     });
   }
 
   listByAssistant(
-    assistantName: string,
+    assistantId: string,
     options: {
-      podId?: string;
-      organizationId?: string;
+      pod_id?: string;
+      organization_id?: string;
       limit?: number;
-      pageToken?: string;
-      cursor?: string;
+      page_token?: string;
     } = {},
-  ) {
-    return this.list({ ...options, assistantName });
+  ): Promise<ConversationListResponse> {
+    return this.list({ ...options, assistant_id: assistantId });
   }
 
-  create(
-    payload: Omit<CreateConversationRequest, "pod_id"> & {
-      pod_id?: string;
-      assistant_name?: string | null;
-    },
-  ) {
-    return this.http.request("POST", "/conversations", {
+  create(payload: CreateConversationRequest): Promise<ConversationResponse> {
+    return this.http.request<ConversationResponse>("POST", "/conversations", {
       body: {
         ...payload,
-        assistant_id: payload.assistant_id ?? payload.assistant_name,
         pod_id: this.resolvePodId(payload.pod_id),
       },
     });
   }
 
   createForAssistant(
-    assistantName: string,
-    payload: Omit<CreateConversationRequest, "pod_id" | "assistant_id"> & { pod_id?: string } = {},
-  ) {
+    assistantId: string,
+    payload: Omit<CreateConversationRequest, "assistant_id"> = {},
+  ): Promise<ConversationResponse> {
     return this.create({
       ...payload,
-      assistant_name: assistantName,
-      pod_id: payload.pod_id,
+      assistant_id: assistantId,
     });
   }
 
-  get(conversationId: string, options: { podId?: string } = {}) {
-    return this.http.request("GET", `/conversations/${conversationId}`, {
+  get(conversationId: string, options: { pod_id?: string } = {}): Promise<ConversationResponse> {
+    return this.http.request<ConversationResponse>("GET", `/conversations/${conversationId}`, {
       params: {
-        pod_id: this.resolvePodId(options.podId),
+        pod_id: this.resolvePodId(options.pod_id),
       },
     });
   }
 
   update(
     conversationId: string,
-    payload: Record<string, unknown>,
-    options: { podId?: string } = {},
-  ) {
-    return this.http.request("PATCH", `/conversations/${conversationId}`, {
+    payload: UpdateConversationRequest,
+    options: { pod_id?: string } = {},
+  ): Promise<ConversationResponse> {
+    return this.http.request<ConversationResponse>("PATCH", `/conversations/${conversationId}`, {
       params: {
-        pod_id: this.resolvePodId(options.podId),
+        pod_id: this.resolvePodId(options.pod_id),
       },
       body: payload,
     });
   }
 
-  delete(conversationId: string, options: { podId?: string } = {}) {
-    const scopedPodId = this.requirePodId(options.podId);
-    return this.http.request("DELETE", `/pods/${scopedPodId}/conversations/${conversationId}`);
+  delete(conversationId: string, options: { pod_id?: string } = {}): Promise<unknown> {
+    const scopedPodId = this.requirePodId(options.pod_id);
+    return this.http.request<unknown>("DELETE", `/pods/${scopedPodId}/conversations/${conversationId}`);
   }
 
   sendMessageStream(
     conversationId: string,
     payload: CreateMessageRequest,
-    options: { podId?: string; signal?: AbortSignal } = {},
+    options: { pod_id?: string; signal?: AbortSignal } = {},
   ) {
     return this.http.stream(`/conversations/${conversationId}/messages`, {
       method: "POST",
       params: {
-        pod_id: this.resolvePodId(options.podId),
+        pod_id: this.resolvePodId(options.pod_id),
       },
       body: payload,
       signal: options.signal,
@@ -172,11 +166,11 @@ export class ConversationsNamespace {
 
   resumeStream(
     conversationId: string,
-    options: { podId?: string; signal?: AbortSignal } = {},
+    options: { pod_id?: string; signal?: AbortSignal } = {},
   ) {
     return this.http.stream(`/conversations/${conversationId}/stream`, {
       params: {
-        pod_id: this.resolvePodId(options.podId),
+        pod_id: this.resolvePodId(options.pod_id),
       },
       signal: options.signal,
       headers: {
@@ -185,10 +179,10 @@ export class ConversationsNamespace {
     });
   }
 
-  stopRun(conversationId: string, options: { podId?: string } = {}) {
-    return this.http.request("PATCH", `/conversations/${conversationId}/stop`, {
+  stopRun(conversationId: string, options: { pod_id?: string } = {}): Promise<unknown> {
+    return this.http.request<unknown>("PATCH", `/conversations/${conversationId}/stop`, {
       params: {
-        pod_id: this.resolvePodId(options.podId),
+        pod_id: this.resolvePodId(options.pod_id),
       },
       body: {},
     });
@@ -199,30 +193,26 @@ export class ConversationsNamespace {
       conversationId: string,
       options: {
         limit?: number;
-        pageToken?: string;
-        cursor?: string;
-        order?: "asc" | "desc" | string;
-        podId?: string;
+        page_token?: string;
+        pod_id?: string;
       } = {},
-    ) =>
-      this.http.request("GET", `/conversations/${conversationId}/messages`, {
+    ): Promise<ConversationMessageListResponse> =>
+      this.http.request<ConversationMessageListResponse>("GET", `/conversations/${conversationId}/messages`, {
         params: {
-          pod_id: this.resolvePodId(options.podId),
+          pod_id: this.resolvePodId(options.pod_id),
           limit: options.limit ?? 20,
-          page_token: options.pageToken ?? options.cursor,
-          cursor: options.cursor,
-          order: options.order,
+          page_token: options.page_token,
         },
       }),
 
     send: (
       conversationId: string,
       payload: CreateMessageRequest,
-      options: { podId?: string } = {},
-    ) =>
-      this.http.request("POST", `/conversations/${conversationId}/messages`, {
+      options: { pod_id?: string } = {},
+    ): Promise<unknown> =>
+      this.http.request<unknown>("POST", `/conversations/${conversationId}/messages`, {
         params: {
-          pod_id: this.resolvePodId(options.podId),
+          pod_id: this.resolvePodId(options.pod_id),
         },
         body: payload,
       }),

@@ -1,6 +1,9 @@
 import type { HttpClient } from "../http.js";
 import type { AddMessageRequest } from "../openapi_client/models/AddMessageRequest.js";
-import type { CreateTaskOptions } from "../types.js";
+import type { CreateTaskRequest } from "../openapi_client/models/CreateTaskRequest.js";
+import type { TaskListResponse } from "../openapi_client/models/TaskListResponse.js";
+import type { TaskMessageListResponse } from "../openapi_client/models/TaskMessageListResponse.js";
+import type { TaskResponse } from "../openapi_client/models/TaskResponse.js";
 
 export class TasksNamespace {
   constructor(
@@ -9,44 +12,31 @@ export class TasksNamespace {
   ) {}
 
   list(options: {
-    agentName?: string;
-    agentId?: string;
+    agent_name?: string;
     limit?: number;
-    pageToken?: string;
-    cursor?: string;
-  } = {}) {
-    return this.http.request("GET", `/pods/${this.podId()}/tasks`, {
+    page_token?: string;
+  } = {}): Promise<TaskListResponse> {
+    return this.http.request<TaskListResponse>("GET", `/pods/${this.podId()}/tasks`, {
       params: {
-        agent_name: options.agentName,
-        agent_id: options.agentId,
+        agent_name: options.agent_name,
         limit: options.limit ?? 100,
-        page_token: options.pageToken ?? options.cursor,
-        cursor: options.cursor,
+        page_token: options.page_token,
       },
     });
   }
 
-  create(options: CreateTaskOptions) {
-    if (!options.agentId && !options.agentName) {
-      throw new Error("Either agentId or agentName is required.");
-    }
-
-    return this.http.request("POST", `/pods/${this.podId()}/tasks`, {
-      body: {
-        agent_id: options.agentId,
-        agent_name: options.agentName ?? options.agentId,
-        input_data: options.input,
-        runtime_account_ids: options.runtimeAccountIds,
-      },
+  create(payload: CreateTaskRequest): Promise<TaskResponse> {
+    return this.http.request<TaskResponse>("POST", `/pods/${this.podId()}/tasks`, {
+      body: payload,
     });
   }
 
-  get(taskId: string) {
-    return this.http.request("GET", `/pods/${this.podId()}/tasks/${taskId}`);
+  get(taskId: string): Promise<TaskResponse> {
+    return this.http.request<TaskResponse>("GET", `/pods/${this.podId()}/tasks/${taskId}`);
   }
 
-  stop(taskId: string) {
-    return this.http.request("PATCH", `/pods/${this.podId()}/tasks/${taskId}/stop`);
+  stop(taskId: string): Promise<TaskResponse> {
+    return this.http.request<TaskResponse>("PATCH", `/pods/${this.podId()}/tasks/${taskId}/stop`);
   }
 
   stream(taskId: string, options: { signal?: AbortSignal } = {}) {
@@ -59,17 +49,15 @@ export class TasksNamespace {
   }
 
   readonly messages = {
-    list: (taskId: string, options: { limit?: number; pageToken?: string; cursor?: string } = {}) =>
-      this.http.request("GET", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
+    list: (taskId: string, options: { limit?: number; page_token?: string } = {}): Promise<TaskMessageListResponse> =>
+      this.http.request<TaskMessageListResponse>("GET", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
         params: {
           limit: options.limit ?? 100,
-          page_token: options.pageToken ?? options.cursor,
-          cursor: options.cursor,
+          page_token: options.page_token,
         },
       }),
-    add: (taskId: string, content: string) => {
-      const payload: AddMessageRequest = { content };
-      return this.http.request("POST", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
+    add: (taskId: string, payload: AddMessageRequest): Promise<TaskResponse> => {
+      return this.http.request<TaskResponse>("POST", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
         body: payload,
       });
     },

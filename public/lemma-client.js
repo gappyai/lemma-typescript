@@ -1241,8 +1241,7 @@ class AssistantsNamespace {
         return this.http.request("GET", `/pods/${this.podId()}/assistants`, {
             params: {
                 limit: options.limit ?? 100,
-                page_token: options.pageToken ?? options.cursor,
-                cursor: options.cursor,
+                page_token: options.page_token,
             },
         });
     }
@@ -1269,16 +1268,14 @@ class ConversationsNamespace {
         this.messages = {
             list: (conversationId, options = {}) => this.http.request("GET", `/conversations/${conversationId}/messages`, {
                 params: {
-                    pod_id: this.resolvePodId(options.podId),
+                    pod_id: this.resolvePodId(options.pod_id),
                     limit: options.limit ?? 20,
-                    page_token: options.pageToken ?? options.cursor,
-                    cursor: options.cursor,
-                    order: options.order,
+                    page_token: options.page_token,
                 },
             }),
             send: (conversationId, payload, options = {}) => this.http.request("POST", `/conversations/${conversationId}/messages`, {
                 params: {
-                    pod_id: this.resolvePodId(options.podId),
+                    pod_id: this.resolvePodId(options.pod_id),
                 },
                 body: payload,
             }),
@@ -1305,58 +1302,55 @@ class ConversationsNamespace {
     list(options = {}) {
         return this.http.request("GET", "/conversations", {
             params: {
-                assistant_id: options.assistantName ?? options.assistantId,
-                pod_id: this.resolvePodId(options.podId),
-                organization_id: options.organizationId,
+                assistant_id: options.assistant_id,
+                pod_id: this.resolvePodId(options.pod_id),
+                organization_id: options.organization_id,
                 limit: options.limit ?? 20,
-                page_token: options.pageToken ?? options.cursor,
-                cursor: options.cursor,
+                page_token: options.page_token,
             },
         });
     }
-    listByAssistant(assistantName, options = {}) {
-        return this.list({ ...options, assistantName });
+    listByAssistant(assistantId, options = {}) {
+        return this.list({ ...options, assistant_id: assistantId });
     }
     create(payload) {
         return this.http.request("POST", "/conversations", {
             body: {
                 ...payload,
-                assistant_id: payload.assistant_id ?? payload.assistant_name,
                 pod_id: this.resolvePodId(payload.pod_id),
             },
         });
     }
-    createForAssistant(assistantName, payload = {}) {
+    createForAssistant(assistantId, payload = {}) {
         return this.create({
             ...payload,
-            assistant_name: assistantName,
-            pod_id: payload.pod_id,
+            assistant_id: assistantId,
         });
     }
     get(conversationId, options = {}) {
         return this.http.request("GET", `/conversations/${conversationId}`, {
             params: {
-                pod_id: this.resolvePodId(options.podId),
+                pod_id: this.resolvePodId(options.pod_id),
             },
         });
     }
     update(conversationId, payload, options = {}) {
         return this.http.request("PATCH", `/conversations/${conversationId}`, {
             params: {
-                pod_id: this.resolvePodId(options.podId),
+                pod_id: this.resolvePodId(options.pod_id),
             },
             body: payload,
         });
     }
     delete(conversationId, options = {}) {
-        const scopedPodId = this.requirePodId(options.podId);
+        const scopedPodId = this.requirePodId(options.pod_id);
         return this.http.request("DELETE", `/pods/${scopedPodId}/conversations/${conversationId}`);
     }
     sendMessageStream(conversationId, payload, options = {}) {
         return this.http.stream(`/conversations/${conversationId}/messages`, {
             method: "POST",
             params: {
-                pod_id: this.resolvePodId(options.podId),
+                pod_id: this.resolvePodId(options.pod_id),
             },
             body: payload,
             signal: options.signal,
@@ -1369,7 +1363,7 @@ class ConversationsNamespace {
     resumeStream(conversationId, options = {}) {
         return this.http.stream(`/conversations/${conversationId}/stream`, {
             params: {
-                pod_id: this.resolvePodId(options.podId),
+                pod_id: this.resolvePodId(options.pod_id),
             },
             signal: options.signal,
             headers: {
@@ -1380,7 +1374,7 @@ class ConversationsNamespace {
     stopRun(conversationId, options = {}) {
         return this.http.request("PATCH", `/conversations/${conversationId}/stop`, {
             params: {
-                pod_id: this.resolvePodId(options.podId),
+                pod_id: this.resolvePodId(options.pod_id),
             },
             body: {},
         });
@@ -3973,14 +3967,15 @@ class ResourcesNamespace {
         return this.http.request("GET", `/files/${resourceType}/${resourceId}/list`, {
             params: {
                 path: options.path,
+                limit: options.limit ?? 100,
+                page_token: options.page_token,
             },
         });
     }
     upload(resourceType, resourceId, file, options = {}) {
         const formData = new FormData();
-        const fieldName = options.fieldName ?? "file";
         const name = options.name ?? (file instanceof File ? file.name : "upload.bin");
-        formData.append(fieldName, file, name);
+        formData.append("file", file, name);
         return this.http.request("POST", `/files/${resourceType}/${resourceId}/upload`, {
             params: {
                 path: options.path,
@@ -4242,12 +4237,10 @@ class TasksNamespace {
             list: (taskId, options = {}) => this.http.request("GET", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
                 params: {
                     limit: options.limit ?? 100,
-                    page_token: options.pageToken ?? options.cursor,
-                    cursor: options.cursor,
+                    page_token: options.page_token,
                 },
             }),
-            add: (taskId, content) => {
-                const payload = { content };
+            add: (taskId, payload) => {
                 return this.http.request("POST", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
                     body: payload,
                 });
@@ -4257,25 +4250,15 @@ class TasksNamespace {
     list(options = {}) {
         return this.http.request("GET", `/pods/${this.podId()}/tasks`, {
             params: {
-                agent_name: options.agentName,
-                agent_id: options.agentId,
+                agent_name: options.agent_name,
                 limit: options.limit ?? 100,
-                page_token: options.pageToken ?? options.cursor,
-                cursor: options.cursor,
+                page_token: options.page_token,
             },
         });
     }
-    create(options) {
-        if (!options.agentId && !options.agentName) {
-            throw new Error("Either agentId or agentName is required.");
-        }
+    create(payload) {
         return this.http.request("POST", `/pods/${this.podId()}/tasks`, {
-            body: {
-                agent_id: options.agentId,
-                agent_name: options.agentName ?? options.agentId,
-                input_data: options.input,
-                runtime_account_ids: options.runtimeAccountIds,
-            },
+            body: payload,
         });
     }
     get(taskId) {
