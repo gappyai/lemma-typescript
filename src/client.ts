@@ -25,6 +25,10 @@ export type { LemmaConfig };
 export { AuthManager };
 export type { AuthState, AuthListener };
 
+interface LemmaClientInternalOptions {
+  authManager?: AuthManager;
+}
+
 export class LemmaClient {
   private readonly _config: LemmaConfig;
   private readonly _podId: string | undefined;
@@ -58,12 +62,15 @@ export class LemmaClient {
   readonly organizations: OrganizationsNamespace;
   readonly podSurfaces: PodSurfacesNamespace;
 
-  constructor(overrides: Partial<LemmaConfig> = {}) {
+  constructor(
+    overrides: Partial<LemmaConfig> = {},
+    internalOptions: LemmaClientInternalOptions = {},
+  ) {
     this._config = resolveConfig(overrides);
     this._currentPodId = this._config.podId;
     this._podId = this._config.podId;
 
-    this.auth = new AuthManager(this._config.apiUrl, this._config.authUrl);
+    this.auth = internalOptions.authManager ?? new AuthManager(this._config.apiUrl, this._config.authUrl);
     this._http = new HttpClient(this._config.apiUrl, this.auth);
     this._generated = new GeneratedClientAdapter(this._config.apiUrl, this.auth);
 
@@ -105,7 +112,7 @@ export class LemmaClient {
 
   /** Return a new client scoped to a specific pod, sharing auth state. */
   withPod(podId: string): LemmaClient {
-    return new LemmaClient({ ...this._config, podId });
+    return new LemmaClient({ ...this._config, podId }, { authManager: this.auth });
   }
 
   get podId(): string | undefined {

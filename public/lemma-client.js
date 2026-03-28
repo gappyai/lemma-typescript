@@ -3,7 +3,7 @@
 "./browser.js": function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ApiError = exports.AuthManager = exports.LemmaClient = void 0;
+exports.ApiError = exports.resolveSafeRedirectUri = exports.buildAuthUrl = exports.AuthManager = exports.LemmaClient = void 0;
 /**
  * Browser bundle entry point.
  * Exposes LemmaClient as globalThis.LemmaClient.LemmaClient
@@ -18,6 +18,8 @@ var client_js_1 = require("./client.js");
 Object.defineProperty(exports, "LemmaClient", { enumerable: true, get: function () { return client_js_1.LemmaClient; } });
 var auth_js_1 = require("./auth.js");
 Object.defineProperty(exports, "AuthManager", { enumerable: true, get: function () { return auth_js_1.AuthManager; } });
+Object.defineProperty(exports, "buildAuthUrl", { enumerable: true, get: function () { return auth_js_1.buildAuthUrl; } });
+Object.defineProperty(exports, "resolveSafeRedirectUri", { enumerable: true, get: function () { return auth_js_1.resolveSafeRedirectUri; } });
 var http_js_1 = require("./http.js");
 Object.defineProperty(exports, "ApiError", { enumerable: true, get: function () { return http_js_1.ApiError; } });
 
@@ -50,11 +52,11 @@ const tasks_js_1 = require("./namespaces/tasks.js");
 const users_js_1 = require("./namespaces/users.js");
 const workflows_js_1 = require("./namespaces/workflows.js");
 class LemmaClient {
-    constructor(overrides = {}) {
+    constructor(overrides = {}, internalOptions = {}) {
         this._config = (0, config_js_1.resolveConfig)(overrides);
         this._currentPodId = this._config.podId;
         this._podId = this._config.podId;
-        this.auth = new auth_js_1.AuthManager(this._config.apiUrl, this._config.authUrl);
+        this.auth = internalOptions.authManager ?? new auth_js_1.AuthManager(this._config.apiUrl, this._config.authUrl);
         this._http = new http_js_1.HttpClient(this._config.apiUrl, this.auth);
         this._generated = new generated_js_1.GeneratedClientAdapter(this._config.apiUrl, this.auth);
         const podIdFn = () => {
@@ -89,7 +91,7 @@ class LemmaClient {
     }
     /** Return a new client scoped to a specific pod, sharing auth state. */
     withPod(podId) {
-        return new LemmaClient({ ...this._config, podId });
+        return new LemmaClient({ ...this._config, podId }, { authManager: this.auth });
     }
     get podId() {
         return this._currentPodId;
@@ -192,7 +194,11 @@ function resolveConfig(overrides = {}) {
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthManager = void 0;
+exports.buildAuthUrl = buildAuthUrl;
+exports.resolveSafeRedirectUri = resolveSafeRedirectUri;
+const session_1 = require("supertokens-web-js/recipe/session");
 const supertokens_js_1 = require("./supertokens.js");
+const DEFAULT_BLOCKED_REDIRECT_PATHS = ["/login", "/signup", "/auth"];
 const LOCALSTORAGE_TOKEN_KEY = "lemma_token";
 const QUERY_PARAM_TOKEN_KEY = "lemma_token";
 function detectInjectedToken() {
@@ -226,6 +232,79 @@ function detectInjectedToken() {
     }
     catch { /* ignore */ }
     return null;
+}
+function normalizePath(path) {
+    const trimmed = path.trim();
+    if (!trimmed)
+        return "/";
+    if (trimmed === "/")
+        return "/";
+    const withLeadingSlash = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+    return withLeadingSlash.endsWith("/") ? withLeadingSlash.slice(0, -1) : withLeadingSlash;
+}
+function resolveAuthPath(basePath, path) {
+    const normalizedBase = normalizePath(basePath);
+    if (!path || !path.trim()) {
+        return normalizedBase;
+    }
+    const segment = path.trim().replace(/^\/+/, "");
+    if (!segment) {
+        return normalizedBase;
+    }
+    return `${normalizedBase}/${segment}`.replace(/\/{2,}/g, "/");
+}
+function isBlockedLocalPath(pathname, blockedPaths) {
+    const normalizedPathname = normalizePath(pathname);
+    return blockedPaths.some((rawBlockedPath) => {
+        const blockedPath = normalizePath(rawBlockedPath);
+        return normalizedPathname === blockedPath || normalizedPathname.startsWith(`${blockedPath}/`);
+    });
+}
+function normalizeOrigin(rawOrigin) {
+    const parsed = new URL(rawOrigin);
+    return parsed.origin;
+}
+function buildAuthUrl(authUrl, options = {}) {
+    const url = new URL(authUrl);
+    url.pathname = resolveAuthPath(url.pathname, options.path);
+    for (const [key, value] of Object.entries(options.params ?? {})) {
+        if (value === null || value === undefined)
+            continue;
+        if (Array.isArray(value)) {
+            url.searchParams.delete(key);
+            for (const item of value) {
+                url.searchParams.append(key, String(item));
+            }
+            continue;
+        }
+        url.searchParams.set(key, String(value));
+    }
+    if (options.mode === "signup") {
+        url.searchParams.set("show", "signup");
+    }
+    if (options.redirectUri && options.redirectUri.trim()) {
+        url.searchParams.set("redirect_uri", options.redirectUri);
+    }
+    return url.toString();
+}
+function resolveSafeRedirectUri(rawValue, options) {
+    const siteOrigin = normalizeOrigin(options.siteOrigin);
+    const blockedPaths = options.blockedPaths ?? DEFAULT_BLOCKED_REDIRECT_PATHS;
+    const fallbackTarget = options.fallback ?? "/";
+    const fallback = new URL(fallbackTarget, siteOrigin).toString();
+    if (!rawValue || !rawValue.trim()) {
+        return fallback;
+    }
+    try {
+        const parsed = new URL(rawValue, siteOrigin);
+        if (parsed.origin === siteOrigin && isBlockedLocalPath(parsed.pathname, blockedPaths)) {
+            return fallback;
+        }
+        return parsed.toString();
+    }
+    catch {
+        return fallback;
+    }
 }
 class AuthManager {
     constructor(apiUrl, authUrl) {
@@ -265,6 +344,109 @@ class AuthManager {
     setState(state) {
         this.state = state;
         this.notify();
+    }
+    assertBrowserContext() {
+        if (typeof window === "undefined") {
+            throw new Error("This auth method is only available in browser environments.");
+        }
+    }
+    getCookie(name) {
+        if (typeof document === "undefined")
+            return undefined;
+        const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
+        return match ? decodeURIComponent(match[1]) : undefined;
+    }
+    clearInjectedToken() {
+        this.injectedToken = null;
+        if (typeof window === "undefined")
+            return;
+        try {
+            sessionStorage.removeItem(LOCALSTORAGE_TOKEN_KEY);
+        }
+        catch {
+            // ignore storage errors
+        }
+        try {
+            localStorage.removeItem(LOCALSTORAGE_TOKEN_KEY);
+        }
+        catch {
+            // ignore storage errors
+        }
+    }
+    async rawSignOutViaBackend() {
+        const antiCsrf = this.getCookie("sAntiCsrf");
+        const headers = {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+            rid: "anti-csrf",
+            "fdi-version": "4.2",
+            "st-auth-mode": "cookie",
+        };
+        if (antiCsrf) {
+            headers["anti-csrf"] = antiCsrf;
+        }
+        const separator = this.apiUrl.includes("?") ? "&" : "?";
+        const signOutUrl = `${this.apiUrl.replace(/\/$/, "")}/st/auth/signout${separator}superTokensDoNotDoInterception=true`;
+        await fetch(signOutUrl, {
+            method: "POST",
+            credentials: "include",
+            headers,
+        });
+    }
+    /**
+     * Check whether a cookie-backed session is active without mutating auth state.
+     */
+    async isAuthenticatedViaCookie() {
+        if (this.injectedToken) {
+            return this.isAuthenticated();
+        }
+        try {
+            const response = await fetch(`${this.apiUrl}/users/me`, {
+                method: "GET",
+                credentials: "include",
+                headers: { Accept: "application/json" },
+            });
+            return response.status !== 401;
+        }
+        catch {
+            return false;
+        }
+    }
+    /**
+     * Return a browser access token from the session layer.
+     * Throws if no token is available.
+     */
+    async getAccessToken() {
+        if (this.injectedToken) {
+            return this.injectedToken;
+        }
+        this.assertBrowserContext();
+        (0, supertokens_js_1.ensureCookieSessionSupport)(this.apiUrl, () => this.markUnauthenticated());
+        const token = await session_1.default.getAccessToken();
+        if (!token) {
+            throw new Error("Token unavailable");
+        }
+        return token;
+    }
+    /**
+     * Force a refresh-token flow and return the new access token.
+     */
+    async refreshAccessToken() {
+        if (this.injectedToken) {
+            return this.injectedToken;
+        }
+        this.assertBrowserContext();
+        (0, supertokens_js_1.ensureCookieSessionSupport)(this.apiUrl, () => this.markUnauthenticated());
+        const refreshed = await session_1.default.attemptRefreshingSession();
+        if (!refreshed) {
+            throw new Error("Session refresh failed");
+        }
+        const token = await session_1.default.getAccessToken();
+        if (!token) {
+            throw new Error("Token unavailable");
+        }
+        return token;
     }
     /**
      * Build request headers for an API call.
@@ -325,16 +507,54 @@ class AuthManager {
         this.setState({ status: "unauthenticated", user: null });
     }
     /**
+     * Sign out the current user session.
+     * Returns true when the session is no longer active.
+     */
+    async signOut() {
+        if (this.injectedToken) {
+            this.clearInjectedToken();
+            this.markUnauthenticated();
+            return true;
+        }
+        this.assertBrowserContext();
+        (0, supertokens_js_1.ensureCookieSessionSupport)(this.apiUrl, () => this.markUnauthenticated());
+        try {
+            await session_1.default.signOut();
+        }
+        catch {
+            // continue with raw fallback
+        }
+        if (await this.isAuthenticatedViaCookie()) {
+            try {
+                await this.rawSignOutViaBackend();
+            }
+            catch {
+                // best effort fallback only
+            }
+        }
+        const isAuthenticated = await this.isAuthenticatedViaCookie();
+        if (!isAuthenticated) {
+            this.markUnauthenticated();
+        }
+        return !isAuthenticated;
+    }
+    /**
+     * Build auth URL for login/signup/custom auth sub-path.
+     */
+    getAuthUrl(options = {}) {
+        return buildAuthUrl(this.authUrl, options);
+    }
+    /**
      * Redirect to the auth service, passing the current URL as redirect_uri.
      * After the user authenticates, the auth service should redirect back to
      * the original URL and set the session cookie.
      */
-    redirectToAuth() {
+    redirectToAuth(options = {}) {
         if (typeof window === "undefined") {
             return;
         }
-        const redirectUri = encodeURIComponent(window.location.href);
-        window.location.href = `${this.authUrl}?redirect_uri=${redirectUri}`;
+        const redirectUri = options.redirectUri ?? window.location.href;
+        window.location.href = this.getAuthUrl({ ...options, redirectUri });
     }
 }
 exports.AuthManager = AuthManager;

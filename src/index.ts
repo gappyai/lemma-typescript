@@ -1,7 +1,15 @@
 export { LemmaClient } from "./client.js";
 export type { LemmaConfig } from "./client.js";
-export { AuthManager } from "./auth.js";
-export type { AuthState, AuthListener, AuthStatus, UserInfo } from "./auth.js";
+export { AuthManager, buildAuthUrl, resolveSafeRedirectUri } from "./auth.js";
+export type {
+  AuthState,
+  AuthListener,
+  AuthStatus,
+  UserInfo,
+  AuthRedirectMode,
+  BuildAuthUrlOptions,
+  ResolveSafeRedirectUriOptions,
+} from "./auth.js";
 export { ApiError } from "./http.js";
 export * from "./types.js";
 export { readSSE, parseSSEJson } from "./streams.js";

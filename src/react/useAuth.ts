@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react"; // peer dependency
 import type { LemmaClient } from "../client.js";
-import type { AuthState } from "../auth.js";
+import type { AuthState, BuildAuthUrlOptions } from "../auth.js";
+
+type RedirectToAuthOptions = Omit<BuildAuthUrlOptions, "redirectUri"> & { redirectUri?: string };
 
 export interface UseAuthResult {
   status: AuthState["status"];
   user: AuthState["user"];
   isLoading: boolean;
   isAuthenticated: boolean;
-  redirectToAuth: () => void;
+  redirectToAuth: (options?: RedirectToAuthOptions) => void;
 }
 
 /**
@@ -39,6 +41,6 @@ export function useAuth(client: LemmaClient): UseAuthResult {
     user: state.user,
     isLoading: state.status === "loading",
     isAuthenticated: state.status === "authenticated",
-    redirectToAuth: () => client.auth.redirectToAuth(),
+    redirectToAuth: (options?: RedirectToAuthOptions) => client.auth.redirectToAuth(options),
   };
 }

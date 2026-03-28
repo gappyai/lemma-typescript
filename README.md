@@ -39,6 +39,35 @@ const supportAssistant = await client.assistants.get("support_assistant");
 - `client.request(method, path, options)` escape hatch for endpoints not yet modeled.
 - `client.resources` for generic file resource APIs (`conversation`, `assistant`, `task`, etc.).
 - Ergonomic type aliases exported at top level: `Agent`, `Assistant`, `Conversation`, `Task`, `TaskMessage`, `CreateAgentInput`, `CreateAssistantInput`, etc.
+- `client.withPod(podId)` returns a pod-scoped client that shares auth state with the parent client.
+
+## Auth Helpers
+
+```ts
+import { LemmaClient, buildAuthUrl, resolveSafeRedirectUri } from "lemma-sdk";
+
+const client = new LemmaClient({
+  apiUrl: "https://api-next.asur.work",
+  authUrl: "https://auth.asur.work/auth",
+});
+
+// Build auth URLs (server/client)
+const loginUrl = buildAuthUrl(client.authUrl, { redirectUri: "https://app.asur.work/" });
+const signupUrl = buildAuthUrl(client.authUrl, { mode: "signup", redirectUri: "https://app.asur.work/" });
+
+// Redirect safety helper for auth route handlers
+const safeRedirect = resolveSafeRedirectUri("/pod/123", {
+  siteOrigin: "https://app.asur.work",
+  fallback: "/",
+});
+
+// Browser helpers
+await client.auth.checkAuth();
+await client.auth.signOut();
+const token = await client.auth.getAccessToken();
+const refreshed = await client.auth.refreshAccessToken();
+client.auth.redirectToAuth({ mode: "signup", redirectUri: safeRedirect });
+```
 
 ## Assistants + Agent Runs
 
