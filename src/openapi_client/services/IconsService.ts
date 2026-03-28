@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { fastapi___compat__v2__Body_icon__upload } from '../models/fastapi___compat__v2__Body_icon__upload.js';
+import type { IconUploadRequest } from '../models/IconUploadRequest.js';
 import type { IconUploadResponse } from '../models/IconUploadResponse.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
@@ -16,7 +16,7 @@ export class IconsService {
      * @throws ApiError
      */
     public static iconUpload(
-        formData: fastapi___compat__v2__Body_icon__upload,
+        formData: IconUploadRequest,
     ): CancelablePromise<IconUploadResponse> {
         return __request(OpenAPI, {
             method: 'POST',

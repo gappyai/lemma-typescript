@@ -4,8 +4,8 @@
 /* eslint-disable */
 import type { Body_upload_file_files__resource_type___resource_id__upload_post } from '../models/Body_upload_file_files__resource_type___resource_id__upload_post.js';
 import type { CreateFolderRequest } from '../models/CreateFolderRequest.js';
+import type { DatastoreFileUploadRequest } from '../models/DatastoreFileUploadRequest.js';
 import type { DatastoreMessageResponse } from '../models/DatastoreMessageResponse.js';
-import type { fastapi___compat__v2__Body_file__upload } from '../models/fastapi___compat__v2__Body_file__upload.js';
 import type { FileListResponse } from '../models/FileListResponse.js';
 import type { FileResponse } from '../models/FileResponse.js';
 import type { FileSearchRequest } from '../models/FileSearchRequest.js';
@@ -147,7 +147,7 @@ export class FilesService {
     public static fileUpload(
         podId: string,
         datastoreName: string,
-        formData: fastapi___compat__v2__Body_file__upload,
+        formData: DatastoreFileUploadRequest,
     ): CancelablePromise<FileResponse> {
         return __request(OpenAPI, {
             method: 'POST',
