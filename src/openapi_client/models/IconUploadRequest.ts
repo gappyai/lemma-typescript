@@ -2,8 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type fastapi___compat__v2__Body_pod__desk__bundle__upload = {
-    source_archive?: (string | null);
-    html?: (string | null);
+export type IconUploadRequest = {
+    file: string;
 };
 

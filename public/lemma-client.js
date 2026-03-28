@@ -1795,29 +1795,29 @@ class DesksNamespace {
         this.http = http;
         this.podId = podId;
         this.html = {
-            get: (name) => this.client.request(() => DesksService_js_1.DesksService.podDeskHtmlGet(this.podId(), name)),
+            get: (name) => this.client.request(() => DesksService_js_1.DesksService.deskHtmlGet(this.podId(), name)),
         };
         this.bundle = {
-            upload: (name, payload) => this.client.request(() => DesksService_js_1.DesksService.podDeskBundleUpload(this.podId(), name, payload)),
+            upload: (name, payload) => this.client.request(() => DesksService_js_1.DesksService.deskBundleUpload(this.podId(), name, payload)),
         };
         this.source = {
             download: (name) => this.http.requestBytes("GET", `/pods/${this.podId()}/desks/${name}/source/archive`),
         };
     }
     list(options = {}) {
-        return this.client.request(() => DesksService_js_1.DesksService.podDeskList(this.podId(), options.limit ?? 100, options.pageToken));
+        return this.client.request(() => DesksService_js_1.DesksService.deskList(this.podId(), options.limit ?? 100, options.pageToken));
     }
     create(payload) {
-        return this.client.request(() => DesksService_js_1.DesksService.podDeskCreate(this.podId(), payload));
+        return this.client.request(() => DesksService_js_1.DesksService.deskCreate(this.podId(), payload));
     }
     get(name) {
-        return this.client.request(() => DesksService_js_1.DesksService.podDeskGet(this.podId(), name));
+        return this.client.request(() => DesksService_js_1.DesksService.deskGet(this.podId(), name));
     }
     update(name, payload) {
-        return this.client.request(() => DesksService_js_1.DesksService.podDeskUpdate(this.podId(), name, payload));
+        return this.client.request(() => DesksService_js_1.DesksService.deskUpdate(this.podId(), name, payload));
     }
     delete(name) {
-        return this.client.request(() => DesksService_js_1.DesksService.podDeskDelete(this.podId(), name));
+        return this.client.request(() => DesksService_js_1.DesksService.deskDelete(this.podId(), name));
     }
 }
 exports.DesksNamespace = DesksNamespace;
@@ -1837,7 +1837,7 @@ class DesksService {
      * @returns DeskResponse Successful Response
      * @throws ApiError
      */
-    static podDeskCreate(podId, requestBody) {
+    static deskCreate(podId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
             url: '/pods/{pod_id}/desks',
@@ -1859,7 +1859,7 @@ class DesksService {
      * @returns DeskListResponse Successful Response
      * @throws ApiError
      */
-    static podDeskList(podId, limit = 100, pageToken) {
+    static deskList(podId, limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/desks',
@@ -1882,7 +1882,7 @@ class DesksService {
      * @returns DeskResponse Successful Response
      * @throws ApiError
      */
-    static podDeskGet(podId, deskName) {
+    static deskGet(podId, deskName) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/desks/{desk_name}',
@@ -1903,7 +1903,7 @@ class DesksService {
      * @returns DeskResponse Successful Response
      * @throws ApiError
      */
-    static podDeskUpdate(podId, deskName, requestBody) {
+    static deskUpdate(podId, deskName, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'PATCH',
             url: '/pods/{pod_id}/desks/{desk_name}',
@@ -1925,7 +1925,7 @@ class DesksService {
      * @returns DeskMessageResponse Successful Response
      * @throws ApiError
      */
-    static podDeskDelete(podId, deskName) {
+    static deskDelete(podId, deskName) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'DELETE',
             url: '/pods/{pod_id}/desks/{desk_name}',
@@ -1946,7 +1946,7 @@ class DesksService {
      * @returns DeskBundleUploadResponse Successful Response
      * @throws ApiError
      */
-    static podDeskBundleUpload(podId, deskName, formData) {
+    static deskBundleUpload(podId, deskName, formData) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
             url: '/pods/{pod_id}/desks/{desk_name}/bundle',
@@ -1968,7 +1968,7 @@ class DesksService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    static podDeskHtmlGet(podId, deskName) {
+    static deskHtmlGet(podId, deskName) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/desks/{desk_name}/html',
@@ -1988,7 +1988,7 @@ class DesksService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    static podDeskSourceArchiveGet(podId, deskName) {
+    static deskSourceArchiveGet(podId, deskName) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/desks/{desk_name}/source/archive',

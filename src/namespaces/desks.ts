@@ -2,7 +2,7 @@ import type { GeneratedClientAdapter } from "../generated.js";
 import type { HttpClient } from "../http.js";
 import type { CreateDeskRequest } from "../openapi_client/models/CreateDeskRequest.js";
 import type { UpdateDeskRequest } from "../openapi_client/models/UpdateDeskRequest.js";
-import type { fastapi___compat__v2__Body_pod__desk__bundle__upload } from "../openapi_client/models/fastapi___compat__v2__Body_pod__desk__bundle__upload.js";
+import type { fastapi___compat__v2__Body_desk__bundle__upload } from "../openapi_client/models/fastapi___compat__v2__Body_desk__bundle__upload.js";
 import { DesksService } from "../openapi_client/services/DesksService.js";
 
 export class DesksNamespace {
@@ -13,29 +13,29 @@ export class DesksNamespace {
   ) {}
 
   list(options: { limit?: number; pageToken?: string } = {}) {
-    return this.client.request(() => DesksService.podDeskList(this.podId(), options.limit ?? 100, options.pageToken));
+    return this.client.request(() => DesksService.deskList(this.podId(), options.limit ?? 100, options.pageToken));
   }
   create(payload: CreateDeskRequest) {
-    return this.client.request(() => DesksService.podDeskCreate(this.podId(), payload));
+    return this.client.request(() => DesksService.deskCreate(this.podId(), payload));
   }
   get(name: string) {
-    return this.client.request(() => DesksService.podDeskGet(this.podId(), name));
+    return this.client.request(() => DesksService.deskGet(this.podId(), name));
   }
   update(name: string, payload: UpdateDeskRequest) {
-    return this.client.request(() => DesksService.podDeskUpdate(this.podId(), name, payload));
+    return this.client.request(() => DesksService.deskUpdate(this.podId(), name, payload));
   }
   delete(name: string) {
-    return this.client.request(() => DesksService.podDeskDelete(this.podId(), name));
+    return this.client.request(() => DesksService.deskDelete(this.podId(), name));
   }
 
   readonly html = {
     get: (name: string): Promise<string> =>
-      this.client.request(() => DesksService.podDeskHtmlGet(this.podId(), name)),
+      this.client.request(() => DesksService.deskHtmlGet(this.podId(), name)),
   };
 
   readonly bundle = {
-    upload: (name: string, payload: fastapi___compat__v2__Body_pod__desk__bundle__upload) =>
-      this.client.request(() => DesksService.podDeskBundleUpload(this.podId(), name, payload)),
+    upload: (name: string, payload: fastapi___compat__v2__Body_desk__bundle__upload) =>
+      this.client.request(() => DesksService.deskBundleUpload(this.podId(), name, payload)),
   };
 
   readonly source = {

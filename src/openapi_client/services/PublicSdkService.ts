@@ -24,7 +24,7 @@ export class PublicSdkService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static podDeskHtmlPublicGet(
+    public static deskHtmlPublicGet(
         podId: string,
         deskName: string,
     ): CancelablePromise<any> {

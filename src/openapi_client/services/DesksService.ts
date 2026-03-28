@@ -7,7 +7,7 @@ import type { DeskBundleUploadResponse } from '../models/DeskBundleUploadRespons
 import type { DeskListResponse } from '../models/DeskListResponse.js';
 import type { DeskMessageResponse } from '../models/DeskMessageResponse.js';
 import type { DeskResponse } from '../models/DeskResponse.js';
-import type { fastapi___compat__v2__Body_pod__desk__bundle__upload } from '../models/fastapi___compat__v2__Body_pod__desk__bundle__upload.js';
+import type { fastapi___compat__v2__Body_desk__bundle__upload } from '../models/fastapi___compat__v2__Body_desk__bundle__upload.js';
 import type { UpdateDeskRequest } from '../models/UpdateDeskRequest.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
@@ -20,7 +20,7 @@ export class DesksService {
      * @returns DeskResponse Successful Response
      * @throws ApiError
      */
-    public static podDeskCreate(
+    public static deskCreate(
         podId: string,
         requestBody: CreateDeskRequest,
     ): CancelablePromise<DeskResponse> {
@@ -45,7 +45,7 @@ export class DesksService {
      * @returns DeskListResponse Successful Response
      * @throws ApiError
      */
-    public static podDeskList(
+    public static deskList(
         podId: string,
         limit: number = 100,
         pageToken?: (string | null),
@@ -72,7 +72,7 @@ export class DesksService {
      * @returns DeskResponse Successful Response
      * @throws ApiError
      */
-    public static podDeskGet(
+    public static deskGet(
         podId: string,
         deskName: string,
     ): CancelablePromise<DeskResponse> {
@@ -96,7 +96,7 @@ export class DesksService {
      * @returns DeskResponse Successful Response
      * @throws ApiError
      */
-    public static podDeskUpdate(
+    public static deskUpdate(
         podId: string,
         deskName: string,
         requestBody: UpdateDeskRequest,
@@ -122,7 +122,7 @@ export class DesksService {
      * @returns DeskMessageResponse Successful Response
      * @throws ApiError
      */
-    public static podDeskDelete(
+    public static deskDelete(
         podId: string,
         deskName: string,
     ): CancelablePromise<DeskMessageResponse> {
@@ -146,10 +146,10 @@ export class DesksService {
      * @returns DeskBundleUploadResponse Successful Response
      * @throws ApiError
      */
-    public static podDeskBundleUpload(
+    public static deskBundleUpload(
         podId: string,
         deskName: string,
-        formData?: fastapi___compat__v2__Body_pod__desk__bundle__upload,
+        formData?: fastapi___compat__v2__Body_desk__bundle__upload,
     ): CancelablePromise<DeskBundleUploadResponse> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -172,7 +172,7 @@ export class DesksService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static podDeskHtmlGet(
+    public static deskHtmlGet(
         podId: string,
         deskName: string,
     ): CancelablePromise<any> {
@@ -195,7 +195,7 @@ export class DesksService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static podDeskSourceArchiveGet(
+    public static deskSourceArchiveGet(
         podId: string,
         deskName: string,
     ): CancelablePromise<any> {
