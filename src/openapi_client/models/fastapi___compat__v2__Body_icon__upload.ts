@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type Body_icon_upload = {
-    file: Blob;
+export type fastapi___compat__v2__Body_icon__upload = {
+    file: string;
 };
 

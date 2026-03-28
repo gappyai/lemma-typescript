@@ -1,9 +1,9 @@
 import type { GeneratedClientAdapter } from "../generated.js";
 import type { HttpClient } from "../http.js";
-import type { Body_file_update } from "../openapi_client/models/Body_file_update.js";
-import type { Body_file_upload } from "../openapi_client/models/Body_file_upload.js";
 import type { CreateFolderRequest } from "../openapi_client/models/CreateFolderRequest.js";
 import { SearchMethod } from "../openapi_client/models/SearchMethod.js";
+import type { fastapi___compat__v2__Body_file__upload } from "../openapi_client/models/fastapi___compat__v2__Body_file__upload.js";
+import type { update } from "../openapi_client/models/update.js";
 import { FilesService } from "../openapi_client/services/FilesService.js";
 
 export class FilesNamespace {
@@ -34,8 +34,8 @@ export class FilesNamespace {
   }
 
   upload(datastore: string, file: Blob, options: { name?: string; parentId?: string; searchEnabled?: boolean; description?: string } = {}) {
-    const payload: Body_file_upload = {
-      data: file,
+    const payload: fastapi___compat__v2__Body_file__upload = {
+      data: file as unknown as string,
       name: options.name ?? (file instanceof File ? file.name : undefined),
       description: options.description,
       parent_id: options.parentId,
@@ -45,8 +45,8 @@ export class FilesNamespace {
   }
 
   update(datastore: string, fileId: string, options: { file?: Blob; name?: string; description?: string; parentId?: string; searchEnabled?: boolean } = {}) {
-    const payload: Body_file_update = {
-      data: options.file,
+    const payload: update = {
+      data: options.file as unknown as string | undefined,
       name: options.name,
       description: options.description,
       parent_id: options.parentId,

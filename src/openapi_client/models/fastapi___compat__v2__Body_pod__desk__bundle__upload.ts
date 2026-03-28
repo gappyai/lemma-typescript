@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type Body_pod_desk_bundle_upload = {
-    source_archive?: (Blob | null);
+export type fastapi___compat__v2__Body_pod__desk__bundle__upload = {
+    source_archive?: (string | null);
     html?: (string | null);
 };
 

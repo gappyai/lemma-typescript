@@ -1,8 +1,8 @@
 import type { GeneratedClientAdapter } from "../generated.js";
 import type { HttpClient } from "../http.js";
-import type { Body_pod_desk_bundle_upload } from "../openapi_client/models/Body_pod_desk_bundle_upload.js";
 import type { CreateDeskRequest } from "../openapi_client/models/CreateDeskRequest.js";
 import type { UpdateDeskRequest } from "../openapi_client/models/UpdateDeskRequest.js";
+import type { fastapi___compat__v2__Body_pod__desk__bundle__upload } from "../openapi_client/models/fastapi___compat__v2__Body_pod__desk__bundle__upload.js";
 import { DesksService } from "../openapi_client/services/DesksService.js";
 
 export class DesksNamespace {
@@ -34,7 +34,7 @@ export class DesksNamespace {
   };
 
   readonly bundle = {
-    upload: (name: string, payload: Body_pod_desk_bundle_upload) =>
+    upload: (name: string, payload: fastapi___compat__v2__Body_pod__desk__bundle__upload) =>
       this.client.request(() => DesksService.podDeskBundleUpload(this.podId(), name, payload)),
   };
 

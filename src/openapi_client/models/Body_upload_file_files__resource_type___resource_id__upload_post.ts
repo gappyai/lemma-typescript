@@ -3,6 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type Body_upload_file_files__resource_type___resource_id__upload_post = {
-    file: Blob;
+    file: string;
 };
 

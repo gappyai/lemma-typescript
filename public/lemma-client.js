@@ -2629,7 +2629,10 @@ class IconsNamespace {
         this.client = client;
     }
     upload(file) {
-        return this.client.request(() => IconsService_js_1.IconsService.iconUpload({ file }));
+        const payload = {
+            file: file,
+        };
+        return this.client.request(() => IconsService_js_1.IconsService.iconUpload(payload));
     }
     getPublic(iconPath) {
         return this.client.request(() => IconsService_js_1.IconsService.iconPublicGet(iconPath));
@@ -2841,13 +2844,13 @@ class ApplicationsService {
     /**
      * List Application Operations
      * @param applicationId
-     * @param search
+     * @param query
      * @param limit
      * @param pageToken
      * @returns OperationListResponse Successful Response
      * @throws ApiError
      */
-    static applicationOperationList(applicationId, search, limit = 100, pageToken) {
+    static applicationOperationList(applicationId, query, limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/integrations/applications/{application_id}/operations',
@@ -2855,7 +2858,7 @@ class ApplicationsService {
                 'application_id': applicationId,
             },
             query: {
-                'search': search,
+                'query': query,
                 'limit': limit,
                 'page_token': pageToken,
             },

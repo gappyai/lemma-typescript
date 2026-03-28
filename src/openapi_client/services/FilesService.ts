@@ -2,11 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Body_file_update } from '../models/Body_file_update.js';
-import type { Body_file_upload } from '../models/Body_file_upload.js';
 import type { Body_upload_file_files__resource_type___resource_id__upload_post } from '../models/Body_upload_file_files__resource_type___resource_id__upload_post.js';
 import type { CreateFolderRequest } from '../models/CreateFolderRequest.js';
 import type { DatastoreMessageResponse } from '../models/DatastoreMessageResponse.js';
+import type { fastapi___compat__v2__Body_file__upload } from '../models/fastapi___compat__v2__Body_file__upload.js';
 import type { FileListResponse } from '../models/FileListResponse.js';
 import type { FileResponse } from '../models/FileResponse.js';
 import type { FileSearchRequest } from '../models/FileSearchRequest.js';
@@ -14,6 +13,7 @@ import type { FileSearchResponse } from '../models/FileSearchResponse.js';
 import type { FileUploadResponse } from '../models/FileUploadResponse.js';
 import type { ResourceFileListResponse } from '../models/ResourceFileListResponse.js';
 import type { ResourceType } from '../models/ResourceType.js';
+import type { update } from '../models/update.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
@@ -147,7 +147,7 @@ export class FilesService {
     public static fileUpload(
         podId: string,
         datastoreName: string,
-        formData: Body_file_upload,
+        formData: fastapi___compat__v2__Body_file__upload,
     ): CancelablePromise<FileResponse> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -263,7 +263,7 @@ export class FilesService {
         podId: string,
         datastoreName: string,
         fileId: string,
-        formData?: Body_file_update,
+        formData?: update,
     ): CancelablePromise<FileResponse> {
         return __request(OpenAPI, {
             method: 'PATCH',

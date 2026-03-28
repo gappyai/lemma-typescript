@@ -2,12 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { Body_pod_desk_bundle_upload } from '../models/Body_pod_desk_bundle_upload.js';
 import type { CreateDeskRequest } from '../models/CreateDeskRequest.js';
 import type { DeskBundleUploadResponse } from '../models/DeskBundleUploadResponse.js';
 import type { DeskListResponse } from '../models/DeskListResponse.js';
 import type { DeskMessageResponse } from '../models/DeskMessageResponse.js';
 import type { DeskResponse } from '../models/DeskResponse.js';
+import type { fastapi___compat__v2__Body_pod__desk__bundle__upload } from '../models/fastapi___compat__v2__Body_pod__desk__bundle__upload.js';
 import type { UpdateDeskRequest } from '../models/UpdateDeskRequest.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
@@ -149,7 +149,7 @@ export class DesksService {
     public static podDeskBundleUpload(
         podId: string,
         deskName: string,
-        formData?: Body_pod_desk_bundle_upload,
+        formData?: fastapi___compat__v2__Body_pod__desk__bundle__upload,
     ): CancelablePromise<DeskBundleUploadResponse> {
         return __request(OpenAPI, {
             method: 'POST',

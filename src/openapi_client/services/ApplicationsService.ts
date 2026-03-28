@@ -134,7 +134,7 @@ export class ApplicationsService {
     /**
      * List Application Operations
      * @param applicationId
-     * @param search
+     * @param query
      * @param limit
      * @param pageToken
      * @returns OperationListResponse Successful Response
@@ -142,7 +142,7 @@ export class ApplicationsService {
      */
     public static applicationOperationList(
         applicationId: string,
-        search?: (string | null),
+        query?: (string | null),
         limit: number = 100,
         pageToken?: (string | null),
     ): CancelablePromise<OperationListResponse> {
@@ -153,7 +153,7 @@ export class ApplicationsService {
                 'application_id': applicationId,
             },
             query: {
-                'search': search,
+                'query': query,
                 'limit': limit,
                 'page_token': pageToken,
             },
