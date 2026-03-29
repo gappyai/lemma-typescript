@@ -8,6 +8,12 @@ Official TypeScript SDK for Lemma APIs with pod-scoped namespaces, auth helpers,
 npm i lemma-sdk
 ```
 
+For local workspace development against the checked-out SDK instead of npm:
+
+```bash
+npm i file:../lemma-typescript
+```
+
 If you want to import as `lemma`, use npm aliasing:
 
 ```bash
@@ -68,6 +74,40 @@ const token = await client.auth.getAccessToken();
 const refreshed = await client.auth.refreshAccessToken();
 client.auth.redirectToAuth({ mode: "signup", redirectUri: safeRedirect });
 ```
+
+### Browser Testing With Injected Token
+
+For desk and app testing, the SDK supports a fixed bearer token injected through localStorage.
+This is the only supported browser token-injection path.
+
+```ts
+import { LemmaClient, setTestingToken, clearTestingToken } from "lemma-sdk";
+
+setTestingToken("<access-token>");
+
+const client = new LemmaClient({
+  apiUrl: "/api",
+  authUrl: "http://localhost:4173",
+  podId: "<pod-id>",
+});
+
+await client.initialize();
+
+clearTestingToken();
+```
+
+Equivalent manual browser setup:
+
+```js
+localStorage.setItem("lemma_token", "<access-token>");
+window.location.reload();
+```
+
+Notes:
+
+- do not pass testing tokens in query parameters
+- prefer a same-origin dev proxy such as Vite `/api` during local browser testing to avoid CORS on `/users/me`
+- production auth should use the normal cookie/session flow
 
 ## Assistants + Agent Runs
 

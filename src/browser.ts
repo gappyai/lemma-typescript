@@ -9,5 +9,12 @@
  *   </script>
  */
 export { LemmaClient } from "./client.js";
-export { AuthManager, buildAuthUrl, resolveSafeRedirectUri } from "./auth.js";
+export {
+  AuthManager,
+  buildAuthUrl,
+  clearTestingToken,
+  getTestingToken,
+  resolveSafeRedirectUri,
+  setTestingToken,
+} from "./auth.js";
 export { ApiError } from "./http.js";

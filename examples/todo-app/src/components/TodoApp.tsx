@@ -524,7 +524,7 @@ export default function TodoApp() {
         }}>
           <strong style={{ color: "#374151" }}>SDK info</strong>
           <div>Using <code>lemma-sdk</code> TypeScript SDK via Vite path alias</div>
-          <div>Auth: <code>?lemma_token=&lt;token&gt;</code> (Bearer) or session cookie</div>
+          <div>Auth: <code>localStorage["lemma_token"]</code> (Bearer) or session cookie</div>
           <div>Pod: <code>{getClient().podId}</code></div>
           <div>API: <code>{getClient().apiUrl}</code> (proxied via Vite)</div>
         </div>

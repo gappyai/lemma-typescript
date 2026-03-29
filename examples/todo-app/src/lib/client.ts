@@ -5,7 +5,7 @@
  * - authUrl points to the auth frontend
  * - podId is the todolist pod we created via CLI
  *
- * For testing, pass ?lemma_token=<token> in the URL or set
+ * For testing, set
  *   localStorage.setItem("lemma_token", "<token>")
  * in the browser console.
  */

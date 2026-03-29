@@ -3,7 +3,7 @@
 "./browser.js": function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ApiError = exports.resolveSafeRedirectUri = exports.buildAuthUrl = exports.AuthManager = exports.LemmaClient = void 0;
+exports.ApiError = exports.setTestingToken = exports.resolveSafeRedirectUri = exports.getTestingToken = exports.clearTestingToken = exports.buildAuthUrl = exports.AuthManager = exports.LemmaClient = void 0;
 /**
  * Browser bundle entry point.
  * Exposes LemmaClient as globalThis.LemmaClient.LemmaClient
@@ -19,7 +19,10 @@ Object.defineProperty(exports, "LemmaClient", { enumerable: true, get: function 
 var auth_js_1 = require("./auth.js");
 Object.defineProperty(exports, "AuthManager", { enumerable: true, get: function () { return auth_js_1.AuthManager; } });
 Object.defineProperty(exports, "buildAuthUrl", { enumerable: true, get: function () { return auth_js_1.buildAuthUrl; } });
+Object.defineProperty(exports, "clearTestingToken", { enumerable: true, get: function () { return auth_js_1.clearTestingToken; } });
+Object.defineProperty(exports, "getTestingToken", { enumerable: true, get: function () { return auth_js_1.getTestingToken; } });
 Object.defineProperty(exports, "resolveSafeRedirectUri", { enumerable: true, get: function () { return auth_js_1.resolveSafeRedirectUri; } });
+Object.defineProperty(exports, "setTestingToken", { enumerable: true, get: function () { return auth_js_1.setTestingToken; } });
 var http_js_1 = require("./http.js");
 Object.defineProperty(exports, "ApiError", { enumerable: true, get: function () { return http_js_1.ApiError; } });
 
@@ -179,11 +182,10 @@ function resolveConfig(overrides = {}) {
  * for agent/dev testing.
  *
  * Auth resolution order on init:
- * 1. ?lemma_token=<token> query param  (stored in memory for session)
- * 2. localStorage.getItem("lemma_token")
- * 3. Session cookie (credentials: "include") — production path
+ * 1. localStorage.getItem("lemma_token")
+ * 2. Session cookie (credentials: "include") — production path
  *
- * If a token is found in (1) or (2), all requests use Authorization: Bearer <token>.
+ * If a token is found in (1), all requests use Authorization: Bearer <token>.
  * Otherwise requests rely on cookies, and the server must set the session cookie
  * after the user authenticates at the auth service. In cookie mode we initialise
  * the SuperTokens browser SDK so fetch/XHR automatically handles anti-CSRF and
@@ -194,43 +196,61 @@ function resolveConfig(overrides = {}) {
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthManager = void 0;
+exports.setTestingToken = setTestingToken;
+exports.getTestingToken = getTestingToken;
+exports.clearTestingToken = clearTestingToken;
 exports.buildAuthUrl = buildAuthUrl;
 exports.resolveSafeRedirectUri = resolveSafeRedirectUri;
 const session_1 = require("supertokens-web-js/recipe/session");
 const supertokens_js_1 = require("./supertokens.js");
 const DEFAULT_BLOCKED_REDIRECT_PATHS = ["/login", "/signup", "/auth"];
 const LOCALSTORAGE_TOKEN_KEY = "lemma_token";
-const QUERY_PARAM_TOKEN_KEY = "lemma_token";
+function readStorageToken() {
+    if (typeof window === "undefined")
+        return null;
+    try {
+        return localStorage.getItem(LOCALSTORAGE_TOKEN_KEY);
+    }
+    catch {
+        return null;
+    }
+}
+function writeStorageToken(token) {
+    if (typeof window === "undefined")
+        return;
+    try {
+        localStorage.setItem(LOCALSTORAGE_TOKEN_KEY, token);
+    }
+    catch {
+        // ignore storage errors
+    }
+}
+function removeStorageToken() {
+    if (typeof window === "undefined")
+        return;
+    try {
+        localStorage.removeItem(LOCALSTORAGE_TOKEN_KEY);
+    }
+    catch {
+        // ignore storage errors
+    }
+}
+function setTestingToken(token) {
+    writeStorageToken(token);
+}
+function getTestingToken() {
+    return readStorageToken();
+}
+function clearTestingToken() {
+    removeStorageToken();
+}
 function detectInjectedToken() {
     if (typeof window === "undefined")
         return null;
-    // 1. Query param — highest priority, persist to sessionStorage for this session
-    try {
-        const params = new URLSearchParams(window.location.search);
-        const qpToken = params.get(QUERY_PARAM_TOKEN_KEY);
-        if (qpToken) {
-            try {
-                sessionStorage.setItem(LOCALSTORAGE_TOKEN_KEY, qpToken);
-            }
-            catch { /* ignore */ }
-            return qpToken;
-        }
-    }
-    catch { /* ignore */ }
-    // 2. sessionStorage — survives HMR and same-tab navigation
-    try {
-        const stored = sessionStorage.getItem(LOCALSTORAGE_TOKEN_KEY);
-        if (stored)
-            return stored;
-    }
-    catch { /* ignore */ }
-    // 3. localStorage — set manually by dev/agent for persistent testing
-    try {
-        const stored = localStorage.getItem(LOCALSTORAGE_TOKEN_KEY);
-        if (stored)
-            return stored;
-    }
-    catch { /* ignore */ }
+    // 1. localStorage — the only supported browser testing path
+    const localToken = readStorageToken();
+    if (localToken)
+        return localToken;
     return null;
 }
 function normalizePath(path) {
@@ -359,20 +379,7 @@ class AuthManager {
     }
     clearInjectedToken() {
         this.injectedToken = null;
-        if (typeof window === "undefined")
-            return;
-        try {
-            sessionStorage.removeItem(LOCALSTORAGE_TOKEN_KEY);
-        }
-        catch {
-            // ignore storage errors
-        }
-        try {
-            localStorage.removeItem(LOCALSTORAGE_TOKEN_KEY);
-        }
-        catch {
-            // ignore storage errors
-        }
+        clearTestingToken();
     }
     async rawSignOutViaBackend() {
         const antiCsrf = this.getCookie("sAntiCsrf");
