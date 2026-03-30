@@ -173,6 +173,21 @@ Import from `lemma-sdk/react`:
 - `AuthGuard`
 - `useAgentRunStream(...)`
 - `useAssistantRun(...)`
+- `useAssistantSession(...)`
+- `useTaskSession(...)`
+- `useFunctionSession(...)`
+- `useFlowSession(...)`
+
+Core run helpers from `lemma-sdk`:
+
+- `normalizeRunStatus(...)`
+- `isTerminalTaskStatus(...)`
+- `isTerminalFunctionStatus(...)`
+- `isTerminalFlowStatus(...)`
+- `parseTaskStreamEvent(...)`
+- `upsertTaskMessage(...)`
+- `parseAssistantStreamEvent(...)`
+- `upsertConversationMessage(...)`
 
 Example:
 
@@ -188,6 +203,10 @@ const { sendMessage, stop, isStreaming } = useAssistantRun({
   },
 });
 ```
+
+For the SDK consumption UI roadmap (AssistantChat / FunctionInvokeForm / FlowRunExperience / RunPanel), see:
+
+- `docs/sdk-consumption-ui-v2.md`
 
 ## File Resources
 

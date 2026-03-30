@@ -21,6 +21,19 @@ export { ApiError } from "./http.js";
 export * from "./types.js";
 export { readSSE, parseSSEJson } from "./streams.js";
 export type { SseRawEvent } from "./streams.js";
+export {
+  normalizeRunStatus,
+  isTerminalTaskStatus,
+  isTerminalFunctionStatus,
+  isTerminalFlowStatus,
+  sleep,
+  nextBackoffDelay,
+} from "./run-utils.js";
+export type { AnyRunStatus } from "./run-utils.js";
+export { parseTaskStreamEvent, upsertTaskMessage } from "./task-events.js";
+export type { ParsedTaskStreamEvent } from "./task-events.js";
+export { parseAssistantStreamEvent, upsertConversationMessage } from "./assistant-events.js";
+export type { ParsedAssistantStreamEvent } from "./assistant-events.js";
 
 // Namespace types (for advanced usage)
 export type { AgentsNamespace } from "./namespaces/agents.js";

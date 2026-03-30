@@ -1,0 +1,161 @@
+import { useCallback, useEffect, useState } from "react";
+import type { ConversationMessage } from "../types.js";
+
+type RuntimeConversationMessage = ConversationMessage & { conversation_id?: string };
+
+export interface UseAssistantRuntimeOptions {
+  conversationId?: string | null;
+  sessionMessages?: ConversationMessage[];
+}
+
+export interface UseAssistantRuntimeResult {
+  runtimeMessages: ConversationMessage[];
+  appendOptimisticUserMessage: (content: string) => ConversationMessage;
+  replaceLoadedMessages: (messages: ConversationMessage[]) => void;
+  mergeMessages: (messages: ConversationMessage[]) => void;
+  clear: () => void;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+function messageText(content: unknown): string {
+  if (typeof content === "string") {
+    return content.trim();
+  }
+
+  if (isRecord(content)) {
+    if (typeof content.content === "string") return content.content.trim();
+    if (typeof content.text === "string") return content.text.trim();
+  }
+
+  return "";
+}
+
+function messageTime(message: RuntimeConversationMessage): number {
+  const timestamp = new Date(message.created_at).getTime();
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function isOptimisticId(messageId: string): boolean {
+  return messageId.startsWith("optimistic-user-");
+}
+
+function upsertRuntimeMessage(
+  previous: RuntimeConversationMessage[],
+  incoming: RuntimeConversationMessage,
+): RuntimeConversationMessage[] {
+  const next = [...previous];
+  const directIndex = next.findIndex((message) => message.id === incoming.id);
+
+  if (directIndex >= 0) {
+    next[directIndex] = incoming;
+    return next;
+  }
+
+  if (incoming.role === "user") {
+    const incomingText = messageText(incoming.content);
+    if (incomingText) {
+      const optimisticIndex = next.findIndex((message) => (
+        message.role === "user"
+        && isOptimisticId(message.id)
+        && messageText(message.content) === incomingText
+      ));
+      if (optimisticIndex >= 0) {
+        next[optimisticIndex] = incoming;
+        return next;
+      }
+    }
+  }
+
+  next.push(incoming);
+  return next;
+}
+
+function toRuntimeMessage(message: ConversationMessage): RuntimeConversationMessage {
+  return message as RuntimeConversationMessage;
+}
+
+function buildOptimisticId(): string {
+  if (typeof globalThis.crypto !== "undefined" && typeof globalThis.crypto.randomUUID === "function") {
+    return `optimistic-user-${globalThis.crypto.randomUUID()}`;
+  }
+
+  return `optimistic-user-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function useAssistantRuntime({
+  conversationId = null,
+  sessionMessages = [],
+}: UseAssistantRuntimeOptions): UseAssistantRuntimeResult {
+  const [runtimeMessages, setRuntimeMessages] = useState<RuntimeConversationMessage[]>([]);
+
+  const mergeMessages = useCallback((messages: ConversationMessage[]) => {
+    setRuntimeMessages((previous) => {
+      const merged = messages.reduce(
+        (accumulator, message) => upsertRuntimeMessage(accumulator, toRuntimeMessage(message)),
+        previous,
+      );
+
+      return [...merged].sort((a, b) => messageTime(a) - messageTime(b));
+    });
+  }, []);
+
+  const replaceLoadedMessages = useCallback((messages: ConversationMessage[]) => {
+    setRuntimeMessages((previous) => {
+      const next = messages.reduce(
+        (accumulator, message) => upsertRuntimeMessage(accumulator, toRuntimeMessage(message)),
+        previous,
+      );
+
+      return [...next].sort((a, b) => messageTime(a) - messageTime(b));
+    });
+  }, []);
+
+  const appendOptimisticUserMessage = useCallback((content: string): ConversationMessage => {
+    const trimmed = content.trim();
+    const optimistic: RuntimeConversationMessage = {
+      id: buildOptimisticId(),
+      role: "user",
+      content: { content: trimmed },
+      created_at: new Date().toISOString(),
+      metadata: null,
+      ...(conversationId ? { conversation_id: conversationId } : {}),
+    };
+
+    setRuntimeMessages((previous) => {
+      const next = upsertRuntimeMessage(previous, optimistic);
+      return [...next].sort((a, b) => messageTime(a) - messageTime(b));
+    });
+
+    return optimistic;
+  }, [conversationId]);
+
+  const clear = useCallback(() => {
+    setRuntimeMessages([]);
+  }, []);
+
+  useEffect(() => {
+    setRuntimeMessages([]);
+  }, [conversationId]);
+
+  useEffect(() => {
+    if (sessionMessages.length === 0) return;
+
+    const normalized = sessionMessages
+      .map((message) => toRuntimeMessage(message))
+      .filter((message) => !conversationId || !message.conversation_id || message.conversation_id === conversationId);
+
+    if (normalized.length === 0) return;
+    mergeMessages(normalized);
+  }, [conversationId, mergeMessages, sessionMessages]);
+
+  return {
+    runtimeMessages,
+    appendOptimisticUserMessage,
+    replaceLoadedMessages,
+    mergeMessages,
+    clear,
+  };
+}

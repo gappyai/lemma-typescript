@@ -9,6 +9,8 @@ import type {
   CreateAgentRequest,
   CreateAssistantRequest,
   CreateTaskRequest,
+  FlowRunEntity,
+  FunctionRunResponse,
   IconUploadResponse,
   OrganizationInvitationResponse,
   OrganizationMemberResponse,
@@ -77,6 +79,8 @@ export type ConversationModel = `${AvailableModels}`;
 
 export type Task = TaskResponse;
 export type TaskMessage = TaskMessageResponse;
+export type FunctionRun = FunctionRunResponse;
+export type FlowRun = FlowRunEntity;
 
 export type Pod = PodResponse;
 export type PodConfig = PodConfigResponse;

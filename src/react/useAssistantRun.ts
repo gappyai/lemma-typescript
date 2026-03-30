@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
-import { parseSSEJson, readSSE, type SseRawEvent } from "../streams.js";
+import type { SseRawEvent } from "../streams.js";
+import { useAssistantSession } from "./useAssistantSession.js";
 
 export interface UseAssistantRunOptions {
   client: LemmaClient;
@@ -26,14 +26,6 @@ function requireConversationId(conversationId?: string | null): string {
   return conversationId;
 }
 
-function resolvePodId(client: LemmaClient, podId?: string): string {
-  const resolved = podId ?? client.podId;
-  if (!resolved) {
-    throw new Error("podId is required. Pass podId or set it on LemmaClient.");
-  }
-  return resolved;
-}
-
 export function useAssistantRun({
   client,
   podId,
@@ -41,86 +33,35 @@ export function useAssistantRun({
   onEvent,
   onError,
 }: UseAssistantRunOptions): UseAssistantRunResult {
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [error, setError] = useState<Error | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  const session = useAssistantSession({
+    client,
+    podId,
+    conversationId,
+    onEvent,
+    onError,
+  });
 
-  const consume = useCallback(
-    async (stream: ReadableStream<Uint8Array>, controller: AbortController) => {
-      setIsStreaming(true);
-      setError(null);
+  const sendMessage = async (content: string) => {
+    await session.sendMessage(content, {
+      conversationId: requireConversationId(conversationId ?? session.conversationId),
+      createIfMissing: false,
+    });
+  };
 
-      try {
-        for await (const event of readSSE(stream)) {
-          if (controller.signal.aborted) {
-            break;
-          }
-          onEvent?.(event, parseSSEJson(event));
-        }
-      } catch (streamError) {
-        if (!(streamError instanceof Error && streamError.name === "AbortError")) {
-          const normalized = streamError instanceof Error
-            ? streamError
-            : new Error("Failed to stream assistant run.");
-          setError(normalized);
-          onError?.(streamError);
-        }
-      } finally {
-        if (abortRef.current === controller) {
-          abortRef.current = null;
-        }
-        setIsStreaming(false);
-      }
-    },
-    [onError, onEvent],
-  );
+  const resume = async () => {
+    await session.resume(requireConversationId(conversationId ?? session.conversationId));
+  };
 
-  const cancel = useCallback(() => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-  }, []);
-
-  const sendMessage = useCallback(async (content: string) => {
-    const id = requireConversationId(conversationId);
-
-    cancel();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    client.setPodId(resolvePodId(client, podId));
-    const stream = await client.conversations.sendMessageStream(
-      id,
-      { content },
-      { signal: controller.signal },
-    );
-
-    await consume(stream, controller);
-  }, [cancel, client, consume, conversationId, podId]);
-
-  const resume = useCallback(async () => {
-    const id = requireConversationId(conversationId);
-
-    cancel();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    client.setPodId(resolvePodId(client, podId));
-    const stream = await client.conversations.resumeStream(id, { signal: controller.signal });
-    await consume(stream, controller);
-  }, [cancel, client, consume, conversationId, podId]);
-
-  const stop = useCallback(async () => {
-    const id = requireConversationId(conversationId);
-    client.setPodId(resolvePodId(client, podId));
-    await client.conversations.stopRun(id);
-  }, [client, conversationId, podId]);
+  const stop = async () => {
+    await session.stop(requireConversationId(conversationId ?? session.conversationId));
+  };
 
   return {
-    isStreaming,
-    error,
+    isStreaming: session.isStreaming,
+    error: session.error,
     sendMessage,
     resume,
     stop,
-    cancel,
+    cancel: session.cancel,
   };
 }
