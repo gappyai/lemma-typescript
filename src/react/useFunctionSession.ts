@@ -59,13 +59,13 @@ export function useFunctionSession({
   client,
   podId,
   functionName,
-  runId: initialRunId = null,
+  runId: externalRunId = null,
   autoPoll = true,
   pollIntervalMs = 2000,
   onRun,
   onError,
 }: UseFunctionSessionOptions): UseFunctionSessionResult {
-  const [runId, setRunIdState] = useState<string | null>(initialRunId);
+  const [runId, setRunIdState] = useState<string | null>(externalRunId);
   const [run, setRun] = useState<FunctionRun | null>(null);
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [isPolling, setIsPolling] = useState(false);
@@ -78,6 +78,14 @@ export function useFunctionSession({
       setStatus(undefined);
     }
   }, []);
+
+  useEffect(() => {
+    setRunIdState((current) => current === externalRunId ? current : externalRunId);
+    if (!externalRunId) {
+      setRun(null);
+      setStatus(undefined);
+    }
+  }, [externalRunId]);
 
   const refresh = useCallback(async (explicitRunId?: string | null): Promise<FunctionRun | null> => {
     const id = explicitRunId ?? runId;
