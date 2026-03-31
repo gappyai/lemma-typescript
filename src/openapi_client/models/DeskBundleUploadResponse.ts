@@ -4,7 +4,7 @@
 /* eslint-disable */
 import type { DeskResponse } from './DeskResponse.js';
 export type DeskBundleUploadResponse = {
-    message: string;
     desk: DeskResponse;
+    message: string;
 };
 

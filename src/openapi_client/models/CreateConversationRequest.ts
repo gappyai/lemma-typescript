@@ -7,10 +7,10 @@ import type { AvailableModels } from './AvailableModels.js';
  * Request to create a conversation.
  */
 export type CreateConversationRequest = {
-    title?: (string | null);
-    pod_id?: (string | null);
     assistant_id?: (string | null);
-    organization_id?: (string | null);
     model?: (AvailableModels | null);
+    organization_id?: (string | null);
+    pod_id?: (string | null);
+    title?: (string | null);
 };
 

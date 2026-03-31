@@ -13,25 +13,6 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class ConversationsService {
     /**
-     * Create Conversation
-     * @param requestBody
-     * @returns ConversationResponse Successful Response
-     * @throws ApiError
-     */
-    public static conversationCreate(
-        requestBody: CreateConversationRequest,
-    ): CancelablePromise<ConversationResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/conversations',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Conversations
      * @param assistantId
      * @param podId
@@ -58,6 +39,25 @@ export class ConversationsService {
                 'page_token': pageToken,
                 'limit': limit,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Conversation
+     * @param requestBody
+     * @returns ConversationResponse Successful Response
+     * @throws ApiError
+     */
+    public static conversationCreate(
+        requestBody: CreateConversationRequest,
+    ): CancelablePromise<ConversationResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/conversations',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -179,31 +179,6 @@ export class ConversationsService {
         });
     }
     /**
-     * Resume Conversation Stream
-     * @param conversationId
-     * @param podId
-     * @returns any Server-Sent Events for an already-running conversation.
-     * @throws ApiError
-     */
-    public static conversationStreamResume(
-        conversationId: string,
-        podId?: (string | null),
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/conversations/{conversation_id}/stream',
-            path: {
-                'conversation_id': conversationId,
-            },
-            query: {
-                'pod_id': podId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Stop Conversation Run
      * @param conversationId
      * @param podId
@@ -217,6 +192,31 @@ export class ConversationsService {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/conversations/{conversation_id}/stop',
+            path: {
+                'conversation_id': conversationId,
+            },
+            query: {
+                'pod_id': podId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Resume Conversation Stream
+     * @param conversationId
+     * @param podId
+     * @returns any Server-Sent Events for an already-running conversation.
+     * @throws ApiError
+     */
+    public static conversationStreamResume(
+        conversationId: string,
+        podId?: (string | null),
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/conversations/{conversation_id}/stream',
             path: {
                 'conversation_id': conversationId,
             },

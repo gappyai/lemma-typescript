@@ -4,14 +4,13 @@
 /* eslint-disable */
 export type EventFlowStart = {
     /**
-     * Integration trigger identifier to subscribe to.
-     */
-    application_trigger_id: string;
-    /**
      * Integration application identifier.
      */
     application_id: string;
-    trigger_config?: Record<string, any>;
+    /**
+     * Integration trigger identifier to subscribe to.
+     */
+    application_trigger_id: string;
     /**
      * Optional LLM filter instruction executed before flow continuation.
      */
@@ -20,5 +19,6 @@ export type EventFlowStart = {
      * Optional expected schema for filter output.
      */
     filter_output_schema?: (Record<string, any> | null);
+    trigger_config?: Record<string, any>;
 };
 

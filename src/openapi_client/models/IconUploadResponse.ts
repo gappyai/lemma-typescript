@@ -6,8 +6,8 @@
  * Response payload for uploaded icons.
  */
 export type IconUploadResponse = {
+    content_type: string;
     icon_url: string;
     storage_path: string;
-    content_type: string;
 };
 

@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type DeskBundleUploadRequest = {
-    source_archive?: (string | null);
     html?: (string | null);
+    source_archive?: (string | null);
 };
 

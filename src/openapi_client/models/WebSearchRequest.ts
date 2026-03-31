@@ -7,12 +7,12 @@
  */
 export type WebSearchRequest = {
     /**
-     * Search query string
-     */
-    query: string;
-    /**
      * Maximum number of search results to return
      */
     max_results?: number;
+    /**
+     * Search query string
+     */
+    query: string;
 };
 

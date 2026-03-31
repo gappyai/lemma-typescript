@@ -8,20 +8,20 @@ import type { SearchResult } from './SearchResult.js';
  */
 export type WebSearchResponse = {
     /**
-     * Whether the search was successful
+     * Error message if the search was not successful
      */
-    success: boolean;
-    /**
-     * List of search results
-     */
-    results?: Array<SearchResult>;
+    error?: (string | null);
     /**
      * Status message
      */
     message?: (string | null);
     /**
-     * Error message if the search was not successful
+     * List of search results
      */
-    error?: (string | null);
+    results?: Array<SearchResult>;
+    /**
+     * Whether the search was successful
+     */
+    success: boolean;
 };
 

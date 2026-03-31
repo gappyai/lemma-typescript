@@ -6,11 +6,11 @@
  * User profile request schema.
  */
 export type UserProfileRequest = {
+    country?: (string | null);
+    date_of_birth?: (string | null);
     first_name?: (string | null);
     last_name?: (string | null);
     mobile_number?: (string | null);
-    country?: (string | null);
     timezone?: (string | null);
-    date_of_birth?: (string | null);
 };
 

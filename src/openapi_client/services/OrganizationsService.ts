@@ -18,26 +18,6 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class OrganizationsService {
     /**
-     * Create Organization
-     * Create a new organization
-     * @param requestBody
-     * @returns OrganizationResponse Successful Response
-     * @throws ApiError
-     */
-    public static orgCreate(
-        requestBody: OrganizationCreateRequest,
-    ): CancelablePromise<OrganizationResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/organizations',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List My Organizations
      * Get all organizations the current user belongs to
      * @param limit
@@ -56,6 +36,26 @@ export class OrganizationsService {
                 'limit': limit,
                 'page_token': pageToken,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Organization
+     * Create a new organization
+     * @param requestBody
+     * @returns OrganizationResponse Successful Response
+     * @throws ApiError
+     */
+    public static orgCreate(
+        requestBody: OrganizationCreateRequest,
+    ): CancelablePromise<OrganizationResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/organizations',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -89,6 +89,69 @@ export class OrganizationsService {
         });
     }
     /**
+     * Revoke Invitation
+     * Revoke an organization invitation
+     * @param invitationId
+     * @returns void
+     * @throws ApiError
+     */
+    public static orgInvitationRevoke(
+        invitationId: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/organizations/invitations/{invitation_id}',
+            path: {
+                'invitation_id': invitationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Organization Invitation
+     * Get an invitation by id
+     * @param invitationId
+     * @returns OrganizationInvitationResponse Successful Response
+     * @throws ApiError
+     */
+    public static orgInvitationGet(
+        invitationId: string,
+    ): CancelablePromise<OrganizationInvitationResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/organizations/invitations/{invitation_id}',
+            path: {
+                'invitation_id': invitationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Accept Invitation
+     * Accept an organization invitation
+     * @param invitationId
+     * @returns OrganizationMessageResponse Successful Response
+     * @throws ApiError
+     */
+    public static orgInvitationAccept(
+        invitationId: string,
+    ): CancelablePromise<OrganizationMessageResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/organizations/invitations/{invitation_id}/accept',
+            path: {
+                'invitation_id': invitationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get Organization
      * Get organization details
      * @param orgId
@@ -104,60 +167,6 @@ export class OrganizationsService {
             path: {
                 'org_id': orgId,
             },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Organization Members
-     * Get all members of an organization
-     * @param orgId
-     * @param limit
-     * @param pageToken
-     * @returns OrganizationMemberListResponse Successful Response
-     * @throws ApiError
-     */
-    public static orgMemberList(
-        orgId: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<OrganizationMemberListResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/organizations/{org_id}/members',
-            path: {
-                'org_id': orgId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Invite Member
-     * Invite a user to join the organization
-     * @param orgId
-     * @param requestBody
-     * @returns OrganizationInvitationResponse Successful Response
-     * @throws ApiError
-     */
-    public static orgInvitationInvite(
-        orgId: string,
-        requestBody: OrganizationInvitationRequest,
-    ): CancelablePromise<OrganizationInvitationResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/organizations/{org_id}/invitations',
-            path: {
-                'org_id': orgId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -196,41 +205,53 @@ export class OrganizationsService {
         });
     }
     /**
-     * Accept Invitation
-     * Accept an organization invitation
-     * @param invitationId
-     * @returns OrganizationMessageResponse Successful Response
-     * @throws ApiError
-     */
-    public static orgInvitationAccept(
-        invitationId: string,
-    ): CancelablePromise<OrganizationMessageResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/organizations/invitations/{invitation_id}/accept',
-            path: {
-                'invitation_id': invitationId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Organization Invitation
-     * Get an invitation by id
-     * @param invitationId
+     * Invite Member
+     * Invite a user to join the organization
+     * @param orgId
+     * @param requestBody
      * @returns OrganizationInvitationResponse Successful Response
      * @throws ApiError
      */
-    public static orgInvitationGet(
-        invitationId: string,
+    public static orgInvitationInvite(
+        orgId: string,
+        requestBody: OrganizationInvitationRequest,
     ): CancelablePromise<OrganizationInvitationResponse> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/organizations/invitations/{invitation_id}',
+            method: 'POST',
+            url: '/organizations/{org_id}/invitations',
             path: {
-                'invitation_id': invitationId,
+                'org_id': orgId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Organization Members
+     * Get all members of an organization
+     * @param orgId
+     * @param limit
+     * @param pageToken
+     * @returns OrganizationMemberListResponse Successful Response
+     * @throws ApiError
+     */
+    public static orgMemberList(
+        orgId: string,
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<OrganizationMemberListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/organizations/{org_id}/members',
+            path: {
+                'org_id': orgId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,
@@ -238,20 +259,23 @@ export class OrganizationsService {
         });
     }
     /**
-     * Revoke Invitation
-     * Revoke an organization invitation
-     * @param invitationId
+     * Remove Member
+     * Remove a member from the organization
+     * @param orgId
+     * @param memberId
      * @returns void
      * @throws ApiError
      */
-    public static orgInvitationRevoke(
-        invitationId: string,
+    public static orgMemberRemove(
+        orgId: string,
+        memberId: string,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/organizations/invitations/{invitation_id}',
+            url: '/organizations/{org_id}/members/{member_id}',
             path: {
-                'invitation_id': invitationId,
+                'org_id': orgId,
+                'member_id': memberId,
             },
             errors: {
                 422: `Validation Error`,
@@ -281,30 +305,6 @@ export class OrganizationsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Remove Member
-     * Remove a member from the organization
-     * @param orgId
-     * @param memberId
-     * @returns void
-     * @throws ApiError
-     */
-    public static orgMemberRemove(
-        orgId: string,
-        memberId: string,
-    ): CancelablePromise<void> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/organizations/{org_id}/members/{member_id}',
-            path: {
-                'org_id': orgId,
-                'member_id': memberId,
-            },
             errors: {
                 422: `Validation Error`,
             },

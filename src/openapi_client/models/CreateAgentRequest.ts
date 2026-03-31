@@ -8,14 +8,14 @@ import type { ToolSet } from './ToolSet.js';
  * Request schema for creating an agent.
  */
 export type CreateAgentRequest = {
-    name: string;
+    accessible_applications?: Array<ApplicationAccessConfig>;
+    accessible_datastores?: Array<string>;
     description?: (string | null);
     icon_url?: (string | null);
-    instruction: string;
     input_schema?: (Record<string, any> | null);
+    instruction: string;
+    name: string;
     output_schema?: (Record<string, any> | null);
     tool_sets?: Array<ToolSet>;
-    accessible_datastores?: Array<string>;
-    accessible_applications?: Array<ApplicationAccessConfig>;
 };
 

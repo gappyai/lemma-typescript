@@ -8,11 +8,11 @@ import type { PodType } from './PodType.js';
  * Pod creation request schema.
  */
 export type PodCreateRequest = {
-    organization_id: string;
-    name: string;
     description?: (string | null);
     icon_url?: (string | null);
-    type?: PodType;
+    name: string;
+    organization_id: string;
     status?: PodStatus;
+    type?: PodType;
 };
 

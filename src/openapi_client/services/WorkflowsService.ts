@@ -16,25 +16,108 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class WorkflowsService {
     /**
-     * Create Workflow
-     * Create a workflow definition. Use this before uploading graph nodes/edges with `workflow.graph.update`.
+     * Get Workflow Run
+     * Get current state, context, and step history of a workflow run.
      * @param podId
-     * @param requestBody
-     * @returns FlowResponse Successful Response
+     * @param runId
+     * @returns FlowRunEntity Successful Response
      * @throws ApiError
      */
-    public static workflowCreate(
+    public static workflowRunGet(
         podId: string,
-        requestBody: WorkflowCreateRequest,
-    ): CancelablePromise<FlowResponse> {
+        runId: string,
+    ): CancelablePromise<FlowRunEntity> {
         return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/workflows',
+            method: 'GET',
+            url: '/pods/{pod_id}/workflow-runs/{run_id}',
             path: {
                 'pod_id': podId,
+                'run_id': runId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Resume Workflow Run
+     * Resume a run in WAITING or EXECUTING state. The payload is written back into the current waiting node output and execution continues.
+     * @param podId
+     * @param runId
+     * @param requestBody
+     * @returns FlowRunEntity Successful Response
+     * @throws ApiError
+     */
+    public static workflowRunResume(
+        podId: string,
+        runId: string,
+        requestBody: Record<string, any>,
+    ): CancelablePromise<FlowRunEntity> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/workflow-runs/{run_id}/resume',
+            path: {
+                'pod_id': podId,
+                'run_id': runId,
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Visualize Workflow Run
+     * Render an HTML view of a run overlaid on its workflow graph.
+     * @param podId
+     * @param runId
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    public static workflowRunVisualize(
+        podId: string,
+        runId: string,
+    ): CancelablePromise<string> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/workflow-runs/{run_id}/visualize',
+            path: {
+                'pod_id': podId,
+                'run_id': runId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Workflow Runs
+     * List recent runs for a given workflow.
+     * @param podId
+     * @param workflowName
+     * @param limit
+     * @param pageToken
+     * @returns WorkflowRunListResponse Successful Response
+     * @throws ApiError
+     */
+    public static workflowRunList(
+        podId: string,
+        workflowName: string,
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<WorkflowRunListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/workflow-runs/{workflow_name}/runs',
+            path: {
+                'pod_id': podId,
+                'workflow_name': workflowName,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
             errors: {
                 422: `Validation Error`,
             },
@@ -63,6 +146,55 @@ export class WorkflowsService {
             query: {
                 'limit': limit,
                 'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Workflow
+     * Create a workflow definition. Use this before uploading graph nodes/edges with `workflow.graph.update`.
+     * @param podId
+     * @param requestBody
+     * @returns FlowResponse Successful Response
+     * @throws ApiError
+     */
+    public static workflowCreate(
+        podId: string,
+        requestBody: WorkflowCreateRequest,
+    ): CancelablePromise<FlowResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/workflows',
+            path: {
+                'pod_id': podId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete Workflow
+     * Delete a workflow definition.
+     * @param podId
+     * @param workflowName
+     * @returns void
+     * @throws ApiError
+     */
+    public static workflowDelete(
+        podId: string,
+        workflowName: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}/workflows/{workflow_name}',
+            path: {
+                'pod_id': podId,
+                'workflow_name': workflowName,
             },
             errors: {
                 422: `Validation Error`,
@@ -116,30 +248,6 @@ export class WorkflowsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Workflow
-     * Delete a workflow definition.
-     * @param podId
-     * @param workflowName
-     * @returns void
-     * @throws ApiError
-     */
-    public static workflowDelete(
-        podId: string,
-        workflowName: string,
-    ): CancelablePromise<void> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/workflows/{workflow_name}',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-            },
             errors: {
                 422: `Validation Error`,
             },
@@ -274,114 +382,6 @@ export class WorkflowsService {
             path: {
                 'pod_id': podId,
                 'workflow_name': workflowName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Resume Workflow Run
-     * Resume a run in WAITING or EXECUTING state. The payload is written back into the current waiting node output and execution continues.
-     * @param podId
-     * @param runId
-     * @param requestBody
-     * @returns FlowRunEntity Successful Response
-     * @throws ApiError
-     */
-    public static workflowRunResume(
-        podId: string,
-        runId: string,
-        requestBody: Record<string, any>,
-    ): CancelablePromise<FlowRunEntity> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/workflow-runs/{run_id}/resume',
-            path: {
-                'pod_id': podId,
-                'run_id': runId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Workflow Run
-     * Get current state, context, and step history of a workflow run.
-     * @param podId
-     * @param runId
-     * @returns FlowRunEntity Successful Response
-     * @throws ApiError
-     */
-    public static workflowRunGet(
-        podId: string,
-        runId: string,
-    ): CancelablePromise<FlowRunEntity> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/workflow-runs/{run_id}',
-            path: {
-                'pod_id': podId,
-                'run_id': runId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Workflow Runs
-     * List recent runs for a given workflow.
-     * @param podId
-     * @param workflowName
-     * @param limit
-     * @param pageToken
-     * @returns WorkflowRunListResponse Successful Response
-     * @throws ApiError
-     */
-    public static workflowRunList(
-        podId: string,
-        workflowName: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<WorkflowRunListResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/workflow-runs/{workflow_name}/runs',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Visualize Workflow Run
-     * Render an HTML view of a run overlaid on its workflow graph.
-     * @param podId
-     * @param runId
-     * @returns string Successful Response
-     * @throws ApiError
-     */
-    public static workflowRunVisualize(
-        podId: string,
-        runId: string,
-    ): CancelablePromise<string> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/workflow-runs/{run_id}/visualize',
-            path: {
-                'pod_id': podId,
-                'run_id': runId,
             },
             errors: {
                 422: `Validation Error`,

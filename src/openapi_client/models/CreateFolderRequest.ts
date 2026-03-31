@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CreateFolderRequest = {
-    name: string;
     description?: (string | null);
+    name: string;
     parent_id?: (string | null);
 };
 

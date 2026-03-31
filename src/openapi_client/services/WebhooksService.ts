@@ -7,6 +7,27 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class WebhooksService {
     /**
+     * Handle Specific Trigger Webhook
+     * Receive webhook for a specific trigger ID
+     * @param triggerId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static webhookTriggerHandle(
+        triggerId: string,
+    ): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/webhooks/trigger/{trigger_id}',
+            path: {
+                'trigger_id': triggerId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Handle Webhook
      * Receive webhooks from various sources (slack, composio, jira, email, etc.)
      * @param source
@@ -42,27 +63,6 @@ export class WebhooksService {
             url: '/webhooks/{source}/verify',
             path: {
                 'source': source,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Handle Specific Trigger Webhook
-     * Receive webhook for a specific trigger ID
-     * @param triggerId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static webhookTriggerHandle(
-        triggerId: string,
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/webhooks/trigger/{trigger_id}',
-            path: {
-                'trigger_id': triggerId,
             },
             errors: {
                 422: `Validation Error`,

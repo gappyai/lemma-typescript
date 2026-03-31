@@ -7,9 +7,9 @@ import type { SubscriptionStatus } from './SubscriptionStatus.js';
  * Response for subscription cancellation.
  */
 export type CancelSubscriptionResponse = {
-    subscription_id: string;
-    status: SubscriptionStatus;
-    message: string;
     effective_date: (string | null);
+    message: string;
+    status: SubscriptionStatus;
+    subscription_id: string;
 };
 

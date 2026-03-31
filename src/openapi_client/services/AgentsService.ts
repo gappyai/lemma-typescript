@@ -12,6 +12,35 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class AgentsService {
     /**
+     * List Agents
+     * List all agents in a pod
+     * @param podId
+     * @param limit
+     * @param pageToken
+     * @returns AgentListResponse Successful Response
+     * @throws ApiError
+     */
+    public static agentList(
+        podId: string,
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<AgentListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/agents',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Agent
      * Create a new agent in a pod
      * @param podId
@@ -37,28 +66,23 @@ export class AgentsService {
         });
     }
     /**
-     * List Agents
-     * List all agents in a pod
+     * Delete Agent
+     * Delete an agent
      * @param podId
-     * @param limit
-     * @param pageToken
-     * @returns AgentListResponse Successful Response
+     * @param agentName
+     * @returns AgentMessageResponse Successful Response
      * @throws ApiError
      */
-    public static agentList(
+    public static agentDelete(
         podId: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<AgentListResponse> {
+        agentName: string,
+    ): CancelablePromise<AgentMessageResponse> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/agents',
+            method: 'DELETE',
+            url: '/pods/{pod_id}/agents/{agent_name}',
             path: {
                 'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
+                'agent_name': agentName,
             },
             errors: {
                 422: `Validation Error`,
@@ -112,30 +136,6 @@ export class AgentsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Agent
-     * Delete an agent
-     * @param podId
-     * @param agentName
-     * @returns AgentMessageResponse Successful Response
-     * @throws ApiError
-     */
-    public static agentDelete(
-        podId: string,
-        agentName: string,
-    ): CancelablePromise<AgentMessageResponse> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/agents/{agent_name}',
-            path: {
-                'pod_id': podId,
-                'agent_name': agentName,
-            },
             errors: {
                 422: `Validation Error`,
             },

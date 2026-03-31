@@ -5,8 +5,8 @@
 import type { FileSearchResultSchema } from './FileSearchResultSchema.js';
 import type { SearchMethod } from './SearchMethod.js';
 export type FileSearchResponse = {
-    results: Array<FileSearchResultSchema>;
     query: string;
+    results: Array<FileSearchResultSchema>;
     search_method: SearchMethod;
     total_results: number;
 };

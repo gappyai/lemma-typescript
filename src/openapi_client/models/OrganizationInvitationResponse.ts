@@ -8,15 +8,15 @@ import type { OrganizationRole } from './OrganizationRole.js';
  * Organization invitation response schema.
  */
 export type OrganizationInvitationResponse = {
-    id: string;
+    accepted_at?: (string | null);
+    created_at: string;
     email: string;
+    expires_at: string;
+    id: string;
     organization_id: string;
+    revoked_at?: (string | null);
     role: OrganizationRole;
     status: OrganizationInvitationStatus;
-    expires_at: string;
-    accepted_at?: (string | null);
-    revoked_at?: (string | null);
-    created_at: string;
     updated_at: string;
 };
 

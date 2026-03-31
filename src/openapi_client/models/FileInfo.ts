@@ -3,12 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 export type FileInfo = {
-    name: string;
-    path: string;
-    type: FileInfo.type;
-    size?: (number | null);
     created?: (string | null);
     last_modified?: (string | null);
+    name: string;
+    path: string;
+    size?: (number | null);
+    type: FileInfo.type;
 };
 export namespace FileInfo {
     export enum type {

@@ -13,34 +13,6 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class TablesService {
     /**
-     * Create Table
-     * Create a table in a datastore. Define primary key, column schema, and optional RLS behavior.
-     * @param podId
-     * @param datastoreName
-     * @param requestBody
-     * @returns TableResponse Successful Response
-     * @throws ApiError
-     */
-    public static tableCreate(
-        podId: string,
-        datastoreName: string,
-        requestBody: CreateTableRequest,
-    ): CancelablePromise<TableResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Tables
      * List tables in a datastore.
      * @param podId
@@ -73,27 +45,28 @@ export class TablesService {
         });
     }
     /**
-     * Get Table
-     * Get table schema metadata by table name.
+     * Create Table
+     * Create a table in a datastore. Define primary key, column schema, and optional RLS behavior.
      * @param podId
      * @param datastoreName
-     * @param tableName
+     * @param requestBody
      * @returns TableResponse Successful Response
      * @throws ApiError
      */
-    public static tableGet(
+    public static tableCreate(
         podId: string,
         datastoreName: string,
-        tableName: string,
+        requestBody: CreateTableRequest,
     ): CancelablePromise<TableResponse> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}',
+            method: 'POST',
+            url: '/pods/{pod_id}/datastores/{datastore_name}/tables',
             path: {
                 'pod_id': podId,
                 'datastore_name': datastoreName,
-                'table_name': tableName,
             },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -115,6 +88,33 @@ export class TablesService {
     ): CancelablePromise<DatastoreMessageResponse> {
         return __request(OpenAPI, {
             method: 'DELETE',
+            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}',
+            path: {
+                'pod_id': podId,
+                'datastore_name': datastoreName,
+                'table_name': tableName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Table
+     * Get table schema metadata by table name.
+     * @param podId
+     * @param datastoreName
+     * @param tableName
+     * @returns TableResponse Successful Response
+     * @throws ApiError
+     */
+    public static tableGet(
+        podId: string,
+        datastoreName: string,
+        tableName: string,
+    ): CancelablePromise<TableResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
             url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}',
             path: {
                 'pod_id': podId,

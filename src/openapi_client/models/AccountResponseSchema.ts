@@ -7,15 +7,15 @@ import type { ApplicationResponseSchema } from './ApplicationResponseSchema.js';
  * Schema for account response.
  */
 export type AccountResponseSchema = {
-    id: string;
-    user_id: string;
-    application_id: string;
-    provider_account_id?: (string | null);
-    email: (string | null);
-    preferences: (Record<string, any> | null);
     allowed_scopes: (Array<string> | null);
     application?: (ApplicationResponseSchema | null);
+    application_id: string;
     created_at: string;
+    email: (string | null);
+    id: string;
+    preferences: (Record<string, any> | null);
+    provider_account_id?: (string | null);
     updated_at: string;
+    user_id: string;
 };
 

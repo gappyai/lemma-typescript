@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type WhatsAppSurfaceConfigCreate = {
-    type?: string;
     account_id?: (string | null);
     phone_number_id?: (string | null);
+    type?: string;
 };
 

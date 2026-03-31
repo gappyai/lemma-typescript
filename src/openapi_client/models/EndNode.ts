@@ -7,10 +7,10 @@ import type { EndNodeConfig } from './EndNodeConfig.js';
  * End node.
  */
 export type EndNode = {
+    config?: EndNodeConfig;
     id: string;
     label?: (string | null);
     position?: (Record<string, number> | null);
     type?: string;
-    config?: EndNodeConfig;
 };
 

@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type OperationSummary = {
-    name: string;
     description?: (string | null);
+    name: string;
 };
 

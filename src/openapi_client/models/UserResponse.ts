@@ -6,18 +6,18 @@
  * User response schema.
  */
 export type UserResponse = {
-    id: string;
+    country?: (string | null);
+    created_at: string;
+    date_of_birth?: (string | null);
     email: string;
-    is_verified: boolean;
+    first_name?: (string | null);
+    id: string;
     is_active: boolean;
     is_superuser: boolean;
-    first_name?: (string | null);
+    is_verified: boolean;
     last_name?: (string | null);
     mobile_number?: (string | null);
-    country?: (string | null);
     timezone?: (string | null);
-    date_of_birth?: (string | null);
-    created_at: string;
     updated_at: string;
 };
 

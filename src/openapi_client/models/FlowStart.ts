@@ -8,12 +8,12 @@ import type { FlowStartType } from './FlowStartType.js';
 import type { ScheduledFlowStart } from './ScheduledFlowStart.js';
 export type FlowStart = {
     /**
-     * Flow start mode: MANUAL, SCHEDULED, EVENT, or DATASTORE_EVENT.
-     */
-    type: FlowStartType;
-    /**
      * Start mode configuration payload. Required for non-manual start types.
      */
     config?: (ScheduledFlowStart | EventFlowStart | DataStoreFlowStart | null);
+    /**
+     * Flow start mode: MANUAL, SCHEDULED, EVENT, or DATASTORE_EVENT.
+     */
+    type: FlowStartType;
 };
 

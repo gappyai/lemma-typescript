@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type ToolCallResponse = {
-    type?: string;
     tool_call_id: string;
     tool_output?: any;
+    type?: string;
 };
 

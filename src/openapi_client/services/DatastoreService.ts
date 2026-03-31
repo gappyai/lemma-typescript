@@ -14,6 +14,35 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class DatastoreService {
     /**
+     * List Datastores
+     * List datastores available in the pod.
+     * @param podId
+     * @param limit Max number of datastores to return.
+     * @param pageToken Cursor from a previous response to fetch the next page.
+     * @returns DatastoreListResponse Successful Response
+     * @throws ApiError
+     */
+    public static datastoreList(
+        podId: string,
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<DatastoreListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/datastores',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Datastore
      * Create a datastore namespace inside a pod. Use this before creating tables. Datastore names are normalized for stable API paths.
      * @param podId
@@ -39,28 +68,23 @@ export class DatastoreService {
         });
     }
     /**
-     * List Datastores
-     * List datastores available in the pod.
+     * Delete Datastore
+     * Delete a datastore and its underlying resources.
      * @param podId
-     * @param limit Max number of datastores to return.
-     * @param pageToken Cursor from a previous response to fetch the next page.
-     * @returns DatastoreListResponse Successful Response
+     * @param datastoreName
+     * @returns DatastoreMessageResponse Successful Response
      * @throws ApiError
      */
-    public static datastoreList(
+    public static datastoreDelete(
         podId: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<DatastoreListResponse> {
+        datastoreName: string,
+    ): CancelablePromise<DatastoreMessageResponse> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/datastores',
+            method: 'DELETE',
+            url: '/pods/{pod_id}/datastores/{datastore_name}',
             path: {
                 'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
+                'datastore_name': datastoreName,
             },
             errors: {
                 422: `Validation Error`,
@@ -114,30 +138,6 @@ export class DatastoreService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Datastore
-     * Delete a datastore and its underlying resources.
-     * @param podId
-     * @param datastoreName
-     * @returns DatastoreMessageResponse Successful Response
-     * @throws ApiError
-     */
-    public static datastoreDelete(
-        podId: string,
-        datastoreName: string,
-    ): CancelablePromise<DatastoreMessageResponse> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
             errors: {
                 422: `Validation Error`,
             },

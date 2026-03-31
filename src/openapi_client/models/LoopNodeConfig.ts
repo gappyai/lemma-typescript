@@ -7,16 +7,16 @@
  */
 export type LoopNodeConfig = {
     /**
-     * Path to array in execution state
+     * ID of the node to execute for each item
      */
-    items_path: string;
+    child_node_id: string;
     /**
      * Variable name for current item
      */
     item_var_name?: string;
     /**
-     * ID of the node to execute for each item
+     * Path to array in execution state
      */
-    child_node_id: string;
+    items_path: string;
 };
 

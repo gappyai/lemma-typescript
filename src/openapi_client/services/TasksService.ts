@@ -12,31 +12,6 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class TasksService {
     /**
-     * Create Task
-     * Create and start a new task
-     * @param podId
-     * @param requestBody
-     * @returns TaskResponse Successful Response
-     * @throws ApiError
-     */
-    public static taskCreate(
-        podId: string,
-        requestBody: CreateTaskRequest,
-    ): CancelablePromise<TaskResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/tasks',
-            path: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Tasks
      * List all tasks in a pod
      * @param podId
@@ -69,6 +44,31 @@ export class TasksService {
         });
     }
     /**
+     * Create Task
+     * Create and start a new task
+     * @param podId
+     * @param requestBody
+     * @returns TaskResponse Successful Response
+     * @throws ApiError
+     */
+    public static taskCreate(
+        podId: string,
+        requestBody: CreateTaskRequest,
+    ): CancelablePromise<TaskResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/tasks',
+            path: {
+                'pod_id': podId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get Task
      * Get a task by ID
      * @param podId
@@ -93,23 +93,31 @@ export class TasksService {
         });
     }
     /**
-     * Stop Task
-     * Stop a running task
+     * List Messages
+     * List messages for a task
      * @param podId
      * @param taskId
-     * @returns TaskResponse Successful Response
+     * @param limit
+     * @param pageToken
+     * @returns TaskMessageListResponse Successful Response
      * @throws ApiError
      */
-    public static taskStop(
+    public static taskMessageList(
         podId: string,
         taskId: string,
-    ): CancelablePromise<TaskResponse> {
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<TaskMessageListResponse> {
         return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/pods/{pod_id}/tasks/{task_id}/stop',
+            method: 'GET',
+            url: '/pods/{pod_id}/tasks/{task_id}/messages',
             path: {
                 'pod_id': podId,
                 'task_id': taskId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,
@@ -145,31 +153,23 @@ export class TasksService {
         });
     }
     /**
-     * List Messages
-     * List messages for a task
+     * Stop Task
+     * Stop a running task
      * @param podId
      * @param taskId
-     * @param limit
-     * @param pageToken
-     * @returns TaskMessageListResponse Successful Response
+     * @returns TaskResponse Successful Response
      * @throws ApiError
      */
-    public static taskMessageList(
+    public static taskStop(
         podId: string,
         taskId: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<TaskMessageListResponse> {
+    ): CancelablePromise<TaskResponse> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/tasks/{task_id}/messages',
+            method: 'PATCH',
+            url: '/pods/{pod_id}/tasks/{task_id}/stop',
             path: {
                 'pod_id': podId,
                 'task_id': taskId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,

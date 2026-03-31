@@ -6,14 +6,14 @@
  * Request to start a subscription.
  */
 export type StartSubscriptionRequest = {
+    /**
+     * URL to redirect if payment is cancelled
+     */
+    cancel_url: string;
     plan_id: string;
     /**
      * URL to redirect after successful payment
      */
     success_url: string;
-    /**
-     * URL to redirect if payment is cancelled
-     */
-    cancel_url: string;
 };
 

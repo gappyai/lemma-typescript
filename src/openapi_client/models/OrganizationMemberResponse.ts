@@ -8,12 +8,12 @@ import type { UserResponse } from './UserResponse.js';
  * Organization member response schema.
  */
 export type OrganizationMemberResponse = {
+    created_at: string;
     id: string;
-    user_id: string;
     organization_id: string;
     role: OrganizationRole;
-    user?: (UserResponse | null);
-    created_at: string;
     updated_at: string;
+    user?: (UserResponse | null);
+    user_id: string;
 };
 

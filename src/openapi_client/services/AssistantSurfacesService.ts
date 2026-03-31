@@ -11,31 +11,6 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class AssistantSurfacesService {
     /**
-     * Create Surface
-     * Create a new surface for an assistant.
-     * @param podId
-     * @param requestBody
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static assistantSurfaceCreate(
-        podId: string,
-        requestBody: CreateSurfaceRequest,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/surfaces',
-            path: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Surfaces
      * List configured surfaces in a pod.
      * @param podId
@@ -59,6 +34,31 @@ export class AssistantSurfacesService {
                 'limit': limit,
                 'page_token': pageToken,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Surface
+     * Create a new surface for an assistant.
+     * @param podId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static assistantSurfaceCreate(
+        podId: string,
+        requestBody: CreateSurfaceRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/surfaces',
+            path: {
+                'pod_id': podId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

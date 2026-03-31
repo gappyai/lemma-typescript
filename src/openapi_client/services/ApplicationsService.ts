@@ -112,26 +112,6 @@ export class ApplicationsService {
         });
     }
     /**
-     * Get Application Descriptor
-     * @param applicationId
-     * @returns AppDescriptorResponse Successful Response
-     * @throws ApiError
-     */
-    public static applicationDescriptor(
-        applicationId: string,
-    ): CancelablePromise<AppDescriptorResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/integrations/applications/{application_id}/operations/descriptor',
-            path: {
-                'application_id': applicationId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Application Operations
      * @param applicationId
      * @param query
@@ -156,6 +136,26 @@ export class ApplicationsService {
                 'query': query,
                 'limit': limit,
                 'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Application Descriptor
+     * @param applicationId
+     * @returns AppDescriptorResponse Successful Response
+     * @throws ApiError
+     */
+    public static applicationDescriptor(
+        applicationId: string,
+    ): CancelablePromise<AppDescriptorResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/integrations/applications/{application_id}/operations/descriptor',
+            path: {
+                'application_id': applicationId,
             },
             errors: {
                 422: `Validation Error`,

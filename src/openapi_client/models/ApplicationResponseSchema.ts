@@ -6,15 +6,15 @@
  * Schema for application response.
  */
 export type ApplicationResponseSchema = {
-    id: string;
-    title?: (string | null);
-    description: (string | null);
     auth_method: string;
     auth_provider: string;
-    operation_executor: string;
-    icon: (string | null);
-    is_active: boolean;
     created_at: string;
+    description: (string | null);
+    icon: (string | null);
+    id: string;
+    is_active: boolean;
+    operation_executor: string;
+    title?: (string | null);
     updated_at: string;
 };
 

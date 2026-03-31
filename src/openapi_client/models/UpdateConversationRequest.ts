@@ -7,7 +7,7 @@ import type { AvailableModels } from './AvailableModels.js';
  * Request to update a conversation.
  */
 export type UpdateConversationRequest = {
-    title?: (string | null);
     model?: (AvailableModels | null);
+    title?: (string | null);
 };
 

@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type FileUploadResponse = {
-    message: string;
-    success: boolean;
     file_name: string;
+    message: string;
     path: string;
+    success: boolean;
 };
 

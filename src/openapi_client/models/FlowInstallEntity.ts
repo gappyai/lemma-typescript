@@ -8,14 +8,14 @@ import type { FlowStart } from './FlowStart.js';
  * Associate a Flow definition with a specific Trigger (Schedule or Event).
  */
 export type FlowInstallEntity = {
-    id?: string;
     created_at?: string;
-    updated_at?: string;
     flow_id: string;
-    user_id: string;
-    pod_id: string;
     flow_start: FlowStart;
-    trigger_id?: (string | null);
+    id?: string;
     is_active?: boolean;
+    pod_id: string;
+    trigger_id?: (string | null);
+    updated_at?: string;
+    user_id: string;
 };
 

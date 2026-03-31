@@ -7,8 +7,8 @@
  */
 export type WorkflowEdge = {
     id: string;
+    label?: (string | null);
     source: string;
     target: string;
-    label?: (string | null);
 };
 

@@ -8,10 +8,10 @@ import type { PodType } from './PodType.js';
  * Pod update request schema.
  */
 export type PodUpdateRequest = {
-    name?: (string | null);
     description?: (string | null);
     icon_url?: (string | null);
-    type?: (PodType | null);
+    name?: (string | null);
     status?: (PodStatus | null);
+    type?: (PodType | null);
 };
 

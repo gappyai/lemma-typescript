@@ -9,7 +9,7 @@ import type { PodResponse } from './PodResponse.js';
 export type PodListResponse = {
     items: Array<PodResponse>;
     limit: number;
-    total: number;
     next_page_token?: (string | null);
+    total: number;
 };
 

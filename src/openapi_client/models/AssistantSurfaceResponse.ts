@@ -3,12 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 export type AssistantSurfaceResponse = {
-    id: string;
-    pod_id: string;
     assistant_id: string;
     assistant_name?: (string | null);
-    surface_type: string;
     config: Record<string, any>;
+    id: string;
     is_active: boolean;
+    pod_id: string;
+    surface_type: string;
 };
 

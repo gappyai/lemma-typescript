@@ -8,12 +8,12 @@ import type { ToolSet } from './ToolSet.js';
  * Request to create an assistant.
  */
 export type CreateAssistantRequest = {
-    name: string;
+    accessible_applications?: Array<ApplicationAccessConfig>;
+    accessible_datastores?: Array<string>;
     description?: (string | null);
     icon_url?: (string | null);
     instruction: string;
+    name: string;
     tool_sets?: Array<ToolSet>;
-    accessible_datastores?: Array<string>;
-    accessible_applications?: Array<ApplicationAccessConfig>;
 };
 

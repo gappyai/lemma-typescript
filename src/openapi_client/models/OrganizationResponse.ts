@@ -6,10 +6,10 @@
  * Organization response schema.
  */
 export type OrganizationResponse = {
+    created_at: string;
     id: string;
     name: string;
     slug: string;
-    created_at: string;
     updated_at: string;
 };
 

@@ -41,27 +41,15 @@ export class BillingSubscriptionsService {
         });
     }
     /**
-     * Get My Subscription
-     * Get the current organization's subscription.
-     * @returns SubscriptionWithPlanResponse Successful Response
+     * Get Seat Info
+     * Get seat availability information.
+     * @returns SeatInfoResponse Successful Response
      * @throws ApiError
      */
-    public static billingSubscriptionsMy(): CancelablePromise<SubscriptionWithPlanResponse> {
+    public static billingSeatsInfo(): CancelablePromise<SeatInfoResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/billing/subscriptions/my',
-        });
-    }
-    /**
-     * Get Subscription Status
-     * Get simple subscription status for the organization.
-     * @returns SubscriptionStatusResponse Successful Response
-     * @throws ApiError
-     */
-    public static billingSubscriptionsStatus(): CancelablePromise<SubscriptionStatusResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/billing/subscriptions/status',
+            url: '/billing/seats',
         });
     }
     /**
@@ -97,15 +85,27 @@ export class BillingSubscriptionsService {
         });
     }
     /**
-     * Get Seat Info
-     * Get seat availability information.
-     * @returns SeatInfoResponse Successful Response
+     * Get My Subscription
+     * Get the current organization's subscription.
+     * @returns SubscriptionWithPlanResponse Successful Response
      * @throws ApiError
      */
-    public static billingSeatsInfo(): CancelablePromise<SeatInfoResponse> {
+    public static billingSubscriptionsMy(): CancelablePromise<SubscriptionWithPlanResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/billing/seats',
+            url: '/billing/subscriptions/my',
+        });
+    }
+    /**
+     * Get Subscription Status
+     * Get simple subscription status for the organization.
+     * @returns SubscriptionStatusResponse Successful Response
+     * @throws ApiError
+     */
+    public static billingSubscriptionsStatus(): CancelablePromise<SubscriptionStatusResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/billing/subscriptions/status',
         });
     }
 }

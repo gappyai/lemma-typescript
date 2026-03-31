@@ -9,29 +9,25 @@ import type { ForeignKeySpec } from './ForeignKeySpec.js';
  */
 export type ColumnSchema = {
     /**
-     * Column name
+     * Whether the column is auto-generated
      */
-    name: string;
+    auto?: boolean;
     /**
-     * Column data type
+     * Whether this is a computed column
      */
-    type: DatastoreDataType;
+    computed?: boolean;
+    /**
+     * Default value for the column
+     */
+    default?: null;
     /**
      * Column description
      */
     description?: (string | null);
     /**
-     * Whether the column is required (NOT NULL)
+     * SQL expression for computed columns
      */
-    required?: boolean;
-    /**
-     * Whether the column must have unique values
-     */
-    unique?: boolean;
-    /**
-     * Default value for the column
-     */
-    default?: null;
+    expression?: (string | null);
     /**
      * Foreign key specification
      */
@@ -41,24 +37,28 @@ export type ColumnSchema = {
      */
     max_length?: (number | null);
     /**
-     * Additional type-specific parameters
+     * Column name
      */
-    type_params?: (Record<string, any> | null);
+    name: string;
     /**
      * Allowed options for ENUM columns
      */
     options?: (Array<string> | null);
     /**
-     * Whether the column is auto-generated
+     * Whether the column is required (NOT NULL)
      */
-    auto?: boolean;
+    required?: boolean;
     /**
-     * Whether this is a computed column
+     * Column data type
      */
-    computed?: boolean;
+    type: DatastoreDataType;
     /**
-     * SQL expression for computed columns
+     * Additional type-specific parameters
      */
-    expression?: (string | null);
+    type_params?: (Record<string, any> | null);
+    /**
+     * Whether the column must have unique values
+     */
+    unique?: boolean;
 };
 

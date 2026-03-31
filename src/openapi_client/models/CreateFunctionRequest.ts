@@ -7,15 +7,15 @@ import type { ApplicationAccessConfig } from './ApplicationAccessConfig.js';
  * Request to create a function.
  */
 export type CreateFunctionRequest = {
-    name: string;
+    accessible_applications?: Array<ApplicationAccessConfig>;
+    accessible_datastores?: Array<string>;
+    code?: (string | null);
+    config?: (Record<string, any> | null);
+    config_schema?: (Record<string, any> | null);
     description?: (string | null);
     icon_url?: (string | null);
     input_schema?: Record<string, any>;
+    name: string;
     output_schema?: Record<string, any>;
-    config_schema?: (Record<string, any> | null);
-    config?: (Record<string, any> | null);
-    code?: (string | null);
-    accessible_datastores?: Array<string>;
-    accessible_applications?: Array<ApplicationAccessConfig>;
 };
 

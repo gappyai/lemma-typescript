@@ -7,12 +7,12 @@ import type { FlowRunStatus } from './FlowRunStatus.js';
  * Record of a single node execution.
  */
 export type StepExecution = {
-    node_id: string;
-    status: FlowRunStatus;
-    started_at: string;
     completed_at?: (string | null);
-    input_data?: (Record<string, any> | null);
-    output_data?: null;
     error?: (string | null);
+    input_data?: (Record<string, any> | null);
+    node_id: string;
+    output_data?: null;
+    started_at: string;
+    status: FlowRunStatus;
 };
 

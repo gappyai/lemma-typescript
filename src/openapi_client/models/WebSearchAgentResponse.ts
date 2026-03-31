@@ -7,24 +7,24 @@
  */
 export type WebSearchAgentResponse = {
     /**
-     * Whether the web search was successful
-     */
-    success: boolean;
-    /**
      * The answer generated from the search results
      */
     answer?: (string | null);
     /**
-     * List of search results with title and URL
+     * Error message if the web search was not successful
      */
-    search_results?: (Array<Record<string, string>> | null);
+    error?: (string | null);
     /**
      * A message to the user about the web search results
      */
     message?: (string | null);
     /**
-     * Error message if the web search was not successful
+     * List of search results with title and URL
      */
-    error?: (string | null);
+    search_results?: (Array<Record<string, string>> | null);
+    /**
+     * Whether the web search was successful
+     */
+    success: boolean;
 };
 

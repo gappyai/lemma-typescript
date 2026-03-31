@@ -7,13 +7,13 @@ import type { TriggerType } from './TriggerType.js';
  * Request to create a trigger.
  */
 export type CreateTriggerRequest = {
-    trigger_type: TriggerType;
-    pod_id?: (string | null);
-    config?: Record<string, any>;
     account_id?: (string | null);
     application_trigger_id?: (string | null);
+    config?: Record<string, any>;
     datastore_id?: (string | null);
     filter_instruction?: (string | null);
     filter_output_schema?: (Record<string, any> | null);
+    pod_id?: (string | null);
+    trigger_type: TriggerType;
 };
 

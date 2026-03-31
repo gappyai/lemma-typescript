@@ -11,31 +11,6 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class PodMembersService {
     /**
-     * Add Pod Member
-     * Add a member to a pod
-     * @param podId
-     * @param requestBody
-     * @returns PodMemberResponse Successful Response
-     * @throws ApiError
-     */
-    public static podMemberAdd(
-        podId: string,
-        requestBody: PodMemberAddRequest,
-    ): CancelablePromise<PodMemberResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/members',
-            path: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Pod Members
      * List all members of a pod
      * @param podId
@@ -65,25 +40,22 @@ export class PodMembersService {
         });
     }
     /**
-     * Update Member Role
-     * Update a pod member's role
+     * Add Pod Member
+     * Add a member to a pod
      * @param podId
-     * @param memberId
      * @param requestBody
      * @returns PodMemberResponse Successful Response
      * @throws ApiError
      */
-    public static podMemberUpdateRole(
+    public static podMemberAdd(
         podId: string,
-        memberId: string,
-        requestBody: PodMemberUpdateRoleRequest,
+        requestBody: PodMemberAddRequest,
     ): CancelablePromise<PodMemberResponse> {
         return __request(OpenAPI, {
-            method: 'PATCH',
-            url: '/pods/{pod_id}/members/{member_id}/role',
+            method: 'POST',
+            url: '/pods/{pod_id}/members',
             path: {
                 'pod_id': podId,
-                'member_id': memberId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -111,6 +83,34 @@ export class PodMembersService {
                 'pod_id': podId,
                 'member_id': memberId,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update Member Role
+     * Update a pod member's role
+     * @param podId
+     * @param memberId
+     * @param requestBody
+     * @returns PodMemberResponse Successful Response
+     * @throws ApiError
+     */
+    public static podMemberUpdateRole(
+        podId: string,
+        memberId: string,
+        requestBody: PodMemberUpdateRoleRequest,
+    ): CancelablePromise<PodMemberResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/pods/{pod_id}/members/{member_id}/role',
+            path: {
+                'pod_id': podId,
+                'member_id': memberId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

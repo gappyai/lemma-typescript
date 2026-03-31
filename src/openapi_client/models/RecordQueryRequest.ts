@@ -12,14 +12,14 @@ export type RecordQueryRequest = {
      * Structured filter conditions combined with AND semantics. Example: `[{"field": "status", "op": "eq", "value": "OPEN"}]`.
      */
     filters?: Array<RecordFilter>;
-    /**
-     * Ordered sort clauses. Example: `[{"field": "created_at", "direction": "desc"}]`.
-     */
-    sort?: Array<RecordSort>;
     limit?: number;
     /**
      * Opaque token from a previous response page.
      */
     page_token?: (string | null);
+    /**
+     * Ordered sort clauses. Example: `[{"field": "created_at", "direction": "desc"}]`.
+     */
+    sort?: Array<RecordSort>;
 };
 

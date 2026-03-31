@@ -4,10 +4,10 @@
 /* eslint-disable */
 import type { WaitUntilNodeConfig } from './WaitUntilNodeConfig.js';
 export type WaitUntilNodeResponse = {
+    config: WaitUntilNodeConfig;
     id: string;
     label?: (string | null);
     position?: (Record<string, number> | null);
     type?: string;
-    config: WaitUntilNodeConfig;
 };
 

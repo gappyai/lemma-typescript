@@ -8,22 +8,22 @@ import type { FunctionStatus } from './FunctionStatus.js';
  * Function response.
  */
 export type FunctionResponse = {
-    id: string;
-    pod_id: string;
-    user_id: string;
-    name: string;
+    accessible_applications: Array<ApplicationAccessConfig>;
+    accessible_datastores: Array<string>;
+    code?: (string | null);
+    code_path?: (string | null);
+    config?: (Record<string, any> | null);
+    config_schema?: (Record<string, any> | null);
+    created_at: any;
     description?: (string | null);
     icon_url?: (string | null);
+    id: string;
     input_schema: Record<string, any>;
+    name: string;
     output_schema: Record<string, any>;
-    config_schema?: (Record<string, any> | null);
-    config?: (Record<string, any> | null);
+    pod_id: string;
     status: FunctionStatus;
-    code_path?: (string | null);
-    code?: (string | null);
-    accessible_datastores: Array<string>;
-    accessible_applications: Array<ApplicationAccessConfig>;
-    created_at: any;
     updated_at: any;
+    user_id: string;
 };
 

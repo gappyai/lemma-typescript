@@ -7,16 +7,16 @@ import type { OperationSummary } from './OperationSummary.js';
  * Schema for application details including operation catalog.
  */
 export type ApplicationDetailResponseSchema = {
-    id: string;
-    title?: (string | null);
-    description: (string | null);
     auth_method: string;
     auth_provider: string;
-    operation_executor: string;
-    icon: (string | null);
-    is_active: boolean;
     created_at: string;
-    updated_at: string;
+    description: (string | null);
+    icon: (string | null);
+    id: string;
+    is_active: boolean;
+    operation_executor: string;
     operations?: Record<string, OperationSummary>;
+    title?: (string | null);
+    updated_at: string;
 };
 

@@ -7,17 +7,6 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class PublicSdkService {
     /**
-     * Get browser-ready Lemma pod client bundle
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static publicSdkPodClientGet(): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/public/sdk/pod-client.js',
-        });
-    }
-    /**
      * Get public desk HTML preview
      * @param podId
      * @param deskName
@@ -38,6 +27,17 @@ export class PublicSdkService {
             errors: {
                 422: `Validation Error`,
             },
+        });
+    }
+    /**
+     * Get browser-ready Lemma pod client bundle
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static publicSdkPodClientGet(): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/public/sdk/pod-client.js',
         });
     }
 }

@@ -6,10 +6,10 @@
  * Response for seat availability info.
  */
 export type SeatInfoResponse = {
-    organization_id: string;
-    has_available_seats: boolean;
-    seat_limit: (number | null);
     current_seats: number;
+    has_available_seats: boolean;
+    organization_id: string;
+    seat_limit: (number | null);
     seats_remaining: (number | null);
 };
 

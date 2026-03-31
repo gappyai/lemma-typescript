@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type SearchResult = {
-    title: string;
-    url: string;
+    score?: (number | null);
     snippet: string;
     source: string;
-    score?: (number | null);
+    title: string;
+    url: string;
 };
 

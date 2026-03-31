@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type ToolCallRequest = {
-    type?: string;
-    tool_name: string;
     tool_call_id: string;
     tool_input?: any;
+    tool_name: string;
+    type?: string;
 };
 

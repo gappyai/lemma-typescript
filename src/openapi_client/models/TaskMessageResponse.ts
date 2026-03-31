@@ -11,10 +11,10 @@ import type { ToolCallResponse } from './ToolCallResponse.js';
  * Response schema for task message.
  */
 export type TaskMessageResponse = {
-    id: string;
-    role: string;
     content: (NotificationContent | TextContent | ThinkingContent | ToolCallRequest | ToolCallResponse);
     created_at: string;
+    id: string;
     metadata?: (Record<string, any> | null);
+    role: string;
 };
 

@@ -9,8 +9,8 @@ import type { OauthCredentialsResponseSchema } from './OauthCredentialsResponseS
  * Schema for account credentials response.
  */
 export type AccountCredentialsResponseSchema = {
-    type?: CredentialTypes;
     data: (OauthCredentialsResponseSchema | ApiKeyCredentialsResponseSchema);
+    type?: CredentialTypes;
     user_data?: (Record<string, any> | null);
 };
 

@@ -15,6 +15,35 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class FunctionsService {
     /**
+     * List Functions
+     * List all functions in a pod
+     * @param podId
+     * @param limit
+     * @param pageToken
+     * @returns FunctionListResponse Successful Response
+     * @throws ApiError
+     */
+    public static functionList(
+        podId: string,
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<FunctionListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/functions',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Function
      * Create a new function in a pod
      * @param podId
@@ -40,28 +69,23 @@ export class FunctionsService {
         });
     }
     /**
-     * List Functions
-     * List all functions in a pod
+     * Delete Function
+     * Delete a function
      * @param podId
-     * @param limit
-     * @param pageToken
-     * @returns FunctionListResponse Successful Response
+     * @param functionName
+     * @returns FunctionMessageResponse Successful Response
      * @throws ApiError
      */
-    public static functionList(
+    public static functionDelete(
         podId: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<FunctionListResponse> {
+        functionName: string,
+    ): CancelablePromise<FunctionMessageResponse> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/functions',
+            method: 'DELETE',
+            url: '/pods/{pod_id}/functions/{function_name}',
             path: {
                 'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
+                'function_name': functionName,
             },
             errors: {
                 422: `Validation Error`,
@@ -121,23 +145,31 @@ export class FunctionsService {
         });
     }
     /**
-     * Delete Function
-     * Delete a function
+     * List Runs
+     * List runs for a function
      * @param podId
      * @param functionName
-     * @returns FunctionMessageResponse Successful Response
+     * @param limit
+     * @param pageToken
+     * @returns FunctionRunListResponse Successful Response
      * @throws ApiError
      */
-    public static functionDelete(
+    public static functionRunList(
         podId: string,
         functionName: string,
-    ): CancelablePromise<FunctionMessageResponse> {
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<FunctionRunListResponse> {
         return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/functions/{function_name}',
+            method: 'GET',
+            url: '/pods/{pod_id}/functions/{function_name}/runs',
             path: {
                 'pod_id': podId,
                 'function_name': functionName,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,
@@ -167,38 +199,6 @@ export class FunctionsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Runs
-     * List runs for a function
-     * @param podId
-     * @param functionName
-     * @param limit
-     * @param pageToken
-     * @returns FunctionRunListResponse Successful Response
-     * @throws ApiError
-     */
-    public static functionRunList(
-        podId: string,
-        functionName: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<FunctionRunListResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/functions/{function_name}/runs',
-            path: {
-                'pod_id': podId,
-                'function_name': functionName,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
             errors: {
                 422: `Validation Error`,
             },

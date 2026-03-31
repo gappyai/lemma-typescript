@@ -4,10 +4,10 @@
 /* eslint-disable */
 import type { LoopNodeConfig } from './LoopNodeConfig.js';
 export type LoopNodeResponse = {
+    config: LoopNodeConfig;
     id: string;
     label?: (string | null);
     position?: (Record<string, number> | null);
     type?: string;
-    config: LoopNodeConfig;
 };
 

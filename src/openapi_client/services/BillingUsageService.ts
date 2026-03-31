@@ -44,6 +44,41 @@ export class BillingUsageService {
         });
     }
     /**
+     * Get My Organization Usage Summary
+     * Get usage summary for the current user within an organization.
+     * @param organizationId
+     * @param start
+     * @param end
+     * @param modelName
+     * @param days
+     * @returns UsageSummaryResponse Successful Response
+     * @throws ApiError
+     */
+    public static billingUsageOrganizationMeSummaryGet(
+        organizationId: string,
+        start?: (string | null),
+        end?: (string | null),
+        modelName?: (string | null),
+        days: number = 30,
+    ): CancelablePromise<UsageSummaryResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/billing/usage/organizations/{organization_id}/me',
+            path: {
+                'organization_id': organizationId,
+            },
+            query: {
+                'start': start,
+                'end': end,
+                'model_name': modelName,
+                'days': days,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get Pod Usage Summary
      * Get usage summary for a specific pod within an organization.
      * @param organizationId
@@ -69,41 +104,6 @@ export class BillingUsageService {
             path: {
                 'organization_id': organizationId,
                 'pod_id': podId,
-            },
-            query: {
-                'start': start,
-                'end': end,
-                'model_name': modelName,
-                'days': days,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get My Organization Usage Summary
-     * Get usage summary for the current user within an organization.
-     * @param organizationId
-     * @param start
-     * @param end
-     * @param modelName
-     * @param days
-     * @returns UsageSummaryResponse Successful Response
-     * @throws ApiError
-     */
-    public static billingUsageOrganizationMeSummaryGet(
-        organizationId: string,
-        start?: (string | null),
-        end?: (string | null),
-        modelName?: (string | null),
-        days: number = 30,
-    ): CancelablePromise<UsageSummaryResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/billing/usage/organizations/{organization_id}/me',
-            path: {
-                'organization_id': organizationId,
             },
             query: {
                 'start': start,

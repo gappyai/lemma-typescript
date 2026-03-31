@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type PodPermissionsResponse = {
-    pod_id: string;
     actions: Array<string>;
+    pod_id: string;
 };
 

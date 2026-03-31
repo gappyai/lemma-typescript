@@ -7,8 +7,8 @@ import type { UsageRecordResponse } from './UsageRecordResponse.js';
  * Response schema for recent usage.
  */
 export type RecentUsageResponse = {
+    days: number;
     items: Array<UsageRecordResponse>;
     total: number;
-    days: number;
 };
 

@@ -32,6 +32,56 @@ export class PodsService {
         });
     }
     /**
+     * List PodS by Organization
+     * List all pods in an organization
+     * @param organizationId
+     * @param limit
+     * @param pageToken
+     * @returns PodListResponse Successful Response
+     * @throws ApiError
+     */
+    public static podList(
+        organizationId: string,
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<PodListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/organization/{organization_id}',
+            path: {
+                'organization_id': organizationId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete Pod
+     * Delete a pod
+     * @param podId
+     * @returns void
+     * @throws ApiError
+     */
+    public static podDelete(
+        podId: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}',
+            path: {
+                'pod_id': podId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get Pod
      * Get pod details
      * @param podId
@@ -72,56 +122,6 @@ export class PodsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Pod
-     * Delete a pod
-     * @param podId
-     * @returns void
-     * @throws ApiError
-     */
-    public static podDelete(
-        podId: string,
-    ): CancelablePromise<void> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}',
-            path: {
-                'pod_id': podId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List PodS by Organization
-     * List all pods in an organization
-     * @param organizationId
-     * @param limit
-     * @param pageToken
-     * @returns PodListResponse Successful Response
-     * @throws ApiError
-     */
-    public static podList(
-        organizationId: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<PodListResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/organization/{organization_id}',
-            path: {
-                'organization_id': organizationId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
             errors: {
                 422: `Validation Error`,
             },

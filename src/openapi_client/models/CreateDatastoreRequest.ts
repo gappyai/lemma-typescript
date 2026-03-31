@@ -7,10 +7,6 @@
  */
 export type CreateDatastoreRequest = {
     /**
-     * Datastore name. Use a stable resource name because it becomes part of API paths.
-     */
-    name: string;
-    /**
      * Human-readable datastore description.
      */
     description?: (string | null);
@@ -18,6 +14,10 @@ export type CreateDatastoreRequest = {
      * Emit datastore record change events for trigger/workflow integrations.
      */
     events_enabled?: boolean;
+    /**
+     * Datastore name. Use a stable resource name because it becomes part of API paths.
+     */
+    name: string;
     /**
      * Enable file indexing and search inside this datastore.
      */

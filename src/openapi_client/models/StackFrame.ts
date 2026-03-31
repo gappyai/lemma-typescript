@@ -6,11 +6,11 @@
  * Execution stack frame for loops.
  */
 export type StackFrame = {
-    node_id: string;
-    return_node_id?: (string | null);
     index: number;
-    items: Array<any>;
     item_var: string;
+    items: Array<any>;
+    node_id: string;
     results?: Array<any>;
+    return_node_id?: (string | null);
 };
 

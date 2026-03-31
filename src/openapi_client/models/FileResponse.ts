@@ -3,21 +3,21 @@
 /* tslint:disable */
 /* eslint-disable */
 export type FileResponse = {
-    id: string;
+    content_hash: (string | null);
+    created_at: string;
     datastore_id: string;
-    parent_id?: (string | null);
-    kind: string;
-    name: string;
     description: (string | null);
     file_path: (string | null);
-    content_hash: (string | null);
-    mime_type?: (string | null);
-    size_bytes?: number;
-    search_enabled?: boolean;
-    status: string;
-    metadata?: (Record<string, any> | null);
     graph_status?: string;
-    created_at: string;
+    id: string;
+    kind: string;
+    metadata?: (Record<string, any> | null);
+    mime_type?: (string | null);
+    name: string;
+    parent_id?: (string | null);
+    search_enabled?: boolean;
+    size_bytes?: number;
+    status: string;
     updated_at: string;
 };
 

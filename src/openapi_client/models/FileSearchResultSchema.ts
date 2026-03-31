@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type FileSearchResultSchema = {
-    file_id: string;
     chunk_index: number;
     content: string;
+    file_id: string;
     metadata?: (Record<string, any> | null);
     score: number;
 };

@@ -8,14 +8,6 @@ import type { ColumnSchema } from './ColumnSchema.js';
  */
 export type CreateTableRequest = {
     /**
-     * Table name. Use alphanumeric and underscore only. Names prefixed with `reserved_` are system-managed and should not be user-created.
-     */
-    name: string;
-    /**
-     * Primary key column name. If not `id`, it must also be declared in `columns`.
-     */
-    primary_key_column?: string;
-    /**
      * Table column definitions. Each column name must be unique. Use `type`, `required`, `default`, `foreign_key`, and `computed` as needed.
      */
     columns: Array<ColumnSchema>;
@@ -27,5 +19,13 @@ export type CreateTableRequest = {
      * Enable row-level security for this table. When enabled, API reads/writes are scoped by current user.
      */
     enable_rls?: boolean;
+    /**
+     * Table name. Use alphanumeric and underscore only. Names prefixed with `reserved_` are system-managed and should not be user-created.
+     */
+    name: string;
+    /**
+     * Primary key column name. If not `id`, it must also be declared in `columns`.
+     */
+    primary_key_column?: string;
 };
 

@@ -3,10 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 export type PodFlowConfigItem = {
-    flow_id: string;
-    name: string;
     description?: (string | null);
-    is_installed: boolean;
+    flow_id: string;
     install_id?: (string | null);
+    is_installed: boolean;
+    name: string;
 };
 

@@ -3,8 +3,8 @@
 /* tslint:disable */
 /* eslint-disable */
 export type EmailSurfaceConfigCreate = {
-    type?: string;
     account_id?: (string | null);
     inbox_email?: (string | null);
+    type?: string;
 };
 

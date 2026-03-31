@@ -6,21 +6,21 @@
  * Response schema for a usage record.
  */
 export type UsageRecordResponse = {
-    id: string;
-    organization_id: string;
-    pod_id: string;
-    user_id: string;
-    model_name: string;
-    source_type: string;
-    source_id: string;
-    input_tokens: number;
-    output_tokens: number;
-    total_tokens: number;
-    input_cost_usd: number;
-    output_cost_usd: number;
-    total_cost_usd: number;
-    metadata: Record<string, any>;
-    occurred_at: string;
     created_at: string;
+    id: string;
+    input_cost_usd: number;
+    input_tokens: number;
+    metadata: Record<string, any>;
+    model_name: string;
+    occurred_at: string;
+    organization_id: string;
+    output_cost_usd: number;
+    output_tokens: number;
+    pod_id: string;
+    source_id: string;
+    source_type: string;
+    total_cost_usd: number;
+    total_tokens: number;
+    user_id: string;
 };
 

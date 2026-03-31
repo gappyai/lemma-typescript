@@ -7,14 +7,14 @@ import type { ColumnSchema } from './ColumnSchema.js';
  * Schema for table response.
  */
 export type TableResponse = {
-    id: string;
-    datastore_id: string;
-    name: string;
-    primary_key_column: string;
     columns: Array<ColumnSchema>;
     config: (Record<string, any> | null);
-    enable_rls: boolean;
     created_at: string;
+    datastore_id: string;
+    enable_rls: boolean;
+    id: string;
+    name: string;
+    primary_key_column: string;
     updated_at: string;
 };
 

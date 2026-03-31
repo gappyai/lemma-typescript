@@ -5,10 +5,6 @@
 import type { FlowStart } from './FlowStart.js';
 export type WorkflowCreateRequest = {
     /**
-     * Workflow name.
-     */
-    name: string;
-    /**
      * Optional workflow description.
      */
     description?: (string | null);
@@ -17,12 +13,16 @@ export type WorkflowCreateRequest = {
      */
     icon_url?: (string | null);
     /**
-     * Start configuration. If omitted, the workflow can be started manually via `workflow.start`.
+     * Workflow name.
      */
-    start?: (FlowStart | null);
+    name: string;
     /**
      * Require per-user workflow installation before execution.
      */
     require_user_install?: boolean;
+    /**
+     * Start configuration. If omitted, the workflow can be started manually via `workflow.start`.
+     */
+    start?: (FlowStart | null);
 };
 

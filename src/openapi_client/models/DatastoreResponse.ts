@@ -6,15 +6,15 @@
  * Schema for datastore response.
  */
 export type DatastoreResponse = {
-    id: string;
-    pod_id: string;
-    name: string;
+    created_at: string;
     description: (string | null);
     events_enabled: boolean;
-    search_enabled: boolean;
-    graph_rag_enabled: boolean;
     graph_instruction: (string | null);
-    created_at: string;
+    graph_rag_enabled: boolean;
+    id: string;
+    name: string;
+    pod_id: string;
+    search_enabled: boolean;
     updated_at: string;
 };
 

@@ -7,10 +7,10 @@ import type { AgentNodeConfig } from './AgentNodeConfig.js';
  * Agent node.
  */
 export type AgentNode = {
+    config: AgentNodeConfig;
     id: string;
     label?: (string | null);
     position?: (Record<string, number> | null);
     type?: string;
-    config: AgentNodeConfig;
 };
 

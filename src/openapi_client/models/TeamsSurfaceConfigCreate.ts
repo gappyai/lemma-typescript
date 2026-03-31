@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type TeamsSurfaceConfigCreate = {
-    type?: string;
     account_id?: (string | null);
     allow_dm?: boolean;
     allowed_channel_ids?: Array<string>;
+    type?: string;
 };
 

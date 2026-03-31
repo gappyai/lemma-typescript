@@ -9,7 +9,7 @@ import type { PodMemberResponse } from './PodMemberResponse.js';
 export type PodMemberListResponse = {
     items: Array<PodMemberResponse>;
     limit: number;
-    total: number;
     next_page_token?: (string | null);
+    total: number;
 };
 

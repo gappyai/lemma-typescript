@@ -7,10 +7,10 @@ import type { DecisionNodeConfig } from './DecisionNodeConfig.js';
  * Decision node.
  */
 export type DecisionNode = {
+    config: DecisionNodeConfig;
     id: string;
     label?: (string | null);
     position?: (Record<string, number> | null);
     type?: string;
-    config: DecisionNodeConfig;
 };
 

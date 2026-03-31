@@ -4,12 +4,12 @@
 /* eslint-disable */
 import type { SearchMethod } from './SearchMethod.js';
 export type FileSearchRequest = {
-    query: string;
     limit?: number;
-    search_method?: SearchMethod;
     /**
      * Optional folder id to scope search results to that folder subtree.
      */
     parent_id?: (string | null);
+    query: string;
+    search_method?: SearchMethod;
 };
 

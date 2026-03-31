@@ -8,17 +8,17 @@ import type { ToolSet } from './ToolSet.js';
  * Response for assistant.
  */
 export type AssistantResponse = {
-    id: string;
-    pod_id: string;
-    user_id: string;
-    name: string;
+    accessible_applications: Array<ApplicationAccessConfig>;
+    accessible_datastores: Array<string>;
+    created_at: any;
     description: (string | null);
     icon_url: (string | null);
+    id: string;
     instruction: string;
+    name: string;
+    pod_id: string;
     tool_sets: Array<ToolSet>;
-    accessible_datastores: Array<string>;
-    accessible_applications: Array<ApplicationAccessConfig>;
-    created_at: any;
     updated_at: any;
+    user_id: string;
 };
 

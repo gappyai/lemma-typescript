@@ -6,13 +6,13 @@
  * Schema for trigger response.
  */
 export type AppTriggerResponseSchema = {
-    id: string;
     application_id: (string | null);
-    description: (string | null);
     config_schema: (Record<string, any> | null);
-    payload_schema: (Record<string, any> | null);
-    payload_example: (Record<string, any> | null);
     created_at: string;
+    description: (string | null);
+    id: string;
+    payload_example: (Record<string, any> | null);
+    payload_schema: (Record<string, any> | null);
     updated_at: string;
 };
 

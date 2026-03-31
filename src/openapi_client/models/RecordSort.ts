@@ -5,12 +5,12 @@
 import type { RecordSortDirection } from './RecordSortDirection.js';
 export type RecordSort = {
     /**
-     * Table column name to sort by.
-     */
-    field: string;
-    /**
      * Sort direction.
      */
     direction?: RecordSortDirection;
+    /**
+     * Table column name to sort by.
+     */
+    field: string;
 };
 

@@ -12,26 +12,6 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class TriggersService {
     /**
-     * Create Trigger
-     * Create a new trigger.
-     * @param requestBody
-     * @returns TriggerResponse Successful Response
-     * @throws ApiError
-     */
-    public static triggerCreate(
-        requestBody: CreateTriggerRequest,
-    ): CancelablePromise<TriggerResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/triggers',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Triggers
      * List triggers.
      * @param triggerType
@@ -58,6 +38,47 @@ export class TriggersService {
                 'pod_id': podId,
                 'limit': limit,
                 'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Trigger
+     * Create a new trigger.
+     * @param requestBody
+     * @returns TriggerResponse Successful Response
+     * @throws ApiError
+     */
+    public static triggerCreate(
+        requestBody: CreateTriggerRequest,
+    ): CancelablePromise<TriggerResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/triggers',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete Trigger
+     * Delete a trigger.
+     * @param triggerId
+     * @returns void
+     * @throws ApiError
+     */
+    public static triggerDelete(
+        triggerId: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/triggers/{trigger_id}',
+            path: {
+                'trigger_id': triggerId,
             },
             errors: {
                 422: `Validation Error`,
@@ -105,27 +126,6 @@ export class TriggersService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Trigger
-     * Delete a trigger.
-     * @param triggerId
-     * @returns void
-     * @throws ApiError
-     */
-    public static triggerDelete(
-        triggerId: string,
-    ): CancelablePromise<void> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/triggers/{trigger_id}',
-            path: {
-                'trigger_id': triggerId,
-            },
             errors: {
                 422: `Validation Error`,
             },

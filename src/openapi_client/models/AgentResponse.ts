@@ -8,19 +8,19 @@ import type { ToolSet } from './ToolSet.js';
  * Response schema for agent.
  */
 export type AgentResponse = {
-    id: string;
-    pod_id: string;
-    user_id: string;
-    name: string;
+    accessible_applications: Array<ApplicationAccessConfig>;
+    accessible_datastores: Array<string>;
+    created_at: string;
     description: (string | null);
     icon_url: (string | null);
-    instruction: string;
+    id: string;
     input_schema: Record<string, any>;
+    instruction: string;
+    name: string;
     output_schema: Record<string, any>;
+    pod_id: string;
     tool_sets: Array<ToolSet>;
-    accessible_datastores: Array<string>;
-    accessible_applications: Array<ApplicationAccessConfig>;
-    created_at: string;
     updated_at: string;
+    user_id: string;
 };
 

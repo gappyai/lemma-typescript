@@ -7,16 +7,16 @@ import type { BillingInterval } from './BillingInterval.js';
  * Response schema for a plan.
  */
 export type PlanResponse = {
-    id: string;
-    name: string;
-    description: (string | null);
-    price_cents: number;
-    currency: string;
     billing_interval: BillingInterval;
-    features: Record<string, any>;
-    seat_limit: (number | null);
-    is_active: boolean;
     created_at: string;
+    currency: string;
+    description: (string | null);
+    features: Record<string, any>;
+    id: string;
+    is_active: boolean;
+    name: string;
+    price_cents: number;
+    seat_limit: (number | null);
     updated_at: string;
 };
 

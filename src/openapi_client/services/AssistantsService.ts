@@ -11,6 +11,34 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class AssistantsService {
     /**
+     * List Assistants
+     * @param podId
+     * @param limit
+     * @param pageToken
+     * @returns AssistantListResponse Successful Response
+     * @throws ApiError
+     */
+    public static assistantList(
+        podId: string,
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<AssistantListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/assistants',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Assistant
      * @param podId
      * @param requestBody
@@ -35,27 +63,22 @@ export class AssistantsService {
         });
     }
     /**
-     * List Assistants
+     * Delete Assistant
      * @param podId
-     * @param limit
-     * @param pageToken
-     * @returns AssistantListResponse Successful Response
+     * @param assistantName
+     * @returns void
      * @throws ApiError
      */
-    public static assistantList(
+    public static assistantDelete(
         podId: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<AssistantListResponse> {
+        assistantName: string,
+    ): CancelablePromise<void> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/assistants',
+            method: 'DELETE',
+            url: '/pods/{pod_id}/assistants/{assistant_name}',
             path: {
                 'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
+                'assistant_name': assistantName,
             },
             errors: {
                 422: `Validation Error`,
@@ -107,29 +130,6 @@ export class AssistantsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Assistant
-     * @param podId
-     * @param assistantName
-     * @returns void
-     * @throws ApiError
-     */
-    public static assistantDelete(
-        podId: string,
-        assistantName: string,
-    ): CancelablePromise<void> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/assistants/{assistant_name}',
-            path: {
-                'pod_id': podId,
-                'assistant_name': assistantName,
-            },
             errors: {
                 422: `Validation Error`,
             },

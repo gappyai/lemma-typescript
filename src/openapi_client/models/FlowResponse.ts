@@ -12,17 +12,17 @@ import type { LoopNodeResponse } from './LoopNodeResponse.js';
 import type { WaitUntilNodeResponse } from './WaitUntilNodeResponse.js';
 import type { WorkflowEdge } from './WorkflowEdge.js';
 export type FlowResponse = {
-    id: string;
     created_at?: (string | null);
-    updated_at?: (string | null);
-    name: string;
     description?: (string | null);
-    icon_url?: (string | null);
-    pod_id: string;
-    nodes?: Array<(FormNodeResponse | AgentNodeResponse | FunctionNodeResponse | DecisionNodeResponse | LoopNodeResponse | WaitUntilNodeResponse | EndNodeResponse)>;
     edges?: Array<WorkflowEdge>;
-    start?: (FlowStart | null);
+    icon_url?: (string | null);
+    id: string;
     is_active?: boolean;
+    name: string;
+    nodes?: Array<(FormNodeResponse | AgentNodeResponse | FunctionNodeResponse | DecisionNodeResponse | LoopNodeResponse | WaitUntilNodeResponse | EndNodeResponse)>;
+    pod_id: string;
     require_user_install?: boolean;
+    start?: (FlowStart | null);
+    updated_at?: (string | null);
 };
 

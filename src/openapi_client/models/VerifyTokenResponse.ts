@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type VerifyTokenResponse = {
-    user_id: string;
     email: string;
+    user_id: string;
 };
 

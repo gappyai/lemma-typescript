@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type CreateDeskRequest = {
-    name: string;
     description?: (string | null);
-    framework?: string;
     entry_path?: string;
+    framework?: string;
+    name: string;
 };
 

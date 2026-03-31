@@ -6,13 +6,13 @@
  * Schema for connect request response.
  */
 export type ConnectRequestResponseSchema = {
-    id: string;
-    user_id: string;
     application_id: string;
-    authorization_url: (string | null);
-    status: string;
     attributes: (Record<string, any> | null);
+    authorization_url: (string | null);
     created_at: string;
+    id: string;
+    status: string;
     updated_at: string;
+    user_id: string;
 };
 

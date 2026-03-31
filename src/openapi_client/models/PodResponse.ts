@@ -8,16 +8,16 @@ import type { PodType } from './PodType.js';
  * Pod response schema.
  */
 export type PodResponse = {
-    id: string;
-    user_id: string;
-    organization_id: string;
-    name: string;
-    slug: string;
+    created_at: string;
     description?: (string | null);
     icon_url?: (string | null);
-    type: PodType;
+    id: string;
+    name: string;
+    organization_id: string;
+    slug: string;
     status: PodStatus;
-    created_at: string;
+    type: PodType;
     updated_at: string;
+    user_id: string;
 };
 

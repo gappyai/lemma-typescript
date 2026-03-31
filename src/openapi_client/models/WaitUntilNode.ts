@@ -7,10 +7,10 @@ import type { WaitUntilNodeConfig } from './WaitUntilNodeConfig.js';
  * Wait Until node.
  */
 export type WaitUntilNode = {
+    config: WaitUntilNodeConfig;
     id: string;
     label?: (string | null);
     position?: (Record<string, number> | null);
     type?: string;
-    config: WaitUntilNodeConfig;
 };
 

@@ -11,10 +11,10 @@ import type { ToolCallResponse } from './ToolCallResponse.js';
  * Saved conversation message.
  */
 export type ConversationMessageResponse = {
-    id: string;
-    role: string;
     content: (NotificationContent | TextContent | ThinkingContent | ToolCallRequest | ToolCallResponse);
     created_at: string;
+    id: string;
     metadata?: (Record<string, any> | null);
+    role: string;
 };
 

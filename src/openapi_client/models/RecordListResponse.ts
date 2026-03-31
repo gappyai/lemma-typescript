@@ -7,8 +7,8 @@
  */
 export type RecordListResponse = {
     items: Array<Record<string, any>>;
-    total?: (number | null);
     limit: number;
     next_page_token?: (string | null);
+    total?: (number | null);
 };
 

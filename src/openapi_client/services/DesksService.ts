@@ -14,6 +14,34 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class DesksService {
     /**
+     * List Desks
+     * @param podId
+     * @param limit
+     * @param pageToken
+     * @returns DeskListResponse Successful Response
+     * @throws ApiError
+     */
+    public static deskList(
+        podId: string,
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<DeskListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/desks',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Desk
      * @param podId
      * @param requestBody
@@ -38,27 +66,22 @@ export class DesksService {
         });
     }
     /**
-     * List Desks
+     * Delete Desk
      * @param podId
-     * @param limit
-     * @param pageToken
-     * @returns DeskListResponse Successful Response
+     * @param deskName
+     * @returns DeskMessageResponse Successful Response
      * @throws ApiError
      */
-    public static deskList(
+    public static deskDelete(
         podId: string,
-        limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<DeskListResponse> {
+        deskName: string,
+    ): CancelablePromise<DeskMessageResponse> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/desks',
+            method: 'DELETE',
+            url: '/pods/{pod_id}/desks/{desk_name}',
             path: {
                 'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
+                'desk_name': deskName,
             },
             errors: {
                 422: `Validation Error`,
@@ -110,29 +133,6 @@ export class DesksService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Desk
-     * @param podId
-     * @param deskName
-     * @returns DeskMessageResponse Successful Response
-     * @throws ApiError
-     */
-    public static deskDelete(
-        podId: string,
-        deskName: string,
-    ): CancelablePromise<DeskMessageResponse> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/desks/{desk_name}',
-            path: {
-                'pod_id': podId,
-                'desk_name': deskName,
-            },
             errors: {
                 422: `Validation Error`,
             },

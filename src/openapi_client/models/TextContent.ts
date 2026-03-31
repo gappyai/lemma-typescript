@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type TextContent = {
-    type?: string;
     content: string;
+    type?: string;
 };
 

@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 export type OperationDetail = {
-    name: string;
     description?: (string | null);
     input_schema: Record<string, any>;
+    name: string;
     output_schema?: (Record<string, any> | null);
 };
 

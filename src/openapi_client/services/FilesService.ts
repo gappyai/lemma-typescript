@@ -19,6 +19,58 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class FilesService {
     /**
+     * Delete File
+     * @param resourceType
+     * @param resourceId
+     * @param filePath
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deleteFileFilesResourceTypeResourceIdDeleteFilePathDelete(
+        resourceType: ResourceType,
+        resourceId: string,
+        filePath: string,
+    ): CancelablePromise<Record<string, any>> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/files/{resource_type}/{resource_id}/delete/{file_path}',
+            path: {
+                'resource_type': resourceType,
+                'resource_id': resourceId,
+                'file_path': filePath,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Download File
+     * @param resourceType
+     * @param resourceId
+     * @param filePath
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static downloadFileFilesResourceTypeResourceIdDownloadFilePathGet(
+        resourceType: ResourceType,
+        resourceId: string,
+        filePath: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/files/{resource_type}/{resource_id}/download/{file_path}',
+            path: {
+                'resource_type': resourceType,
+                'resource_id': resourceId,
+                'file_path': filePath,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * List Files
      * @param resourceType
      * @param resourceId
@@ -85,85 +137,6 @@ export class FilesService {
         });
     }
     /**
-     * Download File
-     * @param resourceType
-     * @param resourceId
-     * @param filePath
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static downloadFileFilesResourceTypeResourceIdDownloadFilePathGet(
-        resourceType: ResourceType,
-        resourceId: string,
-        filePath: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/files/{resource_type}/{resource_id}/download/{file_path}',
-            path: {
-                'resource_type': resourceType,
-                'resource_id': resourceId,
-                'file_path': filePath,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete File
-     * @param resourceType
-     * @param resourceId
-     * @param filePath
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deleteFileFilesResourceTypeResourceIdDeleteFilePathDelete(
-        resourceType: ResourceType,
-        resourceId: string,
-        filePath: string,
-    ): CancelablePromise<Record<string, any>> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/files/{resource_type}/{resource_id}/delete/{file_path}',
-            path: {
-                'resource_type': resourceType,
-                'resource_id': resourceId,
-                'file_path': filePath,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Upload File
-     * @param podId
-     * @param datastoreName
-     * @param formData
-     * @returns FileResponse Successful Response
-     * @throws ApiError
-     */
-    public static fileUpload(
-        podId: string,
-        datastoreName: string,
-        formData: DatastoreFileUploadRequest,
-    ): CancelablePromise<FileResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            formData: formData,
-            mediaType: 'multipart/form-data',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Files
      * @param podId
      * @param datastoreName
@@ -198,6 +171,33 @@ export class FilesService {
         });
     }
     /**
+     * Upload File
+     * @param podId
+     * @param datastoreName
+     * @param formData
+     * @returns FileResponse Successful Response
+     * @throws ApiError
+     */
+    public static fileUpload(
+        podId: string,
+        datastoreName: string,
+        formData: DatastoreFileUploadRequest,
+    ): CancelablePromise<FileResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/datastores/{datastore_name}/files',
+            path: {
+                'pod_id': podId,
+                'datastore_name': datastoreName,
+            },
+            formData: formData,
+            mediaType: 'multipart/form-data',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Folder
      * @param podId
      * @param datastoreName
@@ -219,6 +219,59 @@ export class FilesService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Search Files
+     * @param podId
+     * @param datastoreName
+     * @param requestBody
+     * @returns FileSearchResponse Successful Response
+     * @throws ApiError
+     */
+    public static fileSearch(
+        podId: string,
+        datastoreName: string,
+        requestBody: FileSearchRequest,
+    ): CancelablePromise<FileSearchResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/datastores/{datastore_name}/files/search',
+            path: {
+                'pod_id': podId,
+                'datastore_name': datastoreName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete File
+     * @param podId
+     * @param datastoreName
+     * @param fileId
+     * @returns DatastoreMessageResponse Successful Response
+     * @throws ApiError
+     */
+    public static fileDelete(
+        podId: string,
+        datastoreName: string,
+        fileId: string,
+    ): CancelablePromise<DatastoreMessageResponse> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}/datastores/{datastore_name}/files/{file_id}',
+            path: {
+                'pod_id': podId,
+                'datastore_name': datastoreName,
+                'file_id': fileId,
+            },
             errors: {
                 422: `Validation Error`,
             },
@@ -281,32 +334,6 @@ export class FilesService {
         });
     }
     /**
-     * Delete File
-     * @param podId
-     * @param datastoreName
-     * @param fileId
-     * @returns DatastoreMessageResponse Successful Response
-     * @throws ApiError
-     */
-    public static fileDelete(
-        podId: string,
-        datastoreName: string,
-        fileId: string,
-    ): CancelablePromise<DatastoreMessageResponse> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files/{file_id}',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-                'file_id': fileId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Download File
      * @param podId
      * @param datastoreName
@@ -327,33 +354,6 @@ export class FilesService {
                 'datastore_name': datastoreName,
                 'file_id': fileId,
             },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Search Files
-     * @param podId
-     * @param datastoreName
-     * @param requestBody
-     * @returns FileSearchResponse Successful Response
-     * @throws ApiError
-     */
-    public static fileSearch(
-        podId: string,
-        datastoreName: string,
-        requestBody: FileSearchRequest,
-    ): CancelablePromise<FileSearchResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files/search',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

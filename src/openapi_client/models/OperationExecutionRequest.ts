@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export type OperationExecutionRequest = {
-    payload: Record<string, any>;
     account_id?: (string | null);
+    payload: Record<string, any>;
 };
 
