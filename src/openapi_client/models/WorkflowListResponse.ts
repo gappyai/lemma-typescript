@@ -2,9 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FlowEntity } from './FlowEntity.js';
+import type { FlowResponse } from './FlowResponse.js';
 export type WorkflowListResponse = {
-    items: Array<FlowEntity>;
+    items: Array<FlowResponse>;
     limit: number;
     next_page_token?: (string | null);
 };

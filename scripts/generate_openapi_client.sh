@@ -8,6 +8,19 @@ BACKEND_ROOT="${LEMMA_BACKEND_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 SPEC_TMP="$SDK_DIR/.generated/openapi.json"
 OUT_DIR="$SDK_DIR/src/openapi_client"
 
+normalize_json_file() {
+  local json_path="$1"
+  python - "$json_path" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+data = json.loads(path.read_text(encoding="utf-8"))
+path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+}
+
 # Derive the OpenAPI URL from LEMMA_API_URL if set (recommended pattern):
 #   LEMMA_API_URL=https://api.lemma.work OPENAPI_SOURCE=url bash generate_openapi_client.sh
 # Or explicitly:
@@ -50,8 +63,9 @@ PY
   echo "Generated OpenAPI spec from app.app:create_app"
 fi
 
+normalize_json_file "$SPEC_TMP"
+
 cd "$SDK_DIR"
-rm -rf "$OUT_DIR"
 npx --yes openapi-typescript-codegen \
   --input "$SPEC_TMP" \
   --output "$OUT_DIR" \

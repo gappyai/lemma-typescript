@@ -2,15 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { DecisionNodeConfig } from './DecisionNodeConfig.js';
-/**
- * Decision node.
- */
-export type DecisionNode_Output = {
+import type { AgentNodeConfig } from './AgentNodeConfig.js';
+export type AgentNodeResponse = {
     id: string;
     label?: (string | null);
     position?: (Record<string, number> | null);
     type?: string;
-    config: DecisionNodeConfig;
+    config: AgentNodeConfig;
 };
 

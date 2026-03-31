@@ -6,7 +6,7 @@ import type { FunctionNodeConfig } from './FunctionNodeConfig.js';
 /**
  * Function node.
  */
-export type FunctionNode_Input = {
+export type FunctionNode = {
     id: string;
     label?: (string | null);
     position?: (Record<string, number> | null);

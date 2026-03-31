@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FlowEntity } from '../models/FlowEntity.js';
 import type { FlowInstallEntity } from '../models/FlowInstallEntity.js';
+import type { FlowResponse } from '../models/FlowResponse.js';
 import type { FlowRunEntity } from '../models/FlowRunEntity.js';
 import type { WorkflowCreateRequest } from '../models/WorkflowCreateRequest.js';
 import type { WorkflowGraphUpdateRequest } from '../models/WorkflowGraphUpdateRequest.js';
@@ -20,13 +20,13 @@ export class WorkflowsService {
      * Create a workflow definition. Use this before uploading graph nodes/edges with `workflow.graph.update`.
      * @param podId
      * @param requestBody
-     * @returns FlowEntity Successful Response
+     * @returns FlowResponse Successful Response
      * @throws ApiError
      */
     public static workflowCreate(
         podId: string,
         requestBody: WorkflowCreateRequest,
-    ): CancelablePromise<FlowEntity> {
+    ): CancelablePromise<FlowResponse> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/pods/{pod_id}/workflows',
@@ -74,13 +74,13 @@ export class WorkflowsService {
      * Get a single workflow definition including graph and start configuration.
      * @param podId
      * @param workflowName
-     * @returns FlowEntity Successful Response
+     * @returns FlowResponse Successful Response
      * @throws ApiError
      */
     public static workflowGet(
         podId: string,
         workflowName: string,
-    ): CancelablePromise<FlowEntity> {
+    ): CancelablePromise<FlowResponse> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/workflows/{workflow_name}',
@@ -99,14 +99,14 @@ export class WorkflowsService {
      * @param podId
      * @param workflowName
      * @param requestBody
-     * @returns FlowEntity Successful Response
+     * @returns FlowResponse Successful Response
      * @throws ApiError
      */
     public static workflowUpdate(
         podId: string,
         workflowName: string,
         requestBody: WorkflowUpdateRequest,
-    ): CancelablePromise<FlowEntity> {
+    ): CancelablePromise<FlowResponse> {
         return __request(OpenAPI, {
             method: 'PATCH',
             url: '/pods/{pod_id}/workflows/{workflow_name}',
@@ -151,14 +151,14 @@ export class WorkflowsService {
      * @param podId
      * @param workflowName
      * @param requestBody
-     * @returns FlowEntity Successful Response
+     * @returns FlowResponse Successful Response
      * @throws ApiError
      */
     public static workflowGraphUpdate(
         podId: string,
         workflowName: string,
         requestBody: WorkflowGraphUpdateRequest,
-    ): CancelablePromise<FlowEntity> {
+    ): CancelablePromise<FlowResponse> {
         return __request(OpenAPI, {
             method: 'PUT',
             url: '/pods/{pod_id}/workflows/{workflow_name}/graph',

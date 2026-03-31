@@ -2,15 +2,15 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FunctionNodeConfig } from './FunctionNodeConfig.js';
+import type { DecisionNodeConfig } from './DecisionNodeConfig.js';
 /**
- * Function node.
+ * Decision node.
  */
-export type FunctionNode_Output = {
+export type DecisionNode = {
     id: string;
     label?: (string | null);
     position?: (Record<string, number> | null);
     type?: string;
-    config: FunctionNodeConfig;
+    config: DecisionNodeConfig;
 };
 
