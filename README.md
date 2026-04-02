@@ -33,7 +33,7 @@ const client = new LemmaClient({
 
 await client.initialize();
 
-const datastores = await client.datastores.list();
+const tables = await client.tables.list();
 const assistants = await client.assistants.list({ limit: 20 });
 const supportAssistant = await client.assistants.get("support_assistant");
 ```
