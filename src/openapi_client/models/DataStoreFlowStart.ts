@@ -4,9 +4,9 @@
 /* eslint-disable */
 export type DataStoreFlowStart = {
     /**
-     * Datastore name to watch for change events. Defaults to the pod's default datastore.
+     * Datastore namespace name to watch for change events.
      */
-    datastore_name?: string;
+    datastore_name: string;
     /**
      * Datastore operations that should trigger this flow (for example: INSERT, UPDATE, DELETE).
      */

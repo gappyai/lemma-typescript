@@ -4,7 +4,6 @@ import { GeneratedClientAdapter } from "./generated.js";
 import { HttpClient } from "./http.js";
 import { AgentsNamespace } from "./namespaces/agents.js";
 import { AssistantsNamespace, ConversationsNamespace } from "./namespaces/assistants.js";
-import { DatastoresNamespace } from "./namespaces/datastores.js";
 import { DesksNamespace } from "./namespaces/desks.js";
 import { FilesNamespace } from "./namespaces/files.js";
 import { FunctionsNamespace } from "./namespaces/functions.js";
@@ -41,7 +40,6 @@ export class LemmaClient {
   private readonly _generated: GeneratedClientAdapter;
 
   // Namespaces
-  readonly datastores: DatastoresNamespace;
   readonly tables: TablesNamespace;
   readonly records: RecordsNamespace;
   readonly files: FilesNamespace;
@@ -83,7 +81,6 @@ export class LemmaClient {
       return this._currentPodId;
     };
 
-    this.datastores = new DatastoresNamespace(this._generated, podIdFn);
     this.tables = new TablesNamespace(this._generated, podIdFn);
     this.records = new RecordsNamespace(this._generated, this._http, podIdFn);
     this.files = new FilesNamespace(this._generated, this._http, podIdFn);

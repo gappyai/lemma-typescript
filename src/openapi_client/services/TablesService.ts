@@ -16,7 +16,6 @@ export class TablesService {
      * List Tables
      * List tables in a datastore.
      * @param podId
-     * @param datastoreName
      * @param limit Max number of tables to return.
      * @param pageToken Cursor from a previous response for pagination.
      * @returns TableListResponse Successful Response
@@ -24,16 +23,14 @@ export class TablesService {
      */
     public static tableList(
         podId: string,
-        datastoreName: string,
         limit: number = 100,
         pageToken?: (string | null),
     ): CancelablePromise<TableListResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables',
+            url: '/pods/{pod_id}/datastore/tables',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
             },
             query: {
                 'limit': limit,
@@ -48,22 +45,19 @@ export class TablesService {
      * Create Table
      * Create a table in a datastore. Define primary key, column schema, and optional RLS behavior.
      * @param podId
-     * @param datastoreName
      * @param requestBody
      * @returns TableResponse Successful Response
      * @throws ApiError
      */
     public static tableCreate(
         podId: string,
-        datastoreName: string,
         requestBody: CreateTableRequest,
     ): CancelablePromise<TableResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables',
+            url: '/pods/{pod_id}/datastore/tables',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -76,22 +70,19 @@ export class TablesService {
      * Delete Table
      * Delete a table and all records in it.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @returns DatastoreMessageResponse Successful Response
      * @throws ApiError
      */
     public static tableDelete(
         podId: string,
-        datastoreName: string,
         tableName: string,
     ): CancelablePromise<DatastoreMessageResponse> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             errors: {
@@ -103,22 +94,19 @@ export class TablesService {
      * Get Table
      * Get table schema metadata by table name.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @returns TableResponse Successful Response
      * @throws ApiError
      */
     public static tableGet(
         podId: string,
-        datastoreName: string,
         tableName: string,
     ): CancelablePromise<TableResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             errors: {
@@ -130,7 +118,6 @@ export class TablesService {
      * Update Table
      * Update table metadata/configuration payload.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns TableResponse Successful Response
@@ -138,16 +125,14 @@ export class TablesService {
      */
     public static tableUpdate(
         podId: string,
-        datastoreName: string,
         tableName: string,
         requestBody: UpdateTableRequest,
     ): CancelablePromise<TableResponse> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -161,7 +146,6 @@ export class TablesService {
      * Add Column
      * Add a new column to a table. Column names must be unique and compatible with existing table schema rules.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns TableResponse Successful Response
@@ -169,16 +153,14 @@ export class TablesService {
      */
     public static tableColumnAdd(
         podId: string,
-        datastoreName: string,
         tableName: string,
         requestBody: AddColumnRequest,
     ): CancelablePromise<TableResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/columns',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/columns',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -192,7 +174,6 @@ export class TablesService {
      * Remove Column
      * Remove a non-primary, non-system column from a table. System columns and the primary key cannot be removed.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param columnName
      * @returns DatastoreMessageResponse Successful Response
@@ -200,16 +181,14 @@ export class TablesService {
      */
     public static tableColumnRemove(
         podId: string,
-        datastoreName: string,
         tableName: string,
         columnName: string,
     ): CancelablePromise<DatastoreMessageResponse> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/columns/{column_name}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/columns/{column_name}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
                 'column_name': columnName,
             },

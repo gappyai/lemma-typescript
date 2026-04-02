@@ -26,33 +26,33 @@ function normalizeCreateTablePayload(payload: CreateTableInput): CreateTableRequ
 export class TablesNamespace {
   constructor(private readonly client: GeneratedClientAdapter, private readonly podId: () => string) {}
 
-  list(datastore: string, options: { limit?: number; pageToken?: string } = {}) {
-    return this.client.request(() => TablesService.tableList(this.podId(), datastore, options.limit ?? 100, options.pageToken));
+  list(options: { limit?: number; pageToken?: string } = {}) {
+    return this.client.request(() => TablesService.tableList(this.podId(), options.limit ?? 100, options.pageToken));
   }
 
-  create(datastore: string, payload: CreateTableInput) {
-    return this.client.request(() => TablesService.tableCreate(this.podId(), datastore, normalizeCreateTablePayload(payload)));
+  create(payload: CreateTableInput) {
+    return this.client.request(() => TablesService.tableCreate(this.podId(), normalizeCreateTablePayload(payload)));
   }
 
-  get(datastore: string, tableName: string) {
-    return this.client.request(() => TablesService.tableGet(this.podId(), datastore, tableName));
+  get(tableName: string) {
+    return this.client.request(() => TablesService.tableGet(this.podId(), tableName));
   }
 
-  update(datastore: string, tableName: string, payload: UpdateTableRequest) {
-    return this.client.request(() => TablesService.tableUpdate(this.podId(), datastore, tableName, payload));
+  update(tableName: string, payload: UpdateTableRequest) {
+    return this.client.request(() => TablesService.tableUpdate(this.podId(), tableName, payload));
   }
 
-  delete(datastore: string, tableName: string) {
-    return this.client.request(() => TablesService.tableDelete(this.podId(), datastore, tableName));
+  delete(tableName: string) {
+    return this.client.request(() => TablesService.tableDelete(this.podId(), tableName));
   }
 
   readonly columns = {
-    add: (datastore: string, tableName: string, request: AddColumnRequest | AddColumnRequest["column"]) => {
+    add: (tableName: string, request: AddColumnRequest | AddColumnRequest["column"]) => {
       const payload: AddColumnRequest = "column" in request ? request : { column: request };
-      return this.client.request(() => TablesService.tableColumnAdd(this.podId(), datastore, tableName, payload));
+      return this.client.request(() => TablesService.tableColumnAdd(this.podId(), tableName, payload));
     },
 
-    remove: (datastore: string, tableName: string, columnName: string) =>
-      this.client.request(() => TablesService.tableColumnRemove(this.podId(), datastore, tableName, columnName)),
+    remove: (tableName: string, columnName: string) =>
+      this.client.request(() => TablesService.tableColumnRemove(this.podId(), tableName, columnName)),
   };
 }

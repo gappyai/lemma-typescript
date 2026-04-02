@@ -439,7 +439,7 @@ export default function TodoApp() {
         <p style={{ margin: "0 0 24px", fontSize: "14px", color: "#6b7280" }}>
           Live data from{" "}
           <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: "4px", fontSize: "12px" }}>
-            pods/{getClient().podId}/datastores/default/tables/todos
+            pods/{getClient().podId}/datastore/tables/todos
           </code>
         </p>
 

@@ -3,12 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApplicationAccessConfig } from './ApplicationAccessConfig.js';
+import type { TableAccessEntry } from './TableAccessEntry.js';
 /**
  * Request to update a function.
  */
 export type UpdateFunctionRequest = {
     accessible_applications?: (Array<ApplicationAccessConfig> | null);
-    accessible_datastores?: (Array<string> | null);
+    accessible_folders?: (Array<string> | null);
+    accessible_tables?: (Array<TableAccessEntry> | null);
     code?: (string | null);
     config?: (Record<string, any> | null);
     description?: (string | null);

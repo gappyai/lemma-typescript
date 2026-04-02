@@ -19,7 +19,6 @@ export class RecordsService {
      * List Records
      * List table records with token pagination only. Use `record.query` when you need structured filters or explicit sort clauses.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param limit Max number of rows to return.
      * @param pageToken Opaque token from a previous response page.
@@ -28,17 +27,15 @@ export class RecordsService {
      */
     public static recordList(
         podId: string,
-        datastoreName: string,
         tableName: string,
         limit: number = 20,
         pageToken?: (string | null),
     ): CancelablePromise<RecordListResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             query: {
@@ -54,7 +51,6 @@ export class RecordsService {
      * Create Record
      * Insert a record into a table. Reserved tables (`reserved_*`) are system-managed and cannot be mutated through record write endpoints.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns RecordResponse Successful Response
@@ -62,16 +58,14 @@ export class RecordsService {
      */
     public static recordCreate(
         podId: string,
-        datastoreName: string,
         tableName: string,
         requestBody: CreateRecordRequest,
     ): CancelablePromise<RecordResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -85,7 +79,6 @@ export class RecordsService {
      * Bulk Create
      * Insert multiple records in one request.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns DatastoreMessageResponse Successful Response
@@ -93,16 +86,14 @@ export class RecordsService {
      */
     public static recordBulkCreate(
         podId: string,
-        datastoreName: string,
         tableName: string,
         requestBody: BulkCreateRecordsRequest,
     ): CancelablePromise<DatastoreMessageResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/bulk/create',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/bulk/create',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -116,7 +107,6 @@ export class RecordsService {
      * Bulk Delete
      * Delete multiple records by primary key values.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns DatastoreMessageResponse Successful Response
@@ -124,16 +114,14 @@ export class RecordsService {
      */
     public static recordBulkDelete(
         podId: string,
-        datastoreName: string,
         tableName: string,
         requestBody: BulkDeleteRecordsRequest,
     ): CancelablePromise<DatastoreMessageResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/bulk/delete',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/bulk/delete',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -147,7 +135,6 @@ export class RecordsService {
      * Bulk Update
      * Update multiple records in one request (each item needs primary key).
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns DatastoreMessageResponse Successful Response
@@ -155,16 +142,14 @@ export class RecordsService {
      */
     public static recordBulkUpdate(
         podId: string,
-        datastoreName: string,
         tableName: string,
         requestBody: BulkUpdateRecordsRequest,
     ): CancelablePromise<DatastoreMessageResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/bulk/update',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/bulk/update',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -178,7 +163,6 @@ export class RecordsService {
      * Query Records
      * Query one table with structured filters and sorting. Use this instead of dynamic query parameters when you need filtering. Example filters: `[{"field": "status", "op": "eq", "value": "OPEN"}]`.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns RecordListResponse Successful Response
@@ -186,16 +170,14 @@ export class RecordsService {
      */
     public static recordQuery(
         podId: string,
-        datastoreName: string,
         tableName: string,
         requestBody: RecordQueryRequest,
     ): CancelablePromise<RecordListResponse> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/query',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/query',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -209,7 +191,6 @@ export class RecordsService {
      * Delete Record
      * Delete a record by primary key.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param recordId
      * @returns DatastoreMessageResponse Successful Response
@@ -217,16 +198,14 @@ export class RecordsService {
      */
     public static recordDelete(
         podId: string,
-        datastoreName: string,
         tableName: string,
         recordId: string,
     ): CancelablePromise<DatastoreMessageResponse> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/{record_id}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/{record_id}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
                 'record_id': recordId,
             },
@@ -239,7 +218,6 @@ export class RecordsService {
      * Get Record
      * Fetch one record by primary key value. The `record_id` path segment is the table's primary key value as stored in the table, not necessarily a UUID.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param recordId
      * @returns RecordResponse Successful Response
@@ -247,16 +225,14 @@ export class RecordsService {
      */
     public static recordGet(
         podId: string,
-        datastoreName: string,
         tableName: string,
         recordId: string,
     ): CancelablePromise<RecordResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/{record_id}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/{record_id}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
                 'record_id': recordId,
             },
@@ -269,7 +245,6 @@ export class RecordsService {
      * Update Record
      * Patch a record by primary key.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param recordId
      * @param requestBody
@@ -278,17 +253,15 @@ export class RecordsService {
      */
     public static recordUpdate(
         podId: string,
-        datastoreName: string,
         tableName: string,
         recordId: string,
         requestBody: UpdateRecordRequest,
     ): CancelablePromise<RecordResponse> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/{record_id}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/{record_id}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
                 'record_id': recordId,
             },

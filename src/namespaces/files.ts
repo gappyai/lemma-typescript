@@ -13,27 +13,27 @@ export class FilesNamespace {
     private readonly podId: () => string,
   ) {}
 
-  list(datastore: string, options: { limit?: number; pageToken?: string; parentId?: string } = {}) {
-    return this.client.request(() => FilesService.fileList(this.podId(), datastore, options.parentId, options.limit ?? 100, options.pageToken));
+  list(options: { limit?: number; pageToken?: string; parentId?: string } = {}) {
+    return this.client.request(() => FilesService.fileList(this.podId(), options.parentId, options.limit ?? 100, options.pageToken));
   }
-  get(datastore: string, fileId: string) {
-    return this.client.request(() => FilesService.fileGet(this.podId(), datastore, fileId));
+  get(fileId: string) {
+    return this.client.request(() => FilesService.fileGet(this.podId(), fileId));
   }
-  delete(datastore: string, fileId: string) {
-    return this.client.request(() => FilesService.fileDelete(this.podId(), datastore, fileId));
+  delete(fileId: string) {
+    return this.client.request(() => FilesService.fileDelete(this.podId(), fileId));
   }
-  search(datastore: string, query: string, options: { limit?: number; searchMethod?: SearchMethod } = {}) {
-    return this.client.request(() => FilesService.fileSearch(this.podId(), datastore, {
+  search(query: string, options: { limit?: number; searchMethod?: SearchMethod } = {}) {
+    return this.client.request(() => FilesService.fileSearch(this.podId(), {
       query,
       limit: options.limit ?? 10,
       search_method: options.searchMethod ?? SearchMethod.HYBRID,
     }));
   }
-  download(datastore: string, fileId: string): Promise<Blob> {
-    return this.http.requestBytes("GET", `/pods/${this.podId()}/datastores/${datastore}/files/${fileId}/download`);
+  download(fileId: string): Promise<Blob> {
+    return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/${fileId}/download`);
   }
 
-  upload(datastore: string, file: Blob, options: { name?: string; parentId?: string; searchEnabled?: boolean; description?: string } = {}) {
+  upload(file: Blob, options: { name?: string; parentId?: string; searchEnabled?: boolean; description?: string } = {}) {
     const payload: DatastoreFileUploadRequest = {
       data: file as unknown as string,
       name: options.name ?? (file instanceof File ? file.name : undefined),
@@ -41,10 +41,10 @@ export class FilesNamespace {
       parent_id: options.parentId,
       search_enabled: options.searchEnabled ?? true,
     };
-    return this.client.request(() => FilesService.fileUpload(this.podId(), datastore, payload));
+    return this.client.request(() => FilesService.fileUpload(this.podId(), payload));
   }
 
-  update(datastore: string, fileId: string, options: { file?: Blob; name?: string; description?: string; parentId?: string; searchEnabled?: boolean } = {}) {
+  update(fileId: string, options: { file?: Blob; name?: string; description?: string; parentId?: string; searchEnabled?: boolean } = {}) {
     const payload: update = {
       data: options.file as unknown as string | undefined,
       name: options.name,
@@ -52,17 +52,17 @@ export class FilesNamespace {
       parent_id: options.parentId,
       search_enabled: options.searchEnabled,
     };
-    return this.client.request(() => FilesService.fileUpdate(this.podId(), datastore, fileId, payload));
+    return this.client.request(() => FilesService.fileUpdate(this.podId(), fileId, payload));
   }
 
   readonly folder = {
-    create: (datastore: string, name: string, options: { parentId?: string; description?: string } = {}) => {
+    create: (name: string, options: { parentId?: string; description?: string } = {}) => {
       const payload: CreateFolderRequest = {
         name,
         description: options.description,
         parent_id: options.parentId,
       };
-      return this.client.request(() => FilesService.fileFolderCreate(this.podId(), datastore, payload));
+      return this.client.request(() => FilesService.fileFolderCreate(this.podId(), payload));
     },
   };
 }

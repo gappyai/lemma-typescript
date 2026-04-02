@@ -4,6 +4,6 @@
 /* eslint-disable */
 export type UpdateDeskRequest = {
     description?: (string | null);
-    entry_path?: (string | null);
+    public_slug?: (string | null);
 };
 

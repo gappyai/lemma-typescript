@@ -38,7 +38,6 @@ export type { ParsedAssistantStreamEvent } from "./assistant-events.js";
 // Namespace types (for advanced usage)
 export type { AgentsNamespace } from "./namespaces/agents.js";
 export type { AssistantsNamespace, ConversationsNamespace } from "./namespaces/assistants.js";
-export type { DatastoresNamespace } from "./namespaces/datastores.js";
 export type { DesksNamespace } from "./namespaces/desks.js";
 export type { FilesNamespace } from "./namespaces/files.js";
 export type { FunctionsNamespace } from "./namespaces/functions.js";

@@ -2,9 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type CreateDeskRequest = {
-    description?: (string | null);
-    name: string;
-    public_slug?: (string | null);
-};
-
+/**
+ * Mode for workload table access permissions.
+ */
+export enum TableAccessMode {
+    READ = 'READ',
+    WRITE = 'WRITE',
+}

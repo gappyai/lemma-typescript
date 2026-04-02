@@ -8,8 +8,8 @@ import type { RecordQueryRequest } from "../openapi_client/models/RecordQueryReq
 import { RecordsService } from "../openapi_client/services/RecordsService.js";
 import type { ListRecordsOptions } from "../types.js";
 
-function getRecordsPath(podId: string, datastore: string, table: string): string {
-  return `/pods/${encodeURIComponent(podId)}/datastores/${encodeURIComponent(datastore)}/tables/${encodeURIComponent(table)}/records`;
+function getRecordsPath(podId: string, table: string): string {
+  return `/pods/${encodeURIComponent(podId)}/datastore/tables/${encodeURIComponent(table)}/records`;
 }
 
 export class RecordsNamespace {
@@ -19,7 +19,7 @@ export class RecordsNamespace {
     private readonly podId: () => string,
   ) {}
 
-  list(datastore: string, table: string, options: ListRecordsOptions = {}) {
+  list(table: string, options: ListRecordsOptions = {}) {
     const { filters, sort, limit, pageToken, offset, sortBy, order, params } = options;
 
     if (filters || sort) {
@@ -29,7 +29,7 @@ export class RecordsNamespace {
         limit,
         page_token: pageToken,
       };
-      return this.client.request(() => RecordsService.recordQuery(this.podId(), datastore, table, payload));
+      return this.client.request(() => RecordsService.recordQuery(this.podId(), table, payload));
     }
 
     const hasCustomParams =
@@ -39,7 +39,7 @@ export class RecordsNamespace {
       !!params;
 
     if (hasCustomParams) {
-      return this.http.request<RecordListResponse>("GET", getRecordsPath(this.podId(), datastore, table), {
+      return this.http.request<RecordListResponse>("GET", getRecordsPath(this.podId(), table), {
         params: {
           limit: limit ?? 20,
           page_token: pageToken,
@@ -52,54 +52,53 @@ export class RecordsNamespace {
     }
 
     return this.client.request(() =>
-      RecordsService.recordList(this.podId(), datastore, table, limit ?? 20, pageToken),
+      RecordsService.recordList(this.podId(), table, limit ?? 20, pageToken),
     );
   }
 
   listWithParams(
-    datastore: string,
     table: string,
     params: Record<string, string | number | boolean | undefined | null>,
   ) {
-    return this.http.request<RecordListResponse>("GET", getRecordsPath(this.podId(), datastore, table), {
+    return this.http.request<RecordListResponse>("GET", getRecordsPath(this.podId(), table), {
       params,
     });
   }
 
-  create(datastore: string, table: string, data: Record<string, unknown>) {
-    return this.client.request(() => RecordsService.recordCreate(this.podId(), datastore, table, { data }));
+  create(table: string, data: Record<string, unknown>) {
+    return this.client.request(() => RecordsService.recordCreate(this.podId(), table, { data }));
   }
 
-  get(datastore: string, table: string, recordId: string) {
-    return this.client.request(() => RecordsService.recordGet(this.podId(), datastore, table, recordId));
+  get(table: string, recordId: string) {
+    return this.client.request(() => RecordsService.recordGet(this.podId(), table, recordId));
   }
 
-  update(datastore: string, table: string, recordId: string, data: Record<string, unknown>) {
-    return this.client.request(() => RecordsService.recordUpdate(this.podId(), datastore, table, recordId, { data }));
+  update(table: string, recordId: string, data: Record<string, unknown>) {
+    return this.client.request(() => RecordsService.recordUpdate(this.podId(), table, recordId, { data }));
   }
 
-  delete(datastore: string, table: string, recordId: string) {
-    return this.client.request(() => RecordsService.recordDelete(this.podId(), datastore, table, recordId));
+  delete(table: string, recordId: string) {
+    return this.client.request(() => RecordsService.recordDelete(this.podId(), table, recordId));
   }
 
-  query(datastore: string, table: string, payload: RecordQueryRequest) {
-    return this.client.request(() => RecordsService.recordQuery(this.podId(), datastore, table, payload));
+  query(table: string, payload: RecordQueryRequest) {
+    return this.client.request(() => RecordsService.recordQuery(this.podId(), table, payload));
   }
 
   readonly bulk = {
-    create: (datastore: string, table: string, records: Record<string, unknown>[]) => {
+    create: (table: string, records: Record<string, unknown>[]) => {
       const payload: BulkCreateRecordsRequest = { records };
-      return this.client.request(() => RecordsService.recordBulkCreate(this.podId(), datastore, table, payload));
+      return this.client.request(() => RecordsService.recordBulkCreate(this.podId(), table, payload));
     },
 
-    update: (datastore: string, table: string, records: Record<string, unknown>[]) => {
+    update: (table: string, records: Record<string, unknown>[]) => {
       const payload: BulkUpdateRecordsRequest = { records };
-      return this.client.request(() => RecordsService.recordBulkUpdate(this.podId(), datastore, table, payload));
+      return this.client.request(() => RecordsService.recordBulkUpdate(this.podId(), table, payload));
     },
 
-    delete: (datastore: string, table: string, recordIds: string[]) => {
+    delete: (table: string, recordIds: string[]) => {
       const payload: BulkDeleteRecordsRequest = { record_ids: recordIds };
-      return this.client.request(() => RecordsService.recordBulkDelete(this.podId(), datastore, table, payload));
+      return this.client.request(() => RecordsService.recordBulkDelete(this.podId(), table, payload));
     },
   };
 }

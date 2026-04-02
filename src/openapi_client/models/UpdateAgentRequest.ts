@@ -3,13 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApplicationAccessConfig } from './ApplicationAccessConfig.js';
+import type { TableAccessEntry } from './TableAccessEntry.js';
 import type { ToolSet } from './ToolSet.js';
 /**
  * Request schema for updating an agent.
  */
 export type UpdateAgentRequest = {
     accessible_applications?: (Array<ApplicationAccessConfig> | null);
-    accessible_datastores?: (Array<string> | null);
+    accessible_folders?: (Array<string> | null);
+    accessible_tables?: (Array<TableAccessEntry> | null);
     description?: (string | null);
     icon_url?: (string | null);
     input_schema?: (Record<string, any> | null);

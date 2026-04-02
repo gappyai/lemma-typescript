@@ -4,14 +4,13 @@
 /* eslint-disable */
 import type { DeskStatus } from './DeskStatus.js';
 export type DeskResponse = {
-    build_html_path?: (string | null);
     created_at: any;
+    current_release_id?: (string | null);
     description?: (string | null);
-    entry_path: string;
-    framework: string;
     id: string;
     name: string;
     pod_id: string;
+    public_slug: string;
     source_archive_path?: (string | null);
     status: DeskStatus;
     updated_at: any;

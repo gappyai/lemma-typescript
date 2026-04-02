@@ -38,7 +38,6 @@ const generated_js_1 = require("./generated.js");
 const http_js_1 = require("./http.js");
 const agents_js_1 = require("./namespaces/agents.js");
 const assistants_js_1 = require("./namespaces/assistants.js");
-const datastores_js_1 = require("./namespaces/datastores.js");
 const desks_js_1 = require("./namespaces/desks.js");
 const files_js_1 = require("./namespaces/files.js");
 const functions_js_1 = require("./namespaces/functions.js");
@@ -68,7 +67,6 @@ class LemmaClient {
             }
             return this._currentPodId;
         };
-        this.datastores = new datastores_js_1.DatastoresNamespace(this._generated, podIdFn);
         this.tables = new tables_js_1.TablesNamespace(this._generated, podIdFn);
         this.records = new records_js_1.RecordsNamespace(this._generated, this._http, podIdFn);
         this.files = new files_js_1.FilesNamespace(this._generated, this._http, podIdFn);
@@ -923,6 +921,31 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class AgentsService {
     /**
+     * List Agents
+     * List all agents in a pod
+     * @param podId
+     * @param limit
+     * @param pageToken
+     * @returns AgentListResponse Successful Response
+     * @throws ApiError
+     */
+    static agentList(podId, limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/agents',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Agent
      * Create a new agent in a pod
      * @param podId
@@ -945,24 +968,20 @@ class AgentsService {
         });
     }
     /**
-     * List Agents
-     * List all agents in a pod
+     * Delete Agent
+     * Delete an agent
      * @param podId
-     * @param limit
-     * @param pageToken
-     * @returns AgentListResponse Successful Response
+     * @param agentName
+     * @returns AgentMessageResponse Successful Response
      * @throws ApiError
      */
-    static agentList(podId, limit = 100, pageToken) {
+    static agentDelete(podId, agentName) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/agents',
+            method: 'DELETE',
+            url: '/pods/{pod_id}/agents/{agent_name}',
             path: {
                 'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
+                'agent_name': agentName,
             },
             errors: {
                 422: `Validation Error`,
@@ -1009,27 +1028,6 @@ class AgentsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Agent
-     * Delete an agent
-     * @param podId
-     * @param agentName
-     * @returns AgentMessageResponse Successful Response
-     * @throws ApiError
-     */
-    static agentDelete(podId, agentName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/agents/{agent_name}',
-            path: {
-                'pod_id': podId,
-                'agent_name': agentName,
-            },
             errors: {
                 422: `Validation Error`,
             },
@@ -1610,187 +1608,6 @@ class ConversationsNamespace {
 exports.ConversationsNamespace = ConversationsNamespace;
 
 },
-"./namespaces/datastores.js": function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DatastoresNamespace = void 0;
-const DatastoreService_js_1 = require("./openapi_client/services/DatastoreService.js");
-class DatastoresNamespace {
-    constructor(client, podId) {
-        this.client = client;
-        this.podId = podId;
-    }
-    list(options = {}) {
-        return this.client.request(() => DatastoreService_js_1.DatastoreService.datastoreList(this.podId(), options.limit ?? 100, options.pageToken));
-    }
-    create(payload) {
-        return this.client.request(() => DatastoreService_js_1.DatastoreService.datastoreCreate(this.podId(), payload));
-    }
-    get(name) {
-        return this.client.request(() => DatastoreService_js_1.DatastoreService.datastoreGet(this.podId(), name));
-    }
-    update(name, payload) {
-        return this.client.request(() => DatastoreService_js_1.DatastoreService.datastoreUpdate(this.podId(), name, payload));
-    }
-    delete(name) {
-        return this.client.request(() => DatastoreService_js_1.DatastoreService.datastoreDelete(this.podId(), name));
-    }
-    query(name, request) {
-        const payload = typeof request === "string" ? { query: request } : request;
-        return this.client.request(() => DatastoreService_js_1.DatastoreService.datastoreQuery(this.podId(), name, payload));
-    }
-}
-exports.DatastoresNamespace = DatastoresNamespace;
-
-},
-"./openapi_client/services/DatastoreService.js": function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DatastoreService = void 0;
-const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
-const request_js_1 = require("./openapi_client/core/request.js");
-class DatastoreService {
-    /**
-     * Create Datastore
-     * Create a datastore namespace inside a pod. Use this before creating tables. Datastore names are normalized for stable API paths.
-     * @param podId
-     * @param requestBody
-     * @returns DatastoreResponse Successful Response
-     * @throws ApiError
-     */
-    static datastoreCreate(podId, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores',
-            path: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Datastores
-     * List datastores available in the pod.
-     * @param podId
-     * @param limit Max number of datastores to return.
-     * @param pageToken Cursor from a previous response to fetch the next page.
-     * @returns DatastoreListResponse Successful Response
-     * @throws ApiError
-     */
-    static datastoreList(podId, limit = 100, pageToken) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/datastores',
-            path: {
-                'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Datastore
-     * Get datastore metadata by datastore name.
-     * @param podId
-     * @param datastoreName
-     * @returns DatastoreResponse Successful Response
-     * @throws ApiError
-     */
-    static datastoreGet(podId, datastoreName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update Datastore
-     * Update datastore metadata and event emission settings.
-     * @param podId
-     * @param datastoreName
-     * @param requestBody
-     * @returns DatastoreResponse Successful Response
-     * @throws ApiError
-     */
-    static datastoreUpdate(podId, datastoreName, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'PATCH',
-            url: '/pods/{pod_id}/datastores/{datastore_name}',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Datastore
-     * Delete a datastore and its underlying resources.
-     * @param podId
-     * @param datastoreName
-     * @returns DatastoreMessageResponse Successful Response
-     * @throws ApiError
-     */
-    static datastoreDelete(podId, datastoreName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Execute Query
-     * Execute a read-only SQL query in the datastore schema. Mutating statements (`INSERT`, `UPDATE`, `DELETE`, `DROP`, etc.) are blocked.
-     * @param podId
-     * @param datastoreName
-     * @param requestBody
-     * @returns RecordQueryResponse Successful Response
-     * @throws ApiError
-     */
-    static datastoreQuery(podId, datastoreName, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/query',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-}
-exports.DatastoreService = DatastoreService;
-
-},
 "./namespaces/desks.js": function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -1838,6 +1655,30 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class DesksService {
     /**
+     * List Desks
+     * @param podId
+     * @param limit
+     * @param pageToken
+     * @returns DeskListResponse Successful Response
+     * @throws ApiError
+     */
+    static deskList(podId, limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/desks',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Desk
      * @param podId
      * @param requestBody
@@ -1859,23 +1700,19 @@ class DesksService {
         });
     }
     /**
-     * List Desks
+     * Delete Desk
      * @param podId
-     * @param limit
-     * @param pageToken
-     * @returns DeskListResponse Successful Response
+     * @param deskName
+     * @returns DeskMessageResponse Successful Response
      * @throws ApiError
      */
-    static deskList(podId, limit = 100, pageToken) {
+    static deskDelete(podId, deskName) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/desks',
+            method: 'DELETE',
+            url: '/pods/{pod_id}/desks/{desk_name}',
             path: {
                 'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
+                'desk_name': deskName,
             },
             errors: {
                 422: `Validation Error`,
@@ -1920,26 +1757,6 @@ class DesksService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Desk
-     * @param podId
-     * @param deskName
-     * @returns DeskMessageResponse Successful Response
-     * @throws ApiError
-     */
-    static deskDelete(podId, deskName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/desks/{desk_name}',
-            path: {
-                'pod_id': podId,
-                'desk_name': deskName,
-            },
             errors: {
                 422: `Validation Error`,
             },
@@ -2024,36 +1841,36 @@ class FilesNamespace {
         this.http = http;
         this.podId = podId;
         this.folder = {
-            create: (datastore, name, options = {}) => {
+            create: (name, options = {}) => {
                 const payload = {
                     name,
                     description: options.description,
                     parent_id: options.parentId,
                 };
-                return this.client.request(() => FilesService_js_1.FilesService.fileFolderCreate(this.podId(), datastore, payload));
+                return this.client.request(() => FilesService_js_1.FilesService.fileFolderCreate(this.podId(), payload));
             },
         };
     }
-    list(datastore, options = {}) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileList(this.podId(), datastore, options.parentId, options.limit ?? 100, options.pageToken));
+    list(options = {}) {
+        return this.client.request(() => FilesService_js_1.FilesService.fileList(this.podId(), options.parentId, options.limit ?? 100, options.pageToken));
     }
-    get(datastore, fileId) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileGet(this.podId(), datastore, fileId));
+    get(fileId) {
+        return this.client.request(() => FilesService_js_1.FilesService.fileGet(this.podId(), fileId));
     }
-    delete(datastore, fileId) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileDelete(this.podId(), datastore, fileId));
+    delete(fileId) {
+        return this.client.request(() => FilesService_js_1.FilesService.fileDelete(this.podId(), fileId));
     }
-    search(datastore, query, options = {}) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileSearch(this.podId(), datastore, {
+    search(query, options = {}) {
+        return this.client.request(() => FilesService_js_1.FilesService.fileSearch(this.podId(), {
             query,
             limit: options.limit ?? 10,
             search_method: options.searchMethod ?? SearchMethod_js_1.SearchMethod.HYBRID,
         }));
     }
-    download(datastore, fileId) {
-        return this.http.requestBytes("GET", `/pods/${this.podId()}/datastores/${datastore}/files/${fileId}/download`);
+    download(fileId) {
+        return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/${fileId}/download`);
     }
-    upload(datastore, file, options = {}) {
+    upload(file, options = {}) {
         const payload = {
             data: file,
             name: options.name ?? (file instanceof File ? file.name : undefined),
@@ -2061,9 +1878,9 @@ class FilesNamespace {
             parent_id: options.parentId,
             search_enabled: options.searchEnabled ?? true,
         };
-        return this.client.request(() => FilesService_js_1.FilesService.fileUpload(this.podId(), datastore, payload));
+        return this.client.request(() => FilesService_js_1.FilesService.fileUpload(this.podId(), payload));
     }
-    update(datastore, fileId, options = {}) {
+    update(fileId, options = {}) {
         const payload = {
             data: options.file,
             name: options.name,
@@ -2071,7 +1888,7 @@ class FilesNamespace {
             parent_id: options.parentId,
             search_enabled: options.searchEnabled,
         };
-        return this.client.request(() => FilesService_js_1.FilesService.fileUpdate(this.podId(), datastore, fileId, payload));
+        return this.client.request(() => FilesService_js_1.FilesService.fileUpdate(this.podId(), fileId, payload));
     }
 }
 exports.FilesNamespace = FilesNamespace;
@@ -2100,6 +1917,50 @@ exports.FilesService = void 0;
 const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class FilesService {
+    /**
+     * Delete File
+     * @param resourceType
+     * @param resourceId
+     * @param filePath
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static deleteFileFilesResourceTypeResourceIdDeleteFilePathDelete(resourceType, resourceId, filePath) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'DELETE',
+            url: '/files/{resource_type}/{resource_id}/delete/{file_path}',
+            path: {
+                'resource_type': resourceType,
+                'resource_id': resourceId,
+                'file_path': filePath,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Download File
+     * @param resourceType
+     * @param resourceId
+     * @param filePath
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static downloadFileFilesResourceTypeResourceIdDownloadFilePathGet(resourceType, resourceId, filePath) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/files/{resource_type}/{resource_id}/download/{file_path}',
+            path: {
+                'resource_type': resourceType,
+                'resource_id': resourceId,
+                'file_path': filePath,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * List Files
      * @param resourceType
@@ -2156,89 +2017,20 @@ class FilesService {
         });
     }
     /**
-     * Download File
-     * @param resourceType
-     * @param resourceId
-     * @param filePath
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    static downloadFileFilesResourceTypeResourceIdDownloadFilePathGet(resourceType, resourceId, filePath) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/files/{resource_type}/{resource_id}/download/{file_path}',
-            path: {
-                'resource_type': resourceType,
-                'resource_id': resourceId,
-                'file_path': filePath,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete File
-     * @param resourceType
-     * @param resourceId
-     * @param filePath
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    static deleteFileFilesResourceTypeResourceIdDeleteFilePathDelete(resourceType, resourceId, filePath) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/files/{resource_type}/{resource_id}/delete/{file_path}',
-            path: {
-                'resource_type': resourceType,
-                'resource_id': resourceId,
-                'file_path': filePath,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Upload File
-     * @param podId
-     * @param datastoreName
-     * @param formData
-     * @returns FileResponse Successful Response
-     * @throws ApiError
-     */
-    static fileUpload(podId, datastoreName, formData) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            formData: formData,
-            mediaType: 'multipart/form-data',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Files
      * @param podId
-     * @param datastoreName
      * @param parentId
      * @param limit
      * @param pageToken
      * @returns FileListResponse Successful Response
      * @throws ApiError
      */
-    static fileList(podId, datastoreName, parentId, limit = 100, pageToken) {
+    static fileList(podId, parentId, limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files',
+            url: '/pods/{pod_id}/datastore/files',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
             },
             query: {
                 'parent_id': parentId,
@@ -2251,20 +2043,39 @@ class FilesService {
         });
     }
     /**
+     * Upload File
+     * @param podId
+     * @param formData
+     * @returns FileResponse Successful Response
+     * @throws ApiError
+     */
+    static fileUpload(podId, formData) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/datastore/files',
+            path: {
+                'pod_id': podId,
+            },
+            formData: formData,
+            mediaType: 'multipart/form-data',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Folder
      * @param podId
-     * @param datastoreName
      * @param requestBody
      * @returns FileResponse Successful Response
      * @throws ApiError
      */
-    static fileFolderCreate(podId, datastoreName, requestBody) {
+    static fileFolderCreate(podId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files/folders',
+            url: '/pods/{pod_id}/datastore/files/folders',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -2274,20 +2085,59 @@ class FilesService {
         });
     }
     /**
+     * Search Files
+     * @param podId
+     * @param requestBody
+     * @returns FileSearchResponse Successful Response
+     * @throws ApiError
+     */
+    static fileSearch(podId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/datastore/files/search',
+            path: {
+                'pod_id': podId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete File
+     * @param podId
+     * @param fileId
+     * @returns DatastoreMessageResponse Successful Response
+     * @throws ApiError
+     */
+    static fileDelete(podId, fileId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}/datastore/files/{file_id}',
+            path: {
+                'pod_id': podId,
+                'file_id': fileId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get File
      * @param podId
-     * @param datastoreName
      * @param fileId
      * @returns FileResponse Successful Response
      * @throws ApiError
      */
-    static fileGet(podId, datastoreName, fileId) {
+    static fileGet(podId, fileId) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files/{file_id}',
+            url: '/pods/{pod_id}/datastore/files/{file_id}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'file_id': fileId,
             },
             errors: {
@@ -2298,19 +2148,17 @@ class FilesService {
     /**
      * Update File
      * @param podId
-     * @param datastoreName
      * @param fileId
      * @param formData
      * @returns FileResponse Successful Response
      * @throws ApiError
      */
-    static fileUpdate(podId, datastoreName, fileId, formData) {
+    static fileUpdate(podId, fileId, formData) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files/{file_id}',
+            url: '/pods/{pod_id}/datastore/files/{file_id}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'file_id': fileId,
             },
             formData: formData,
@@ -2321,67 +2169,20 @@ class FilesService {
         });
     }
     /**
-     * Delete File
-     * @param podId
-     * @param datastoreName
-     * @param fileId
-     * @returns DatastoreMessageResponse Successful Response
-     * @throws ApiError
-     */
-    static fileDelete(podId, datastoreName, fileId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files/{file_id}',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-                'file_id': fileId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Download File
      * @param podId
-     * @param datastoreName
      * @param fileId
      * @returns any Successful Response
      * @throws ApiError
      */
-    static fileDownload(podId, datastoreName, fileId) {
+    static fileDownload(podId, fileId) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files/{file_id}/download',
+            url: '/pods/{pod_id}/datastore/files/{file_id}/download',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'file_id': fileId,
             },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Search Files
-     * @param podId
-     * @param datastoreName
-     * @param requestBody
-     * @returns FileSearchResponse Successful Response
-     * @throws ApiError
-     */
-    static fileSearch(podId, datastoreName, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/files/search',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -2436,6 +2237,31 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class FunctionsService {
     /**
+     * List Functions
+     * List all functions in a pod
+     * @param podId
+     * @param limit
+     * @param pageToken
+     * @returns FunctionListResponse Successful Response
+     * @throws ApiError
+     */
+    static functionList(podId, limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/functions',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Create Function
      * Create a new function in a pod
      * @param podId
@@ -2458,24 +2284,20 @@ class FunctionsService {
         });
     }
     /**
-     * List Functions
-     * List all functions in a pod
+     * Delete Function
+     * Delete a function
      * @param podId
-     * @param limit
-     * @param pageToken
-     * @returns FunctionListResponse Successful Response
+     * @param functionName
+     * @returns FunctionMessageResponse Successful Response
      * @throws ApiError
      */
-    static functionList(podId, limit = 100, pageToken) {
+    static functionDelete(podId, functionName) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/functions',
+            method: 'DELETE',
+            url: '/pods/{pod_id}/functions/{function_name}',
             path: {
                 'pod_id': podId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
+                'function_name': functionName,
             },
             errors: {
                 422: `Validation Error`,
@@ -2528,20 +2350,26 @@ class FunctionsService {
         });
     }
     /**
-     * Delete Function
-     * Delete a function
+     * List Runs
+     * List runs for a function
      * @param podId
      * @param functionName
-     * @returns FunctionMessageResponse Successful Response
+     * @param limit
+     * @param pageToken
+     * @returns FunctionRunListResponse Successful Response
      * @throws ApiError
      */
-    static functionDelete(podId, functionName) {
+    static functionRunList(podId, functionName, limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/functions/{function_name}',
+            method: 'GET',
+            url: '/pods/{pod_id}/functions/{function_name}/runs',
             path: {
                 'pod_id': podId,
                 'function_name': functionName,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,
@@ -2567,33 +2395,6 @@ class FunctionsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Runs
-     * List runs for a function
-     * @param podId
-     * @param functionName
-     * @param limit
-     * @param pageToken
-     * @returns FunctionRunListResponse Successful Response
-     * @throws ApiError
-     */
-    static functionRunList(podId, functionName, limit = 100, pageToken) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/functions/{function_name}/runs',
-            path: {
-                'pod_id': podId,
-                'function_name': functionName,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
             errors: {
                 422: `Validation Error`,
             },
@@ -2831,24 +2632,6 @@ class ApplicationsService {
         });
     }
     /**
-     * Get Application Descriptor
-     * @param applicationId
-     * @returns AppDescriptorResponse Successful Response
-     * @throws ApiError
-     */
-    static applicationDescriptor(applicationId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/integrations/applications/{application_id}/operations/descriptor',
-            path: {
-                'application_id': applicationId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Application Operations
      * @param applicationId
      * @param query
@@ -2868,6 +2651,24 @@ class ApplicationsService {
                 'query': query,
                 'limit': limit,
                 'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Application Descriptor
+     * @param applicationId
+     * @returns AppDescriptorResponse Successful Response
+     * @throws ApiError
+     */
+    static applicationDescriptor(applicationId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/integrations/applications/{application_id}/operations/descriptor',
+            path: {
+                'application_id': applicationId,
             },
             errors: {
                 422: `Validation Error`,
@@ -2929,6 +2730,86 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class IntegrationsService {
     /**
+     * List Accounts
+     * Get all connected accounts for the current user. Optionally filter by application_id or application_name
+     * @param applicationId
+     * @param limit
+     * @param pageToken
+     * @returns AccountListResponseSchema Successful Response
+     * @throws ApiError
+     */
+    static integrationAccountList(applicationId, limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/integrations/accounts',
+            query: {
+                'application_id': applicationId,
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete Account
+     * Delete a connected account and revoke the connection
+     * @param accountId
+     * @returns MessageResponseSchema Successful Response
+     * @throws ApiError
+     */
+    static integrationAccountDelete(accountId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'DELETE',
+            url: '/integrations/accounts/{account_id}',
+            path: {
+                'account_id': accountId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Account
+     * Get a specific account by ID
+     * @param accountId
+     * @returns AccountResponseSchema Successful Response
+     * @throws ApiError
+     */
+    static integrationAccountGet(accountId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/integrations/accounts/{account_id}',
+            path: {
+                'account_id': accountId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Credentials
+     * Get the credentials for a specific account
+     * @param accountId
+     * @returns AccountCredentialsResponseSchema Successful Response
+     * @throws ApiError
+     */
+    static integrationAccountCredentialsGet(accountId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/integrations/accounts/{account_id}/credentials',
+            path: {
+                'account_id': accountId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Initiate Connect Request
      * Initiate an OAuth connection request for an application
      * @param requestBody
@@ -2959,86 +2840,6 @@ class IntegrationsService {
             url: '/integrations/connect-requests/oauth/callback',
             query: {
                 'error': error,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Accounts
-     * Get all connected accounts for the current user. Optionally filter by application_id or application_name
-     * @param applicationId
-     * @param limit
-     * @param pageToken
-     * @returns AccountListResponseSchema Successful Response
-     * @throws ApiError
-     */
-    static integrationAccountList(applicationId, limit = 100, pageToken) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/integrations/accounts',
-            query: {
-                'application_id': applicationId,
-                'limit': limit,
-                'page_token': pageToken,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Account
-     * Get a specific account by ID
-     * @param accountId
-     * @returns AccountResponseSchema Successful Response
-     * @throws ApiError
-     */
-    static integrationAccountGet(accountId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/integrations/accounts/{account_id}',
-            path: {
-                'account_id': accountId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Account
-     * Delete a connected account and revoke the connection
-     * @param accountId
-     * @returns MessageResponseSchema Successful Response
-     * @throws ApiError
-     */
-    static integrationAccountDelete(accountId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/integrations/accounts/{account_id}',
-            path: {
-                'account_id': accountId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Credentials
-     * Get the credentials for a specific account
-     * @param accountId
-     * @returns AccountCredentialsResponseSchema Successful Response
-     * @throws ApiError
-     */
-    static integrationAccountCredentialsGet(accountId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/integrations/accounts/{account_id}/credentials',
-            path: {
-                'account_id': accountId,
             },
             errors: {
                 422: `Validation Error`,
@@ -3114,24 +2915,6 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class OrganizationsService {
     /**
-     * Create Organization
-     * Create a new organization
-     * @param requestBody
-     * @returns OrganizationResponse Successful Response
-     * @throws ApiError
-     */
-    static orgCreate(requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/organizations',
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List My Organizations
      * Get all organizations the current user belongs to
      * @param limit
@@ -3147,6 +2930,24 @@ class OrganizationsService {
                 'limit': limit,
                 'page_token': pageToken,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Organization
+     * Create a new organization
+     * @param requestBody
+     * @returns OrganizationResponse Successful Response
+     * @throws ApiError
+     */
+    static orgCreate(requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/organizations',
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -3176,6 +2977,63 @@ class OrganizationsService {
         });
     }
     /**
+     * Revoke Invitation
+     * Revoke an organization invitation
+     * @param invitationId
+     * @returns void
+     * @throws ApiError
+     */
+    static orgInvitationRevoke(invitationId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'DELETE',
+            url: '/organizations/invitations/{invitation_id}',
+            path: {
+                'invitation_id': invitationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Organization Invitation
+     * Get an invitation by id
+     * @param invitationId
+     * @returns OrganizationInvitationResponse Successful Response
+     * @throws ApiError
+     */
+    static orgInvitationGet(invitationId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/organizations/invitations/{invitation_id}',
+            path: {
+                'invitation_id': invitationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Accept Invitation
+     * Accept an organization invitation
+     * @param invitationId
+     * @returns OrganizationMessageResponse Successful Response
+     * @throws ApiError
+     */
+    static orgInvitationAccept(invitationId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/organizations/invitations/{invitation_id}/accept',
+            path: {
+                'invitation_id': invitationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get Organization
      * Get organization details
      * @param orgId
@@ -3189,53 +3047,6 @@ class OrganizationsService {
             path: {
                 'org_id': orgId,
             },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Organization Members
-     * Get all members of an organization
-     * @param orgId
-     * @param limit
-     * @param pageToken
-     * @returns OrganizationMemberListResponse Successful Response
-     * @throws ApiError
-     */
-    static orgMemberList(orgId, limit = 100, pageToken) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/organizations/{org_id}/members',
-            path: {
-                'org_id': orgId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Invite Member
-     * Invite a user to join the organization
-     * @param orgId
-     * @param requestBody
-     * @returns OrganizationInvitationResponse Successful Response
-     * @throws ApiError
-     */
-    static orgInvitationInvite(orgId, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/organizations/{org_id}/invitations',
-            path: {
-                'org_id': orgId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -3269,37 +3080,46 @@ class OrganizationsService {
         });
     }
     /**
-     * Accept Invitation
-     * Accept an organization invitation
-     * @param invitationId
-     * @returns OrganizationMessageResponse Successful Response
-     * @throws ApiError
-     */
-    static orgInvitationAccept(invitationId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/organizations/invitations/{invitation_id}/accept',
-            path: {
-                'invitation_id': invitationId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Organization Invitation
-     * Get an invitation by id
-     * @param invitationId
+     * Invite Member
+     * Invite a user to join the organization
+     * @param orgId
+     * @param requestBody
      * @returns OrganizationInvitationResponse Successful Response
      * @throws ApiError
      */
-    static orgInvitationGet(invitationId) {
+    static orgInvitationInvite(orgId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/organizations/{org_id}/invitations',
+            path: {
+                'org_id': orgId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Organization Members
+     * Get all members of an organization
+     * @param orgId
+     * @param limit
+     * @param pageToken
+     * @returns OrganizationMemberListResponse Successful Response
+     * @throws ApiError
+     */
+    static orgMemberList(orgId, limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
-            url: '/organizations/invitations/{invitation_id}',
+            url: '/organizations/{org_id}/members',
             path: {
-                'invitation_id': invitationId,
+                'org_id': orgId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,
@@ -3307,18 +3127,20 @@ class OrganizationsService {
         });
     }
     /**
-     * Revoke Invitation
-     * Revoke an organization invitation
-     * @param invitationId
+     * Remove Member
+     * Remove a member from the organization
+     * @param orgId
+     * @param memberId
      * @returns void
      * @throws ApiError
      */
-    static orgInvitationRevoke(invitationId) {
+    static orgMemberRemove(orgId, memberId) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'DELETE',
-            url: '/organizations/invitations/{invitation_id}',
+            url: '/organizations/{org_id}/members/{member_id}',
             path: {
-                'invitation_id': invitationId,
+                'org_id': orgId,
+                'member_id': memberId,
             },
             errors: {
                 422: `Validation Error`,
@@ -3344,27 +3166,6 @@ class OrganizationsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Remove Member
-     * Remove a member from the organization
-     * @param orgId
-     * @param memberId
-     * @returns void
-     * @throws ApiError
-     */
-    static orgMemberRemove(orgId, memberId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/organizations/{org_id}/members/{member_id}',
-            path: {
-                'org_id': orgId,
-                'member_id': memberId,
-            },
             errors: {
                 422: `Validation Error`,
             },
@@ -3427,28 +3228,6 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class PodMembersService {
     /**
-     * Add Pod Member
-     * Add a member to a pod
-     * @param podId
-     * @param requestBody
-     * @returns PodMemberResponse Successful Response
-     * @throws ApiError
-     */
-    static podMemberAdd(podId, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/members',
-            path: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Pod Members
      * List all members of a pod
      * @param podId
@@ -3474,21 +3253,19 @@ class PodMembersService {
         });
     }
     /**
-     * Update Member Role
-     * Update a pod member's role
+     * Add Pod Member
+     * Add a member to a pod
      * @param podId
-     * @param memberId
      * @param requestBody
      * @returns PodMemberResponse Successful Response
      * @throws ApiError
      */
-    static podMemberUpdateRole(podId, memberId, requestBody) {
+    static podMemberAdd(podId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'PATCH',
-            url: '/pods/{pod_id}/members/{member_id}/role',
+            method: 'POST',
+            url: '/pods/{pod_id}/members',
             path: {
                 'pod_id': podId,
-                'member_id': memberId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -3513,6 +3290,30 @@ class PodMembersService {
                 'pod_id': podId,
                 'member_id': memberId,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update Member Role
+     * Update a pod member's role
+     * @param podId
+     * @param memberId
+     * @param requestBody
+     * @returns PodMemberResponse Successful Response
+     * @throws ApiError
+     */
+    static podMemberUpdateRole(podId, memberId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'PATCH',
+            url: '/pods/{pod_id}/members/{member_id}/role',
+            path: {
+                'pod_id': podId,
+                'member_id': memberId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -3594,6 +3395,50 @@ class PodsService {
         });
     }
     /**
+     * List PodS by Organization
+     * List all pods in an organization
+     * @param organizationId
+     * @param limit
+     * @param pageToken
+     * @returns PodListResponse Successful Response
+     * @throws ApiError
+     */
+    static podList(organizationId, limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/organization/{organization_id}',
+            path: {
+                'organization_id': organizationId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete Pod
+     * Delete a pod
+     * @param podId
+     * @returns void
+     * @throws ApiError
+     */
+    static podDelete(podId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}',
+            path: {
+                'pod_id': podId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get Pod
      * Get pod details
      * @param podId
@@ -3629,50 +3474,6 @@ class PodsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Pod
-     * Delete a pod
-     * @param podId
-     * @returns void
-     * @throws ApiError
-     */
-    static podDelete(podId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}',
-            path: {
-                'pod_id': podId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List PodS by Organization
-     * List all pods in an organization
-     * @param organizationId
-     * @param limit
-     * @param pageToken
-     * @returns PodListResponse Successful Response
-     * @throws ApiError
-     */
-    static podList(organizationId, limit = 100, pageToken) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/organization/{organization_id}',
-            path: {
-                'organization_id': organizationId,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
             errors: {
                 422: `Validation Error`,
             },
@@ -3737,28 +3538,6 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class AssistantSurfacesService {
     /**
-     * Create Surface
-     * Create a new surface for an assistant.
-     * @param podId
-     * @param requestBody
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    static assistantSurfaceCreate(podId, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/surfaces',
-            path: {
-                'pod_id': podId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Surfaces
      * List configured surfaces in a pod.
      * @param podId
@@ -3778,6 +3557,28 @@ class AssistantSurfacesService {
                 'limit': limit,
                 'page_token': pageToken,
             },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Surface
+     * Create a new surface for an assistant.
+     * @param podId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static assistantSurfaceCreate(podId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/surfaces',
+            path: {
+                'pod_id': podId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -3861,8 +3662,8 @@ exports.AssistantSurfacesService = AssistantSurfacesService;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RecordsNamespace = void 0;
 const RecordsService_js_1 = require("./openapi_client/services/RecordsService.js");
-function getRecordsPath(podId, datastore, table) {
-    return `/pods/${encodeURIComponent(podId)}/datastores/${encodeURIComponent(datastore)}/tables/${encodeURIComponent(table)}/records`;
+function getRecordsPath(podId, table) {
+    return `/pods/${encodeURIComponent(podId)}/datastore/tables/${encodeURIComponent(table)}/records`;
 }
 class RecordsNamespace {
     constructor(client, http, podId) {
@@ -3870,21 +3671,21 @@ class RecordsNamespace {
         this.http = http;
         this.podId = podId;
         this.bulk = {
-            create: (datastore, table, records) => {
+            create: (table, records) => {
                 const payload = { records };
-                return this.client.request(() => RecordsService_js_1.RecordsService.recordBulkCreate(this.podId(), datastore, table, payload));
+                return this.client.request(() => RecordsService_js_1.RecordsService.recordBulkCreate(this.podId(), table, payload));
             },
-            update: (datastore, table, records) => {
+            update: (table, records) => {
                 const payload = { records };
-                return this.client.request(() => RecordsService_js_1.RecordsService.recordBulkUpdate(this.podId(), datastore, table, payload));
+                return this.client.request(() => RecordsService_js_1.RecordsService.recordBulkUpdate(this.podId(), table, payload));
             },
-            delete: (datastore, table, recordIds) => {
+            delete: (table, recordIds) => {
                 const payload = { record_ids: recordIds };
-                return this.client.request(() => RecordsService_js_1.RecordsService.recordBulkDelete(this.podId(), datastore, table, payload));
+                return this.client.request(() => RecordsService_js_1.RecordsService.recordBulkDelete(this.podId(), table, payload));
             },
         };
     }
-    list(datastore, table, options = {}) {
+    list(table, options = {}) {
         const { filters, sort, limit, pageToken, offset, sortBy, order, params } = options;
         if (filters || sort) {
             const payload = {
@@ -3893,14 +3694,14 @@ class RecordsNamespace {
                 limit,
                 page_token: pageToken,
             };
-            return this.client.request(() => RecordsService_js_1.RecordsService.recordQuery(this.podId(), datastore, table, payload));
+            return this.client.request(() => RecordsService_js_1.RecordsService.recordQuery(this.podId(), table, payload));
         }
         const hasCustomParams = typeof offset === "number" ||
             typeof sortBy === "string" ||
             typeof order === "string" ||
             !!params;
         if (hasCustomParams) {
-            return this.http.request("GET", getRecordsPath(this.podId(), datastore, table), {
+            return this.http.request("GET", getRecordsPath(this.podId(), table), {
                 params: {
                     limit: limit ?? 20,
                     page_token: pageToken,
@@ -3911,27 +3712,27 @@ class RecordsNamespace {
                 },
             });
         }
-        return this.client.request(() => RecordsService_js_1.RecordsService.recordList(this.podId(), datastore, table, limit ?? 20, pageToken));
+        return this.client.request(() => RecordsService_js_1.RecordsService.recordList(this.podId(), table, limit ?? 20, pageToken));
     }
-    listWithParams(datastore, table, params) {
-        return this.http.request("GET", getRecordsPath(this.podId(), datastore, table), {
+    listWithParams(table, params) {
+        return this.http.request("GET", getRecordsPath(this.podId(), table), {
             params,
         });
     }
-    create(datastore, table, data) {
-        return this.client.request(() => RecordsService_js_1.RecordsService.recordCreate(this.podId(), datastore, table, { data }));
+    create(table, data) {
+        return this.client.request(() => RecordsService_js_1.RecordsService.recordCreate(this.podId(), table, { data }));
     }
-    get(datastore, table, recordId) {
-        return this.client.request(() => RecordsService_js_1.RecordsService.recordGet(this.podId(), datastore, table, recordId));
+    get(table, recordId) {
+        return this.client.request(() => RecordsService_js_1.RecordsService.recordGet(this.podId(), table, recordId));
     }
-    update(datastore, table, recordId, data) {
-        return this.client.request(() => RecordsService_js_1.RecordsService.recordUpdate(this.podId(), datastore, table, recordId, { data }));
+    update(table, recordId, data) {
+        return this.client.request(() => RecordsService_js_1.RecordsService.recordUpdate(this.podId(), table, recordId, { data }));
     }
-    delete(datastore, table, recordId) {
-        return this.client.request(() => RecordsService_js_1.RecordsService.recordDelete(this.podId(), datastore, table, recordId));
+    delete(table, recordId) {
+        return this.client.request(() => RecordsService_js_1.RecordsService.recordDelete(this.podId(), table, recordId));
     }
-    query(datastore, table, payload) {
-        return this.client.request(() => RecordsService_js_1.RecordsService.recordQuery(this.podId(), datastore, table, payload));
+    query(table, payload) {
+        return this.client.request(() => RecordsService_js_1.RecordsService.recordQuery(this.podId(), table, payload));
     }
 }
 exports.RecordsNamespace = RecordsNamespace;
@@ -3945,49 +3746,21 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class RecordsService {
     /**
-     * Create Record
-     * Insert a record into a table. Reserved tables (`reserved_*`) are system-managed and cannot be mutated through record write endpoints.
-     * @param podId
-     * @param datastoreName
-     * @param tableName
-     * @param requestBody
-     * @returns RecordResponse Successful Response
-     * @throws ApiError
-     */
-    static recordCreate(podId, datastoreName, tableName, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-                'table_name': tableName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Records
      * List table records with token pagination only. Use `record.query` when you need structured filters or explicit sort clauses.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param limit Max number of rows to return.
      * @param pageToken Opaque token from a previous response page.
      * @returns RecordListResponse Successful Response
      * @throws ApiError
      */
-    static recordList(podId, datastoreName, tableName, limit = 20, pageToken) {
+    static recordList(podId, tableName, limit = 20, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             query: {
@@ -4000,78 +3773,24 @@ class RecordsService {
         });
     }
     /**
-     * Get Record
-     * Fetch one record by primary key value. The `record_id` path segment is the table's primary key value as stored in the table, not necessarily a UUID.
+     * Create Record
+     * Insert a record into a table. Reserved tables (`reserved_*`) are system-managed and cannot be mutated through record write endpoints.
      * @param podId
-     * @param datastoreName
      * @param tableName
-     * @param recordId
-     * @returns RecordResponse Successful Response
-     * @throws ApiError
-     */
-    static recordGet(podId, datastoreName, tableName, recordId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/{record_id}',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-                'table_name': tableName,
-                'record_id': recordId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update Record
-     * Patch a record by primary key.
-     * @param podId
-     * @param datastoreName
-     * @param tableName
-     * @param recordId
      * @param requestBody
      * @returns RecordResponse Successful Response
      * @throws ApiError
      */
-    static recordUpdate(podId, datastoreName, tableName, recordId, requestBody) {
+    static recordCreate(podId, tableName, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'PATCH',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/{record_id}',
+            method: 'POST',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
-                'record_id': recordId,
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Delete Record
-     * Delete a record by primary key.
-     * @param podId
-     * @param datastoreName
-     * @param tableName
-     * @param recordId
-     * @returns DatastoreMessageResponse Successful Response
-     * @throws ApiError
-     */
-    static recordDelete(podId, datastoreName, tableName, recordId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/{record_id}',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-                'table_name': tableName,
-                'record_id': recordId,
-            },
             errors: {
                 422: `Validation Error`,
             },
@@ -4081,45 +3800,17 @@ class RecordsService {
      * Bulk Create
      * Insert multiple records in one request.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns DatastoreMessageResponse Successful Response
      * @throws ApiError
      */
-    static recordBulkCreate(podId, datastoreName, tableName, requestBody) {
+    static recordBulkCreate(podId, tableName, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/bulk/create',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/bulk/create',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
-                'table_name': tableName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Bulk Update
-     * Update multiple records in one request (each item needs primary key).
-     * @param podId
-     * @param datastoreName
-     * @param tableName
-     * @param requestBody
-     * @returns DatastoreMessageResponse Successful Response
-     * @throws ApiError
-     */
-    static recordBulkUpdate(podId, datastoreName, tableName, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/bulk/update',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -4133,19 +3824,41 @@ class RecordsService {
      * Bulk Delete
      * Delete multiple records by primary key values.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns DatastoreMessageResponse Successful Response
      * @throws ApiError
      */
-    static recordBulkDelete(podId, datastoreName, tableName, requestBody) {
+    static recordBulkDelete(podId, tableName, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/bulk/delete',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/bulk/delete',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
+                'table_name': tableName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Bulk Update
+     * Update multiple records in one request (each item needs primary key).
+     * @param podId
+     * @param tableName
+     * @param requestBody
+     * @returns DatastoreMessageResponse Successful Response
+     * @throws ApiError
+     */
+    static recordBulkUpdate(podId, tableName, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/bulk/update',
+            path: {
+                'pod_id': podId,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -4159,20 +3872,90 @@ class RecordsService {
      * Query Records
      * Query one table with structured filters and sorting. Use this instead of dynamic query parameters when you need filtering. Example filters: `[{"field": "status", "op": "eq", "value": "OPEN"}]`.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns RecordListResponse Successful Response
      * @throws ApiError
      */
-    static recordQuery(podId, datastoreName, tableName, requestBody) {
+    static recordQuery(podId, tableName, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/records/query',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/query',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete Record
+     * Delete a record by primary key.
+     * @param podId
+     * @param tableName
+     * @param recordId
+     * @returns DatastoreMessageResponse Successful Response
+     * @throws ApiError
+     */
+    static recordDelete(podId, tableName, recordId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/{record_id}',
+            path: {
+                'pod_id': podId,
+                'table_name': tableName,
+                'record_id': recordId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Record
+     * Fetch one record by primary key value. The `record_id` path segment is the table's primary key value as stored in the table, not necessarily a UUID.
+     * @param podId
+     * @param tableName
+     * @param recordId
+     * @returns RecordResponse Successful Response
+     * @throws ApiError
+     */
+    static recordGet(podId, tableName, recordId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/{record_id}',
+            path: {
+                'pod_id': podId,
+                'table_name': tableName,
+                'record_id': recordId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update Record
+     * Patch a record by primary key.
+     * @param podId
+     * @param tableName
+     * @param recordId
+     * @param requestBody
+     * @returns RecordResponse Successful Response
+     * @throws ApiError
+     */
+    static recordUpdate(podId, tableName, recordId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'PATCH',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/{record_id}',
+            path: {
+                'pod_id': podId,
+                'table_name': tableName,
+                'record_id': recordId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -4244,27 +4027,27 @@ class TablesNamespace {
         this.client = client;
         this.podId = podId;
         this.columns = {
-            add: (datastore, tableName, request) => {
+            add: (tableName, request) => {
                 const payload = "column" in request ? request : { column: request };
-                return this.client.request(() => TablesService_js_1.TablesService.tableColumnAdd(this.podId(), datastore, tableName, payload));
+                return this.client.request(() => TablesService_js_1.TablesService.tableColumnAdd(this.podId(), tableName, payload));
             },
-            remove: (datastore, tableName, columnName) => this.client.request(() => TablesService_js_1.TablesService.tableColumnRemove(this.podId(), datastore, tableName, columnName)),
+            remove: (tableName, columnName) => this.client.request(() => TablesService_js_1.TablesService.tableColumnRemove(this.podId(), tableName, columnName)),
         };
     }
-    list(datastore, options = {}) {
-        return this.client.request(() => TablesService_js_1.TablesService.tableList(this.podId(), datastore, options.limit ?? 100, options.pageToken));
+    list(options = {}) {
+        return this.client.request(() => TablesService_js_1.TablesService.tableList(this.podId(), options.limit ?? 100, options.pageToken));
     }
-    create(datastore, payload) {
-        return this.client.request(() => TablesService_js_1.TablesService.tableCreate(this.podId(), datastore, normalizeCreateTablePayload(payload)));
+    create(payload) {
+        return this.client.request(() => TablesService_js_1.TablesService.tableCreate(this.podId(), normalizeCreateTablePayload(payload)));
     }
-    get(datastore, tableName) {
-        return this.client.request(() => TablesService_js_1.TablesService.tableGet(this.podId(), datastore, tableName));
+    get(tableName) {
+        return this.client.request(() => TablesService_js_1.TablesService.tableGet(this.podId(), tableName));
     }
-    update(datastore, tableName, payload) {
-        return this.client.request(() => TablesService_js_1.TablesService.tableUpdate(this.podId(), datastore, tableName, payload));
+    update(tableName, payload) {
+        return this.client.request(() => TablesService_js_1.TablesService.tableUpdate(this.podId(), tableName, payload));
     }
-    delete(datastore, tableName) {
-        return this.client.request(() => TablesService_js_1.TablesService.tableDelete(this.podId(), datastore, tableName));
+    delete(tableName) {
+        return this.client.request(() => TablesService_js_1.TablesService.tableDelete(this.podId(), tableName));
     }
 }
 exports.TablesNamespace = TablesNamespace;
@@ -4278,46 +4061,20 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class TablesService {
     /**
-     * Create Table
-     * Create a table in a datastore. Define primary key, column schema, and optional RLS behavior.
-     * @param podId
-     * @param datastoreName
-     * @param requestBody
-     * @returns TableResponse Successful Response
-     * @throws ApiError
-     */
-    static tableCreate(podId, datastoreName, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables',
-            path: {
-                'pod_id': podId,
-                'datastore_name': datastoreName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * List Tables
      * List tables in a datastore.
      * @param podId
-     * @param datastoreName
      * @param limit Max number of tables to return.
      * @param pageToken Cursor from a previous response for pagination.
      * @returns TableListResponse Successful Response
      * @throws ApiError
      */
-    static tableList(podId, datastoreName, limit = 100, pageToken) {
+    static tableList(podId, limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables',
+            url: '/pods/{pod_id}/datastore/tables',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
             },
             query: {
                 'limit': limit,
@@ -4329,23 +4086,22 @@ class TablesService {
         });
     }
     /**
-     * Get Table
-     * Get table schema metadata by table name.
+     * Create Table
+     * Create a table in a datastore. Define primary key, column schema, and optional RLS behavior.
      * @param podId
-     * @param datastoreName
-     * @param tableName
+     * @param requestBody
      * @returns TableResponse Successful Response
      * @throws ApiError
      */
-    static tableGet(podId, datastoreName, tableName) {
+    static tableCreate(podId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}',
+            method: 'POST',
+            url: '/pods/{pod_id}/datastore/tables',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
-                'table_name': tableName,
             },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },
@@ -4355,18 +4111,37 @@ class TablesService {
      * Delete Table
      * Delete a table and all records in it.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @returns DatastoreMessageResponse Successful Response
      * @throws ApiError
      */
-    static tableDelete(podId, datastoreName, tableName) {
+    static tableDelete(podId, tableName) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
+                'table_name': tableName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Table
+     * Get table schema metadata by table name.
+     * @param podId
+     * @param tableName
+     * @returns TableResponse Successful Response
+     * @throws ApiError
+     */
+    static tableGet(podId, tableName) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}',
+            path: {
+                'pod_id': podId,
                 'table_name': tableName,
             },
             errors: {
@@ -4378,19 +4153,17 @@ class TablesService {
      * Update Table
      * Update table metadata/configuration payload.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns TableResponse Successful Response
      * @throws ApiError
      */
-    static tableUpdate(podId, datastoreName, tableName, requestBody) {
+    static tableUpdate(podId, tableName, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -4404,19 +4177,17 @@ class TablesService {
      * Add Column
      * Add a new column to a table. Column names must be unique and compatible with existing table schema rules.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param requestBody
      * @returns TableResponse Successful Response
      * @throws ApiError
      */
-    static tableColumnAdd(podId, datastoreName, tableName, requestBody) {
+    static tableColumnAdd(podId, tableName, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/columns',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/columns',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
             },
             body: requestBody,
@@ -4430,19 +4201,17 @@ class TablesService {
      * Remove Column
      * Remove a non-primary, non-system column from a table. System columns and the primary key cannot be removed.
      * @param podId
-     * @param datastoreName
      * @param tableName
      * @param columnName
      * @returns DatastoreMessageResponse Successful Response
      * @throws ApiError
      */
-    static tableColumnRemove(podId, datastoreName, tableName, columnName) {
+    static tableColumnRemove(podId, tableName, columnName) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'DELETE',
-            url: '/pods/{pod_id}/datastores/{datastore_name}/tables/{table_name}/columns/{column_name}',
+            url: '/pods/{pod_id}/datastore/tables/{table_name}/columns/{column_name}',
             path: {
                 'pod_id': podId,
-                'datastore_name': datastoreName,
                 'table_name': tableName,
                 'column_name': columnName,
             },
@@ -4655,22 +4424,93 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class WorkflowsService {
     /**
-     * Create Workflow
-     * Create a workflow definition. Use this before uploading graph nodes/edges with `workflow.graph.update`.
+     * Get Workflow Run
+     * Get current state, context, and step history of a workflow run.
      * @param podId
-     * @param requestBody
-     * @returns FlowEntity Successful Response
+     * @param runId
+     * @returns FlowRunEntity Successful Response
      * @throws ApiError
      */
-    static workflowCreate(podId, requestBody) {
+    static workflowRunGet(podId, runId) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/workflows',
+            method: 'GET',
+            url: '/pods/{pod_id}/workflow-runs/{run_id}',
             path: {
                 'pod_id': podId,
+                'run_id': runId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Resume Workflow Run
+     * Resume a run in WAITING or EXECUTING state. The payload is written back into the current waiting node output and execution continues.
+     * @param podId
+     * @param runId
+     * @param requestBody
+     * @returns FlowRunEntity Successful Response
+     * @throws ApiError
+     */
+    static workflowRunResume(podId, runId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/workflow-runs/{run_id}/resume',
+            path: {
+                'pod_id': podId,
+                'run_id': runId,
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Visualize Workflow Run
+     * Render an HTML view of a run overlaid on its workflow graph.
+     * @param podId
+     * @param runId
+     * @returns string Successful Response
+     * @throws ApiError
+     */
+    static workflowRunVisualize(podId, runId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/workflow-runs/{run_id}/visualize',
+            path: {
+                'pod_id': podId,
+                'run_id': runId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Workflow Runs
+     * List recent runs for a given workflow.
+     * @param podId
+     * @param workflowName
+     * @param limit
+     * @param pageToken
+     * @returns WorkflowRunListResponse Successful Response
+     * @throws ApiError
+     */
+    static workflowRunList(podId, workflowName, limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/workflow-runs/{workflow_name}/runs',
+            path: {
+                'pod_id': podId,
+                'workflow_name': workflowName,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
             errors: {
                 422: `Validation Error`,
             },
@@ -4702,42 +4542,19 @@ class WorkflowsService {
         });
     }
     /**
-     * Get Workflow
-     * Get a single workflow definition including graph and start configuration.
+     * Create Workflow
+     * Create a workflow definition. Use this before uploading graph nodes/edges with `workflow.graph.update`.
      * @param podId
-     * @param workflowName
-     * @returns FlowEntity Successful Response
-     * @throws ApiError
-     */
-    static workflowGet(podId, workflowName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/workflows/{workflow_name}',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update Workflow Metadata
-     * Update workflow-level metadata such as description/install requirements. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
-     * @param podId
-     * @param workflowName
      * @param requestBody
-     * @returns FlowEntity Successful Response
+     * @returns FlowResponse Successful Response
      * @throws ApiError
      */
-    static workflowUpdate(podId, workflowName, requestBody) {
+    static workflowCreate(podId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'PATCH',
-            url: '/pods/{pod_id}/workflows/{workflow_name}',
+            method: 'POST',
+            url: '/pods/{pod_id}/workflows',
             path: {
                 'pod_id': podId,
-                'workflow_name': workflowName,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -4768,12 +4585,57 @@ class WorkflowsService {
         });
     }
     /**
+     * Get Workflow
+     * Get a single workflow definition including graph and start configuration.
+     * @param podId
+     * @param workflowName
+     * @returns FlowResponse Successful Response
+     * @throws ApiError
+     */
+    static workflowGet(podId, workflowName) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/workflows/{workflow_name}',
+            path: {
+                'pod_id': podId,
+                'workflow_name': workflowName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update Workflow Metadata
+     * Update workflow-level metadata such as description/install requirements. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
+     * @param podId
+     * @param workflowName
+     * @param requestBody
+     * @returns FlowResponse Successful Response
+     * @throws ApiError
+     */
+    static workflowUpdate(podId, workflowName, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'PATCH',
+            url: '/pods/{pod_id}/workflows/{workflow_name}',
+            path: {
+                'pod_id': podId,
+                'workflow_name': workflowName,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Update Workflow Graph
      * Replace the workflow graph. Agent/function node `input_mapping` entries must use explicit typed bindings. Use `{type: "expression", value: "start.payload.issue.key"}` for context lookups and `{type: "literal", value: "abc"}` for fixed JSON values.
      * @param podId
      * @param workflowName
      * @param requestBody
-     * @returns FlowEntity Successful Response
+     * @returns FlowResponse Successful Response
      * @throws ApiError
      */
     static workflowGraphUpdate(podId, workflowName, requestBody) {
@@ -4877,99 +4739,6 @@ class WorkflowsService {
             path: {
                 'pod_id': podId,
                 'workflow_name': workflowName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Resume Workflow Run
-     * Resume a run in WAITING or EXECUTING state. The payload is written back into the current waiting node output and execution continues.
-     * @param podId
-     * @param runId
-     * @param requestBody
-     * @returns FlowRunEntity Successful Response
-     * @throws ApiError
-     */
-    static workflowRunResume(podId, runId, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/workflow-runs/{run_id}/resume',
-            path: {
-                'pod_id': podId,
-                'run_id': runId,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get Workflow Run
-     * Get current state, context, and step history of a workflow run.
-     * @param podId
-     * @param runId
-     * @returns FlowRunEntity Successful Response
-     * @throws ApiError
-     */
-    static workflowRunGet(podId, runId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/workflow-runs/{run_id}',
-            path: {
-                'pod_id': podId,
-                'run_id': runId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Workflow Runs
-     * List recent runs for a given workflow.
-     * @param podId
-     * @param workflowName
-     * @param limit
-     * @param pageToken
-     * @returns WorkflowRunListResponse Successful Response
-     * @throws ApiError
-     */
-    static workflowRunList(podId, workflowName, limit = 100, pageToken) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/workflow-runs/{workflow_name}/runs',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-            },
-            query: {
-                'limit': limit,
-                'page_token': pageToken,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Visualize Workflow Run
-     * Render an HTML view of a run overlaid on its workflow graph.
-     * @param podId
-     * @param runId
-     * @returns string Successful Response
-     * @throws ApiError
-     */
-    static workflowRunVisualize(podId, runId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/workflow-runs/{run_id}/visualize',
-            path: {
-                'pod_id': podId,
-                'run_id': runId,
             },
             errors: {
                 422: `Validation Error`,

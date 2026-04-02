@@ -4,12 +4,14 @@
 /* eslint-disable */
 import type { ApplicationAccessConfig } from './ApplicationAccessConfig.js';
 import type { FunctionStatus } from './FunctionStatus.js';
+import type { TableAccessEntry } from './TableAccessEntry.js';
 /**
  * Function response.
  */
 export type FunctionResponse = {
     accessible_applications: Array<ApplicationAccessConfig>;
-    accessible_datastores: Array<string>;
+    accessible_folders: Array<string>;
+    accessible_tables: Array<TableAccessEntry>;
     code?: (string | null);
     code_path?: (string | null);
     config?: (Record<string, any> | null);

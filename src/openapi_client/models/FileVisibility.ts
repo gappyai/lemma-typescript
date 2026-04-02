@@ -2,9 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type CreateDeskRequest = {
-    description?: (string | null);
-    name: string;
-    public_slug?: (string | null);
-};
-
+export enum FileVisibility {
+    PRIVATE = 'PRIVATE',
+    POD = 'POD',
+}
