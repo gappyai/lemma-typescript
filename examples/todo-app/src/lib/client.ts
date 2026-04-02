@@ -25,7 +25,6 @@ export function getClient(): LemmaClient {
   return _client;
 }
 
-export const DATASTORE = "default";
 export const TABLE = "todos";
 
 export interface Todo {

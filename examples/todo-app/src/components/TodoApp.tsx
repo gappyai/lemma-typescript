@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import type { RecordListResponse, RecordResponse } from "lemma-sdk";
-import { getClient, DATASTORE, TABLE, type Todo } from "../lib/client.ts";
+import { getClient, TABLE, type Todo } from "../lib/client.ts";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,13 +44,13 @@ function toTodo(record: Record<string, unknown>): Todo {
 
 async function fetchTodos(): Promise<Todo[]> {
   const client = getClient();
-  const response = await client.records.list(DATASTORE, TABLE, { limit: 100 }) as RecordListResponse;
+  const response = await client.records.list(TABLE, { limit: 100 }) as RecordListResponse;
   return response.items.map(toTodo);
 }
 
 async function createTodo(form: NewTodoForm): Promise<Todo> {
   const client = getClient();
-  const response = await client.records.create(DATASTORE, TABLE, {
+  const response = await client.records.create(TABLE, {
     title: form.title,
     description: form.description || null,
     status: form.status,
@@ -61,12 +61,12 @@ async function createTodo(form: NewTodoForm): Promise<Todo> {
 
 async function updateTodoStatus(id: string, status: Status): Promise<void> {
   const client = getClient();
-  await client.records.update(DATASTORE, TABLE, id, { status });
+  await client.records.update(TABLE, id, { status });
 }
 
 async function deleteTodo(id: string): Promise<void> {
   const client = getClient();
-  await client.records.delete(DATASTORE, TABLE, id);
+  await client.records.delete(TABLE, id);
 }
 
 // ---------------------------------------------------------------------------
@@ -439,7 +439,7 @@ export default function TodoApp() {
         <p style={{ margin: "0 0 24px", fontSize: "14px", color: "#6b7280" }}>
           Live data from{" "}
           <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: "4px", fontSize: "12px" }}>
-            pods/{getClient().podId}/datastore/tables/todos
+            table: {TABLE}
           </code>
         </p>
 

@@ -47,6 +47,64 @@ const supportAssistant = await client.assistants.get("support_assistant");
 - Ergonomic type aliases exported at top level: `Agent`, `Assistant`, `Conversation`, `Task`, `TaskMessage`, `CreateAgentInput`, `CreateAssistantInput`, etc.
 - `client.withPod(podId)` returns a pod-scoped client that shares auth state with the parent client.
 
+## Table Access Grants (`accessible_tables`)
+
+For function, agent, and assistant payloads, `accessible_tables` must be an array of objects:
+
+- `table_name`: target table
+- `mode`: `READ` or `WRITE`
+
+`accessible_tables: ["table_name"]` is no longer valid.
+
+You do not pass a datastore name in SDK calls. Table and file operations are pod-scoped (`client.tables`, `client.records`, `client.files`) and take table/file identifiers directly.
+
+Examples:
+
+```ts
+import {
+  TableAccessMode,
+  type CreateFunctionRequest,
+  type CreateAgentInput,
+  type CreateAssistantInput,
+} from "lemma-sdk";
+
+const functionPayload: CreateFunctionRequest = {
+  name: "expense_summary",
+  code: "def handler(ctx):\n    return {'ok': True}",
+  config: {},
+  accessible_tables: [
+    { table_name: "expenses", mode: TableAccessMode.READ },
+    { table_name: "expense_summaries", mode: TableAccessMode.WRITE },
+  ],
+  accessible_folders: ["/reports"],
+  accessible_applications: [],
+};
+
+const agentPayload: CreateAgentInput = {
+  name: "expense-summarizer",
+  instruction: "Summarize expenses without mutating data.",
+  tool_sets: [],
+  accessible_tables: [
+    { table_name: "expenses", mode: TableAccessMode.READ },
+    { table_name: "expense_notes", mode: TableAccessMode.WRITE },
+  ],
+  accessible_folders: [],
+  accessible_applications: [],
+};
+
+const assistantPayload: CreateAssistantInput = {
+  name: "expense_assistant",
+  instruction: "Answer expense questions and save approved notes.",
+  tool_sets: [],
+  accessible_tables: [
+    { table_name: "expenses", mode: TableAccessMode.READ },
+    { table_name: "expense_notes", mode: TableAccessMode.WRITE },
+  ],
+  accessible_folders: ["/notes"],
+  accessible_applications: [],
+};
+```
+
 ## Auth Helpers
 
 ```ts
