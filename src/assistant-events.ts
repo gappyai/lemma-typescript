@@ -7,6 +7,7 @@ interface ParsedRecord {
 export interface ParsedAssistantStreamEvent {
   message?: ConversationMessage;
   status?: string;
+  token?: string;
 }
 
 function isRecord(value: unknown): value is ParsedRecord {
@@ -65,6 +66,10 @@ export function parseAssistantStreamEvent(value: unknown): ParsedAssistantStream
 
   const eventType = typeof value.type === "string" ? value.type.toLowerCase() : "";
   const payload = extractPayload(value);
+
+  if (eventType === "token" && typeof payload === "string") {
+    return { token: payload };
+  }
 
   if (eventType === "message" || eventType === "message_added") {
     const message = toConversationMessage(payload);
