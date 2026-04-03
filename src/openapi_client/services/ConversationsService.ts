@@ -121,7 +121,6 @@ export class ConversationsService {
      * List Messages
      * List messages in a conversation with token pagination. Use `page_token` to fetch older messages.
      * @param conversationId
-     * @param podId
      * @param pageToken
      * @param limit
      * @returns ConversationMessageListResponse Successful Response
@@ -129,7 +128,6 @@ export class ConversationsService {
      */
     public static conversationMessageList(
         conversationId: string,
-        podId?: (string | null),
         pageToken?: (string | null),
         limit: number = 20,
     ): CancelablePromise<ConversationMessageListResponse> {
@@ -140,7 +138,6 @@ export class ConversationsService {
                 'conversation_id': conversationId,
             },
             query: {
-                'pod_id': podId,
                 'page_token': pageToken,
                 'limit': limit,
             },

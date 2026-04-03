@@ -14,6 +14,7 @@ export type DeskResponse = {
     source_archive_path?: (string | null);
     status: DeskStatus;
     updated_at: any;
+    readonly url: string;
     user_id: string;
 };
 

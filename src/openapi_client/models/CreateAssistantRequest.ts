@@ -12,7 +12,9 @@ export type CreateAssistantRequest = {
     accessible_applications?: Array<ApplicationAccessConfig>;
     accessible_folders?: Array<string>;
     accessible_tables?: Array<TableAccessEntry>;
+    agent_names?: Array<string>;
     description?: (string | null);
+    function_names?: Array<string>;
     icon_url?: (string | null);
     instruction: string;
     name: string;

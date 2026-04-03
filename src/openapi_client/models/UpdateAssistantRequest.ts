@@ -12,7 +12,9 @@ export type UpdateAssistantRequest = {
     accessible_applications?: (Array<ApplicationAccessConfig> | null);
     accessible_folders?: (Array<string> | null);
     accessible_tables?: (Array<TableAccessEntry> | null);
+    agent_names?: (Array<string> | null);
     description?: (string | null);
+    function_names?: (Array<string> | null);
     icon_url?: (string | null);
     instruction?: (string | null);
     tool_sets?: (Array<ToolSet> | null);
