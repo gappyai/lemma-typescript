@@ -169,6 +169,60 @@ Notes:
 
 ## Assistants + Agent Runs
 
+### React assistant controller + primitives
+
+`lemma-sdk/react` now exposes the assistant controller plus the reusable UI primitives used by the app shell. A simple integration looks like this:
+
+```tsx
+import {
+  MessageGroup,
+  PlanSummaryStrip,
+  ThinkingIndicator,
+  buildDisplayMessageRows,
+  getActiveToolBanner,
+  latestPlanSummary,
+  useAssistantController,
+} from "lemma-sdk/react";
+
+function AssistantSurface() {
+  const assistant = useAssistantController({
+    client,
+    assistantId: "support_assistant",
+    podId: "pod_123",
+  });
+
+  const rows = buildDisplayMessageRows(assistant.messages);
+  const plan = latestPlanSummary(assistant.messages);
+  const activeToolBanner = getActiveToolBanner(assistant.messages);
+
+  return (
+    <div>
+      {plan ? <PlanSummaryStrip plan={plan} onHide={() => {}} /> : null}
+      {activeToolBanner ? <div>{activeToolBanner.summary}</div> : null}
+
+      {rows.map((row, index) => (
+        <MessageGroup
+          key={row.id}
+          message={row.message}
+          conversationId={assistant.activeConversationId}
+          onWidgetSendPrompt={(text) => assistant.sendMessage(text)}
+          isStreaming={assistant.isActiveConversationRunning && row.sourceIndexes.includes(assistant.messages.length - 1)}
+          showAssistantHeader={index === 0 || rows[index - 1]?.message.role !== "assistant"}
+          renderMessageContent={({ message }) => <div>{message.content}</div>}
+        />
+      ))}
+
+      {assistant.isActiveConversationRunning ? <ThinkingIndicator /> : null}
+    </div>
+  );
+}
+```
+
+The intended split is:
+
+- SDK: `useAssistantController`, message/tool normalization, plan parsing, tool rollups, and assistant UI primitives.
+- App: modal shell, fullscreen behavior, route navigation, workspace/file viewers, and product-specific renderers.
+
 ### Assistant names (resource key)
 
 Assistant CRUD is name-based:

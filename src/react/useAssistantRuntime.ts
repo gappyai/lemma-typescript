@@ -10,7 +10,10 @@ export interface UseAssistantRuntimeOptions {
 
 export interface UseAssistantRuntimeResult {
   runtimeMessages: ConversationMessage[];
-  appendOptimisticUserMessage: (content: string) => ConversationMessage;
+  appendOptimisticUserMessage: (
+    content: string,
+    options?: { conversationId?: string | null },
+  ) => ConversationMessage;
   replaceLoadedMessages: (messages: ConversationMessage[]) => void;
   mergeMessages: (messages: ConversationMessage[]) => void;
   clear: () => void;
@@ -113,15 +116,19 @@ export function useAssistantRuntime({
     });
   }, []);
 
-  const appendOptimisticUserMessage = useCallback((content: string): ConversationMessage => {
+  const appendOptimisticUserMessage = useCallback((
+    content: string,
+    options?: { conversationId?: string | null },
+  ): ConversationMessage => {
     const trimmed = content.trim();
+    const optimisticConversationId = options?.conversationId ?? conversationId ?? undefined;
     const optimistic: RuntimeConversationMessage = {
       id: buildOptimisticId(),
       role: "user",
       content: { content: trimmed },
       created_at: new Date().toISOString(),
       metadata: null,
-      ...(conversationId ? { conversation_id: conversationId } : {}),
+      ...(optimisticConversationId ? { conversation_id: optimisticConversationId } : {}),
     };
 
     setRuntimeMessages((previous) => {
@@ -137,7 +144,13 @@ export function useAssistantRuntime({
   }, []);
 
   useEffect(() => {
-    setRuntimeMessages([]);
+    setRuntimeMessages((previous) => {
+      if (!conversationId) {
+        return [];
+      }
+
+      return previous.filter((message) => message.conversation_id === conversationId);
+    });
   }, [conversationId]);
 
   useEffect(() => {

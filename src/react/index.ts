@@ -18,6 +18,48 @@ export type {
   UseAssistantRuntimeOptions,
   UseAssistantRuntimeResult,
 } from "./useAssistantRuntime.js";
+export { useAssistantController } from "./useAssistantController.js";
+export type {
+  AssistantAction,
+  AssistantConversationScope,
+  AssistantMessagePart,
+  AssistantRenderableMessage,
+  AssistantToolInvocation,
+  UseAssistantControllerOptions,
+  UseAssistantControllerResult,
+} from "./useAssistantController.js";
+export type {
+  AssistantConversationRenderArgs,
+  AssistantControllerView,
+  AssistantExperienceCustomizationProps,
+  AssistantMessageRenderArgs,
+  AssistantPendingFileRenderArgs,
+  AssistantPresentedFileRenderArgs,
+  AssistantToolRenderArgs,
+} from "./components/assistant-types.js";
+export { AssistantExperienceView } from "./components/AssistantExperience.js";
+export type {
+  ActiveToolBanner,
+  AskUserInputQuestion,
+  AssistantExperienceViewProps,
+  DisplayMessageRow,
+  PendingAskUserInput,
+  PlanStepState,
+  PlanSummaryState,
+} from "./components/AssistantExperience.js";
+export {
+  buildDisplayMessageRows,
+  dedupToolInvocations,
+  EmptyState,
+  findPendingAskUserInput,
+  formatAskUserInputAnswers,
+  getActiveToolBanner,
+  extractPresentFilePathsFromInvocation,
+  latestPlanSummary,
+  MessageGroup,
+  PlanSummaryStrip,
+  ThinkingIndicator,
+} from "./components/AssistantExperience.js";
 export { useTaskSession } from "./useTaskSession.js";
 export type {
   CreateTaskInput,
