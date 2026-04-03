@@ -943,12 +943,17 @@ export function useAssistantController({
 
   useEffect(() => {
     const conversationId = activeConversationIdRef.current;
-    if (!conversationId) return;
-    if (!runtimeMessages || runtimeMessages.length === 0) return;
+    if (!conversationId) {
+      setMessages([]);
+      return;
+    }
 
     const normalized = sortMessagesByCreatedAt(runtimeMessages as AssistantApiConversationMessage[])
-      .filter((message) => !message.conversation_id || message.conversation_id === conversationId);
-    if (normalized.length === 0) return;
+      .filter((message) => message.conversation_id === conversationId);
+    if (normalized.length === 0) {
+      setMessages([]);
+      return;
+    }
 
     const nextMessages = mapConversationMessages(normalized);
     const pendingText = sessionStreamingText.trim();

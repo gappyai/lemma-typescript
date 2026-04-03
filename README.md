@@ -223,6 +223,40 @@ The intended split is:
 - SDK: `useAssistantController`, message/tool normalization, plan parsing, tool rollups, and assistant UI primitives.
 - App: modal shell, fullscreen behavior, route navigation, workspace/file viewers, and product-specific renderers.
 
+Useful UI primitives exported from `lemma-sdk/react`:
+
+- `AssistantHeader`
+- `AssistantConversationList`
+- `AssistantModelPicker`
+- `AssistantShellLayout`
+- `AssistantComposer`
+- `AssistantMessageViewport`
+- `AssistantAskOverlay`
+- `AssistantPendingFileChip`
+- `AssistantStatusPill`
+- `MessageGroup`
+- `PlanSummaryStrip`
+
+For a direct plug-and-play component, `AssistantEmbedded` wires `useAssistantController` into the default assistant experience:
+
+```tsx
+import { AssistantEmbedded } from "lemma-sdk/react";
+
+function SupportAssistant() {
+  return (
+    <AssistantEmbedded
+      client={client}
+      assistantId="support_assistant"
+      podId="pod_123"
+      title="Support Assistant"
+      subtitle="Ask questions about this pod."
+      placeholder="Message Support Assistant"
+      showConversationList
+    />
+  );
+}
+```
+
 ### Assistant names (resource key)
 
 Assistant CRUD is name-based:

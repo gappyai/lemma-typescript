@@ -76,8 +76,19 @@ function upsertRuntimeMessage(
   return next;
 }
 
-function toRuntimeMessage(message: ConversationMessage): RuntimeConversationMessage {
-  return message as RuntimeConversationMessage;
+function toRuntimeMessage(
+  message: ConversationMessage,
+  fallbackConversationId?: string | null,
+): RuntimeConversationMessage {
+  const runtimeMessage = message as RuntimeConversationMessage;
+  if (runtimeMessage.conversation_id || !fallbackConversationId) {
+    return runtimeMessage;
+  }
+
+  return {
+    ...runtimeMessage,
+    conversation_id: fallbackConversationId,
+  };
 }
 
 function buildOptimisticId(): string {
@@ -97,24 +108,21 @@ export function useAssistantRuntime({
   const mergeMessages = useCallback((messages: ConversationMessage[]) => {
     setRuntimeMessages((previous) => {
       const merged = messages.reduce(
-        (accumulator, message) => upsertRuntimeMessage(accumulator, toRuntimeMessage(message)),
+        (accumulator, message) => upsertRuntimeMessage(accumulator, toRuntimeMessage(message, conversationId)),
         previous,
       );
 
       return [...merged].sort((a, b) => messageTime(a) - messageTime(b));
     });
-  }, []);
+  }, [conversationId]);
 
   const replaceLoadedMessages = useCallback((messages: ConversationMessage[]) => {
-    setRuntimeMessages((previous) => {
-      const next = messages.reduce(
-        (accumulator, message) => upsertRuntimeMessage(accumulator, toRuntimeMessage(message)),
-        previous,
-      );
+    const normalized = messages
+      .map((message) => toRuntimeMessage(message, conversationId))
+      .filter((message) => !conversationId || message.conversation_id === conversationId);
 
-      return [...next].sort((a, b) => messageTime(a) - messageTime(b));
-    });
-  }, []);
+    setRuntimeMessages([...normalized].sort((a, b) => messageTime(a) - messageTime(b)));
+  }, [conversationId]);
 
   const appendOptimisticUserMessage = useCallback((
     content: string,
@@ -157,8 +165,8 @@ export function useAssistantRuntime({
     if (sessionMessages.length === 0) return;
 
     const normalized = sessionMessages
-      .map((message) => toRuntimeMessage(message))
-      .filter((message) => !conversationId || !message.conversation_id || message.conversation_id === conversationId);
+      .map((message) => toRuntimeMessage(message, conversationId))
+      .filter((message) => !conversationId || message.conversation_id === conversationId);
 
     if (normalized.length === 0) return;
     mergeMessages(normalized);

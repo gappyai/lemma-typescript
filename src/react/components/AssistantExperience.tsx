@@ -21,6 +21,10 @@ import type {
   AssistantPresentedFileRenderArgs,
   AssistantToolRenderArgs,
 } from "./assistant-types.js";
+import {
+  AssistantAskOverlay,
+  AssistantMessageViewport,
+} from "./AssistantChrome.js";
 
 type ToolCardArgs = Record<string, unknown>;
 type ToolCardResult = Record<string, unknown> & {
@@ -1733,8 +1737,8 @@ export function AssistantExperienceView({
             </div>
           </div>
 
-          <div
-            className="flex-1 overflow-y-auto px-4 py-4 space-y-3 min-h-[180px] bg-[var(--bg-surface)]"
+          <AssistantMessageViewport
+            className="min-h-[180px]"
             ref={messagesContainerRef}
             onScroll={updatePinnedState}
           >
@@ -1793,7 +1797,7 @@ export function AssistantExperienceView({
             {(controller.messages.length > 0 || isConversationBusy || !!controller.error) ? (
               <div aria-hidden="true" className="h-14 shrink-0" />
             ) : null}
-          </div>
+          </AssistantMessageViewport>
         </div>
 
         <div className="relative rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] p-2 shadow-[var(--shadow-md)]">
@@ -1825,81 +1829,19 @@ export function AssistantExperienceView({
           ) : null}
 
           {activeAskQuestion && effectiveAskOverlayState && pendingAskUserInput ? (
-            <div className="space-y-2">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
-                    Question {effectiveAskOverlayState.currentQuestionIndex + 1} of {pendingAskUserInput.questions.length}
-                  </div>
-                  <p className="mt-1 text-[14px] font-medium text-[var(--text-primary)] leading-6">
-                    {activeAskQuestion.question}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => dismissAskOverlay(effectiveAskOverlayState.toolCallId)}
-                  className="rounded-md px-2 py-1 text-[12px] text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
-                >
-                  Skip
-                </button>
-              </div>
-
-              <div className="max-h-[260px] overflow-y-auto space-y-1.5 pr-1">
-                {activeAskQuestion.options.map((option, optionIndex) => {
-                  const isSelected = activeAskAnswers.includes(option);
-                  const rankLabel = activeAskQuestion.type === "rank_priorities" && isSelected
-                    ? activeAskAnswers.indexOf(option) + 1
-                    : null;
-                  return (
-                    <button
-                      key={`${option}-${optionIndex}`}
-                      type="button"
-                      onClick={() => updateAskAnswer(option)}
-                      className={cx(
-                        "w-full rounded-lg border px-2.5 py-2 text-left text-[13px] transition-colors",
-                        isSelected
-                          ? "border-[color:color-mix(in_srgb,_var(--brand-primary)_64%,_var(--border-subtle))] bg-[color:color-mix(in_srgb,_var(--brand-primary)_14%,_transparent)] text-[var(--text-primary)]"
-                          : "border-[var(--border-default)] bg-[var(--bg-canvas)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)]",
-                      )}
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        {rankLabel ? (
-                          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--brand-primary)] px-1 text-[10px] font-semibold text-[var(--text-on-brand)]">
-                            {rankLabel}
-                          </span>
-                        ) : (
-                          <span className={cx(
-                            "inline-block h-2.5 w-2.5 rounded-full border",
-                            isSelected
-                              ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]"
-                              : "border-[var(--border-default)] bg-transparent",
-                          )} />
-                        )}
-                        {option}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {(activeAskQuestion.type !== "single_select" || pendingAskUserInput.questions.length > 1) ? (
-                <div className="flex justify-end">
-                  <button
-                    type="button"
-                    onClick={continueAskQuestions}
-                    disabled={!canContinueAsk}
-                    className={cx(
-                      "rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-                      canContinueAsk
-                        ? "bg-[var(--brand-primary)] text-[var(--text-on-brand)] hover:bg-[color:color-mix(in_srgb,_var(--brand-primary)_88%,_var(--text-primary))]"
-                        : "bg-[var(--bg-subtle)] text-[var(--text-tertiary)]",
-                    )}
-                  >
-                    {effectiveAskOverlayState.currentQuestionIndex >= pendingAskUserInput.questions.length - 1 ? "Use answers" : "Continue"}
-                  </button>
-                </div>
-              ) : null}
-            </div>
+            <AssistantAskOverlay
+              questionNumber={effectiveAskOverlayState.currentQuestionIndex + 1}
+              totalQuestions={pendingAskUserInput.questions.length}
+              question={activeAskQuestion.question}
+              options={activeAskQuestion.options}
+              selectedOptions={activeAskAnswers}
+              canContinue={canContinueAsk}
+              continueLabel={effectiveAskOverlayState.currentQuestionIndex >= pendingAskUserInput.questions.length - 1 ? "Use answers" : "Continue"}
+              onSelectOption={updateAskAnswer}
+              onContinue={activeAskQuestion.type !== "single_select" || pendingAskUserInput.questions.length > 1 ? continueAskQuestions : undefined}
+              onSkip={() => dismissAskOverlay(effectiveAskOverlayState.toolCallId)}
+              mode={activeAskQuestion.type}
+            />
           ) : (
             <div className="space-y-1.5">
               {controller.pendingFiles.length > 0 ? (

@@ -166,6 +166,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   const [error, setError] = useState<Error | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
+  const conversationIdRef = useRef<string | null>(externalConversationId);
   const statusRef = useRef<string | undefined>(undefined);
   const streamingTextRef = useRef("");
   const autoResumedKeyRef = useRef<string | null>(null);
@@ -175,21 +176,34 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   const onErrorRef = useRef(onError);
 
   const setConversationId = useCallback((nextConversationId: string | null) => {
-    setConversationIdState(nextConversationId);
-    autoResumedKeyRef.current = null;
-    streamingTextRef.current = "";
-    setStreamingText("");
-    if (!nextConversationId) {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setConversationIdState((currentConversationId) => {
+      if (currentConversationId === nextConversationId) {
+        return currentConversationId;
+      }
+
+      autoResumedKeyRef.current = null;
+      streamingTextRef.current = "";
+      setStreamingText("");
       setConversation(null);
       setStatus(undefined);
       statusRef.current = undefined;
       setMessages([]);
-    }
+      setError(null);
+      setIsStreaming(false);
+
+      return nextConversationId;
+    });
   }, []);
 
   useEffect(() => {
-    setConversationIdState(externalConversationId);
-  }, [externalConversationId]);
+    setConversationId(externalConversationId);
+  }, [externalConversationId, setConversationId]);
+
+  useEffect(() => {
+    conversationIdRef.current = conversationId;
+  }, [conversationId]);
 
   useEffect(() => {
     onEventRef.current = onEvent;
@@ -347,6 +361,14 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       });
 
       const nextMessages = response.items ?? [];
+      if (conversationIdRef.current !== id) {
+        return {
+          items: nextMessages,
+          limit: response.limit ?? input.limit ?? 20,
+          next_page_token: response.next_page_token,
+        };
+      }
+
       setMessages((previous) => nextMessages.reduce(
         (accumulator, message) => upsertConversationMessage(accumulator, message),
         previous,

@@ -37,6 +37,28 @@ export type {
   AssistantPresentedFileRenderArgs,
   AssistantToolRenderArgs,
 } from "./components/assistant-types.js";
+export {
+  AssistantAskOverlay,
+  AssistantComposer,
+  AssistantConversationList,
+  AssistantHeader,
+  AssistantMessageViewport,
+  AssistantModelPicker,
+  AssistantPendingFileChip,
+  AssistantShellLayout,
+  AssistantStatusPill,
+} from "./components/AssistantChrome.js";
+export type {
+  AssistantAskOverlayProps,
+  AssistantComposerProps,
+  AssistantConversationListProps,
+  AssistantHeaderProps,
+  AssistantMessageViewportProps,
+  AssistantModelPickerProps,
+  AssistantPendingFileChipProps,
+  AssistantShellLayoutProps,
+  AssistantStatusPillProps,
+} from "./components/AssistantChrome.js";
 export { AssistantExperienceView } from "./components/AssistantExperience.js";
 export type {
   ActiveToolBanner,
@@ -47,6 +69,8 @@ export type {
   PlanStepState,
   PlanSummaryState,
 } from "./components/AssistantExperience.js";
+export { AssistantEmbedded } from "./components/AssistantEmbedded.js";
+export type { AssistantEmbeddedProps } from "./components/AssistantEmbedded.js";
 export {
   buildDisplayMessageRows,
   dedupToolInvocations,
