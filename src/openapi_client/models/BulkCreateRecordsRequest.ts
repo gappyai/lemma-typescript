@@ -10,5 +10,9 @@ export type BulkCreateRecordsRequest = {
      * List of record payload objects to insert.
      */
     records: Array<Record<string, any>>;
+    /**
+     * When true, insert records and update existing rows that conflict on the table primary key.
+     */
+    upsert?: boolean;
 };
 

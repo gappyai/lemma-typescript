@@ -4,6 +4,7 @@
 /* eslint-disable */
 import type { ApplicationAccessConfig } from './ApplicationAccessConfig.js';
 import type { FunctionStatus } from './FunctionStatus.js';
+import type { FunctionType } from './FunctionType.js';
 import type { TableAccessEntry } from './TableAccessEntry.js';
 /**
  * Function response.
@@ -25,6 +26,7 @@ export type FunctionResponse = {
     output_schema: Record<string, any>;
     pod_id: string;
     status: FunctionStatus;
+    type: FunctionType;
     updated_at: any;
     user_id: string;
 };

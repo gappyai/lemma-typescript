@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ApplicationAccessConfig } from './ApplicationAccessConfig.js';
+import type { FunctionType } from './FunctionType.js';
 import type { TableAccessEntry } from './TableAccessEntry.js';
 /**
  * Request to create a function.
@@ -19,5 +20,6 @@ export type CreateFunctionRequest = {
     input_schema?: Record<string, any>;
     name: string;
     output_schema?: Record<string, any>;
+    type?: FunctionType;
 };
 

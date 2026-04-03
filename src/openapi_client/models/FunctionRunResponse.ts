@@ -13,10 +13,12 @@ export type FunctionRunResponse = {
     function_id: string;
     id: string;
     input_data?: (Record<string, any> | null);
+    job_id?: (string | null);
     logs?: (string | null);
     output_data?: (Record<string, any> | null);
     started_at: any;
     status: FunctionRunStatus;
+    user_email?: (string | null);
     user_id: string;
 };
 

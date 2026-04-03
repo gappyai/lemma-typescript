@@ -108,6 +108,7 @@ export type { FunctionRunListResponse } from './models/FunctionRunListResponse.j
 export type { FunctionRunResponse } from './models/FunctionRunResponse.js';
 export { FunctionRunStatus } from './models/FunctionRunStatus.js';
 export { FunctionStatus } from './models/FunctionStatus.js';
+export { FunctionType } from './models/FunctionType.js';
 export type { HTTPValidationError } from './models/HTTPValidationError.js';
 export type { IconUploadRequest } from './models/IconUploadRequest.js';
 export type { IconUploadResponse } from './models/IconUploadResponse.js';
