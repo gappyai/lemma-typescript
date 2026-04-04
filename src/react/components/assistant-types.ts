@@ -63,11 +63,17 @@ export interface AssistantPendingFileRenderArgs {
   remove: () => void;
 }
 
+export interface EmptyStateSuggestion {
+  text: string;
+  icon?: ReactNode;
+}
+
 export interface AssistantExperienceCustomizationProps {
   title?: ReactNode;
   subtitle?: ReactNode;
   placeholder?: string;
   emptyState?: ReactNode;
+  emptyStateSuggestions?: EmptyStateSuggestion[];
   draft?: string;
   onDraftChange?: (value: string) => void;
   showConversationList?: boolean;

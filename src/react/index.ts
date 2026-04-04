@@ -33,6 +33,7 @@ export type {
   AssistantControllerView,
   AssistantExperienceCustomizationProps,
   AssistantMessageRenderArgs,
+  EmptyStateSuggestion,
   AssistantPendingFileRenderArgs,
   AssistantPresentedFileRenderArgs,
   AssistantToolRenderArgs,
@@ -72,6 +73,7 @@ export type {
   AssistantRadiusScale,
   AssistantStatusPlacement,
   DisplayMessageRow,
+  EmptyStateProps,
   PendingAskUserInput,
   PlanStepState,
   PlanSummaryState,
@@ -80,6 +82,7 @@ export { AssistantEmbedded } from "./components/AssistantEmbedded.js";
 export type { AssistantEmbeddedProps } from "./components/AssistantEmbedded.js";
 export {
   buildDisplayMessageRows,
+  DEFAULT_EMPTY_STATE_SUGGESTIONS,
   dedupToolInvocations,
   EmptyState,
   findPendingAskUserInput,

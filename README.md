@@ -179,37 +179,7 @@ Import the bundled stylesheet once anywhere in your app:
 import "lemma-sdk/react/styles.css";
 ```
 
-The stylesheet includes the SDK theme tokens and semantic assistant classes. You do not need the Lemma app's internal Tailwind setup just to render the assistant correctly.
-
-#### Important for Tailwind apps
-
-If your app uses Tailwind and installs `lemma-sdk` from npm, Tailwind must scan the SDK package too. Otherwise the assistant can look half-styled: native file inputs may appear, layouts can collapse, spacing disappears, and buttons/header chrome look wrong.
-
-For Tailwind v3, add the SDK package to `content`:
-
-```js
-// tailwind.config.js
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "./node_modules/lemma-sdk/dist/react/**/*.{js,mjs}",
-  ],
-}
-```
-
-If you are developing against a local checkout of the SDK source instead of the published npm package, scan the source files too:
-
-```js
-// tailwind.config.js
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-    "../lemma-typescript/src/react/**/*.{ts,tsx}",
-  ],
-}
-```
+The stylesheet includes the SDK theme tokens and the complete semantic assistant UI. The assistant components do not depend on the host app's Tailwind version or Tailwind content scanning.
 
 If you alias the package to local SDK source in Vite, make sure the alias points at the React source and stylesheet:
 
@@ -233,7 +203,6 @@ Quick checklist for developers:
 - import `lemma-sdk/react/styles.css` once
 - give the assistant container a real height
 - if the assistant is inside flex/grid, add `min-height: 0` on the relevant parent
-- if you use Tailwind, scan the SDK package or SDK source
 - if you use `AssistantEmbedded`, pass `theme` directly there
 - if you use `AssistantExperienceView`, wrap it in `AssistantThemeScope`
 
@@ -244,11 +213,22 @@ The assistant UI renders markdown by default:
 - links open safely in a new tab by default
 - lists, tables, blockquotes, inline code, and fenced code blocks are styled out of the box
 
+#### Recommended path
+
+For most apps, start with `AssistantEmbedded`.
+
+- use `AssistantEmbedded` when you want the SDK to handle the controller lifecycle and render the ready-made assistant UI
+- use `AssistantExperienceView` when you still want the SDK's default assistant UI, but you need to own the controller lifecycle yourself
+- use `useAssistantController` plus primitives only when you are intentionally building a custom shell or custom layout
+
+If you are unsure, use `AssistantEmbedded` first. It is the path we recommend and the one we expect most SDK consumers to ship.
+
 #### Choose an integration level
 
 ##### 1. `AssistantEmbedded` for the fastest setup
 
 Use `AssistantEmbedded` when you want a ready-made assistant surface with the SDK defaults.
+This is the recommended integration for most users.
 
 ```tsx
 import "lemma-sdk/react/styles.css";
@@ -264,6 +244,11 @@ function SupportAssistant() {
         title="Support Assistant"
         subtitle="Ask questions about this pod."
         placeholder="Message Support Assistant"
+        emptyStateSuggestions={[
+          { text: "Summarize this conversation", icon: "✦" },
+          { text: "Help me draft a response", icon: "✎" },
+          { text: "List the next steps", icon: "→" },
+        ]}
         showConversationList
         showModelPicker={false}
         radius="lg"
@@ -282,10 +267,13 @@ Important notes:
 - `theme="auto"` follows the host app when it uses common selectors like `.dark`, `[data-theme="dark"]`, `[data-mode="dark"]`, and also falls back to `prefers-color-scheme`
 - the parent container must have a real height; if it lives inside flex/grid, `min-height: 0` is usually needed too
 - attachments are queued into the composer and sent with the next message by default
+- `emptyStateSuggestions` lets you replace the built-in prompt chips shown before the first message
+- prefer this component unless you specifically need to own controller state or replace the built-in layout
 
 ##### 2. `AssistantExperienceView` for the default UI with your own controller
 
 Use `AssistantExperienceView` when you want the built-in assistant layout, but you need to own the controller lifecycle yourself.
+This is the second-best default when `AssistantEmbedded` is too opinionated for your integration.
 
 ```tsx
 import "lemma-sdk/react/styles.css";
@@ -309,6 +297,11 @@ function ControlledAssistant() {
         title="Support Assistant"
         subtitle="Direct use of the default assistant experience."
         placeholder="Message Support Assistant"
+        emptyStateSuggestions={[
+          { text: "Summarize the current context" },
+          { text: "Help me write a reply" },
+          { text: "What should I do next?" },
+        ]}
         showConversationList
         chromeStyle="subtle"
         statusPlacement="inline"
@@ -326,13 +319,16 @@ Useful props on `AssistantExperienceView`:
 - `radius`: `"none" | "sm" | "md" | "lg" | "xl"`
 - `showModelPicker`: show or hide the built-in model selector
 - `showNewConversationButton`: show or hide the built-in reset/new-conversation button
+- `emptyStateSuggestions`: replace the built-in generic prompt suggestions used by the default empty state
 - `renderMessageContent`: override markdown rendering for custom message content
 - `renderToolInvocation`: replace the default tool activity renderer
 - `renderPresentedFile` and `renderPendingFile`: customize attachment rendering
+- prefer this over building from primitives if you still want the SDK's default assistant experience
 
 ##### 3. `useAssistantController` + primitives for a custom shell
 
 Use the primitives when you want full control over layout and app chrome.
+This is the advanced path and should be the exception, not the starting point.
 
 ```tsx
 import "lemma-sdk/react/styles.css";
@@ -342,6 +338,7 @@ import {
   AssistantMessageViewport,
   AssistantShellLayout,
   AssistantThemeScope,
+  EmptyState,
   MessageGroup,
   PlanSummaryStrip,
   ThinkingIndicator,
@@ -376,6 +373,19 @@ function CustomAssistantShell() {
             {activeToolBanner ? <div>{activeToolBanner.summary}</div> : null}
 
             <AssistantMessageViewport>
+              {assistant.messages.length === 0 ? (
+                <EmptyState
+                  suggestions={[
+                    { text: "Summarize this for me" },
+                    { text: "Help me draft a reply" },
+                    { text: "Brainstorm next steps" },
+                  ]}
+                  onSendMessage={(text) => {
+                    void assistant.sendMessage(text);
+                  }}
+                />
+              ) : null}
+
               {rows.map((row, index) => (
                 <MessageGroup
                   key={row.id}
@@ -417,6 +427,14 @@ Useful primitives exported from `lemma-sdk/react`:
 - `MessageGroup`
 - `PlanSummaryStrip`
 - `ThinkingIndicator`
+
+Guidance:
+
+- prefer `AssistantEmbedded` over this path when the SDK layout is acceptable
+- prefer `AssistantExperienceView` over this path when you only need controller ownership, theming control, or a few render overrides
+- reach for primitives only when you are replacing the layout itself or deeply integrating the assistant into app-specific chrome
+
+Default empty-state suggestions are intentionally generic so they work across support, internal tools, content, and general assistant use cases. Override them with `emptyStateSuggestions` when you want task-specific prompts.
 
 #### Theming
 

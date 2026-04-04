@@ -56,14 +56,10 @@ export const AssistantMessageViewport = forwardRef<HTMLDivElement, AssistantMess
   return (
     <div
       ref={ref}
-      className={cx(
-        "lemma-assistant-viewport",
-        "min-h-0 flex-1 overflow-y-auto bg-[var(--bg-surface)] px-4 py-4",
-        className,
-      )}
+      className={cx("lemma-assistant-viewport", className)}
       {...props}
     >
-      <div className={cx("lemma-assistant-viewport-inner", "mx-auto flex w-full max-w-5xl flex-col gap-3", innerClassName)}>
+      <div className={cx("lemma-assistant-viewport-inner", innerClassName)}>
         {children}
       </div>
     </div>
@@ -90,7 +86,6 @@ export function AssistantShellLayout({
       "lemma-assistant-shell",
       hasSidebar && "lemma-assistant-shell--with-sidebar",
       hasSidebar && sidebarVisible && "lemma-assistant-shell--sidebar-visible",
-      "mx-auto h-full w-full min-h-0 font-sans antialiased",
       className,
     )}>
       {sidebar && sidebarVisible ? (
@@ -112,27 +107,23 @@ export function AssistantHeader({
   return (
     <div
       data-tone={tone}
-      className={cx(
-        "lemma-assistant-header",
-        "flex items-center justify-between border-b border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] px-4 py-3",
-        className,
-      )}
+      className={cx("lemma-assistant-header", className)}
     >
-      <div className="lemma-assistant-header-copy flex items-center gap-2.5">
+      <div className="lemma-assistant-header-copy">
         {badge ? (
-          <div className="lemma-assistant-header-badge flex h-7 w-7 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-primary),var(--brand-secondary))] shadow-[var(--shadow-xs)]">
+          <div className="lemma-assistant-header-badge">
             {badge}
           </div>
         ) : null}
         <div className="lemma-assistant-header-titles">
-          <h3 className="lemma-assistant-header-title text-[13px] font-semibold leading-tight text-[var(--text-primary)]">{title}</h3>
+          <h3 className="lemma-assistant-header-title">{title}</h3>
           {subtitle ? (
-            <p className="lemma-assistant-header-subtitle text-[11px] text-[var(--text-tertiary)]">{subtitle}</p>
+            <p className="lemma-assistant-header-subtitle">{subtitle}</p>
           ) : null}
         </div>
       </div>
       {controls ? (
-        <div className="lemma-assistant-header-controls flex items-center gap-1">{controls}</div>
+        <div className="lemma-assistant-header-controls">{controls}</div>
       ) : null}
     </div>
   );
@@ -160,16 +151,12 @@ export function AssistantConversationList({
   className,
 }: AssistantConversationListProps) {
   return (
-    <aside className={cx(
-      "lemma-assistant-conversation-list",
-      "flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)]",
-      className,
-    )}>
-      <div className="lemma-assistant-conversation-list-header border-b border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] px-4 py-3">
-        <div className="lemma-assistant-conversation-list-header-row flex items-center justify-between gap-3">
+    <aside className={cx("lemma-assistant-conversation-list", className)}>
+      <div className="lemma-assistant-conversation-list-header">
+        <div className="lemma-assistant-conversation-list-header-row">
           <div className="lemma-assistant-conversation-list-copy">
-            <div className="lemma-assistant-conversation-list-title text-[13px] font-semibold text-[var(--text-primary)]">{title}</div>
-            <div className="lemma-assistant-conversation-list-meta mt-1 text-[11px] text-[var(--text-tertiary)]">
+            <div className="lemma-assistant-conversation-list-title">{title}</div>
+            <div className="lemma-assistant-conversation-list-meta">
               {conversations.length} total
             </div>
           </div>
@@ -177,14 +164,14 @@ export function AssistantConversationList({
             <button
               type="button"
               onClick={onNewConversation}
-              className="lemma-assistant-conversation-list-new rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              className="lemma-assistant-conversation-list-new"
             >
               {newLabel}
             </button>
           ) : null}
         </div>
       </div>
-      <div className="lemma-assistant-conversation-list-items min-h-0 flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="lemma-assistant-conversation-list-items">
         {conversations.map((conversation) => {
           const isActive = conversation.id === activeConversationId;
           return (
@@ -194,18 +181,15 @@ export function AssistantConversationList({
               onClick={() => onSelectConversation(conversation.id)}
               className={cx(
                 "lemma-assistant-conversation-list-item",
-                "w-full rounded-xl border px-3 py-2.5 text-left transition-colors",
-                isActive
-                  ? "lemma-assistant-conversation-list-item-active border-[color:color-mix(in_srgb,_var(--brand-primary)_44%,_var(--border-default))] bg-[color:color-mix(in_srgb,_var(--brand-glow)_42%,_var(--bg-surface))]"
-                  : "border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)]",
+                isActive && "lemma-assistant-conversation-list-item-active",
               )}
             >
-              <div className="lemma-assistant-conversation-list-item-title truncate text-[12px] font-medium text-[var(--text-primary)]">
+              <div className="lemma-assistant-conversation-list-item-title">
                 {renderConversationLabel
                   ? renderConversationLabel({ conversation, isActive })
                   : (conversation.title || "Untitled conversation")}
               </div>
-              <div className="lemma-assistant-conversation-list-item-status mt-1 text-[10px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+              <div className="lemma-assistant-conversation-list-item-status">
                 {(conversation.status || "waiting").toLowerCase()}
               </div>
             </button>
@@ -242,11 +226,7 @@ export function AssistantModelPicker<TValue extends string = string>({
       value={value ?? autoValue}
       onChange={(event) => onChange(event.target.value === autoValue ? null : (event.target.value as TValue))}
       disabled={disabled}
-      className={cx(
-        "lemma-assistant-model-picker",
-        "h-8 rounded-full border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] px-3 text-[11px] text-[var(--text-secondary)]",
-        className,
-      )}
+      className={cx("lemma-assistant-model-picker", className)}
       aria-label="Conversation model"
       title="Conversation model"
     >
@@ -288,13 +268,13 @@ export function AssistantAskOverlay({
   mode = "single_select",
 }: AssistantAskOverlayProps) {
   return (
-    <div className="lemma-assistant-ask-overlay space-y-2">
-      <div className="lemma-assistant-ask-overlay-header flex items-start justify-between gap-3">
+    <div className="lemma-assistant-ask-overlay">
+      <div className="lemma-assistant-ask-overlay-header">
         <div className="lemma-assistant-ask-overlay-copy">
-          <div className="lemma-assistant-ask-overlay-kicker text-[11px] uppercase tracking-[0.12em] text-[var(--text-tertiary)]">
+          <div className="lemma-assistant-ask-overlay-kicker">
             Question {questionNumber} of {totalQuestions}
           </div>
-          <p className="lemma-assistant-ask-overlay-question mt-1 text-[14px] font-medium leading-6 text-[var(--text-primary)]">
+          <p className="lemma-assistant-ask-overlay-question">
             {question}
           </p>
         </div>
@@ -302,14 +282,14 @@ export function AssistantAskOverlay({
           <button
             type="button"
             onClick={onSkip}
-            className="lemma-assistant-ask-overlay-skip rounded-md px-2 py-1 text-[12px] text-[var(--text-tertiary)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]"
+            className="lemma-assistant-ask-overlay-skip"
           >
             Skip
           </button>
         ) : null}
       </div>
 
-      <div className="lemma-assistant-ask-overlay-options max-h-[260px] space-y-1.5 overflow-y-auto pr-1">
+      <div className="lemma-assistant-ask-overlay-options">
         {options.map((option, optionIndex) => {
           const isSelected = selectedOptions.includes(option);
           const rankLabel = mode === "rank_priorities" && isSelected
@@ -323,24 +303,19 @@ export function AssistantAskOverlay({
               onClick={() => onSelectOption(option)}
               className={cx(
                 "lemma-assistant-ask-overlay-option",
-                "w-full rounded-lg border px-2.5 py-2 text-left text-[13px] transition-colors",
-                isSelected
-                  ? "lemma-assistant-ask-overlay-option-selected border-[color:color-mix(in_srgb,_var(--brand-primary)_64%,_var(--border-subtle))] bg-[color:color-mix(in_srgb,_var(--brand-primary)_14%,_transparent)] text-[var(--text-primary)]"
-                  : "border-[var(--border-default)] bg-[var(--bg-canvas)] text-[var(--text-secondary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-primary)]",
+                isSelected && "lemma-assistant-ask-overlay-option-selected",
               )}
             >
-              <span className="lemma-assistant-ask-overlay-option-label inline-flex items-center gap-2">
+              <span className="lemma-assistant-ask-overlay-option-label">
                 {rankLabel ? (
-                  <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--brand-primary)] px-1 text-[10px] font-semibold text-[var(--text-on-brand)]">
+                  <span className="lemma-assistant-ask-overlay-option-rank">
                     {rankLabel}
                   </span>
                 ) : (
                   <span
                     className={cx(
-                      "inline-block h-2.5 w-2.5 rounded-full border",
-                      isSelected
-                        ? "border-[var(--brand-primary)] bg-[var(--brand-primary)]"
-                        : "border-[var(--border-default)] bg-transparent",
+                      "lemma-assistant-ask-overlay-option-indicator",
+                      isSelected && "lemma-assistant-ask-overlay-option-indicator-selected",
                     )}
                   />
                 )}
@@ -352,17 +327,14 @@ export function AssistantAskOverlay({
       </div>
 
       {onContinue ? (
-        <div className="lemma-assistant-ask-overlay-actions flex justify-end">
+        <div className="lemma-assistant-ask-overlay-actions">
           <button
             type="button"
             onClick={onContinue}
             disabled={!canContinue}
             className={cx(
               "lemma-assistant-ask-overlay-continue",
-              "rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors",
-              canContinue
-                ? "bg-[var(--brand-primary)] text-[var(--text-on-brand)] hover:bg-[color:color-mix(in_srgb,_var(--brand-primary)_88%,_var(--text-primary))]"
-                : "bg-[var(--bg-subtle)] text-[var(--text-tertiary)]",
+              canContinue && "lemma-assistant-ask-overlay-continue-enabled",
             )}
           >
             {continueLabel}
@@ -402,28 +374,24 @@ export function AssistantComposer({
       data-has-status={status ? "true" : "false"}
       data-has-pending-files={pendingFiles ? "true" : "false"}
       data-has-floating={floating ? "true" : "false"}
-      className={cx(
-        "lemma-assistant-composer",
-        "relative rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] p-2 shadow-[var(--shadow-md)]",
-        className,
-      )}
+      className={cx("lemma-assistant-composer", className)}
     >
       {floating ? (
-        <div className="lemma-assistant-composer-floating absolute bottom-[calc(100%+8px)] left-0 right-0 z-20">
+        <div className="lemma-assistant-composer-floating">
           {floating}
         </div>
       ) : null}
 
       {status ? (
-        <div className="lemma-assistant-composer-status-rail min-h-[34px] px-2 pb-1">
-          <div className="lemma-assistant-composer-status flex min-h-[26px] items-center transition-opacity duration-200">
+        <div className="lemma-assistant-composer-status-rail">
+          <div className="lemma-assistant-composer-status">
             {status}
           </div>
         </div>
       ) : null}
 
       {pendingFiles ? (
-        <div className="lemma-assistant-composer-pending flex flex-wrap items-center gap-1.5 px-1 pb-1.5">
+        <div className="lemma-assistant-composer-pending">
           {pendingFiles}
         </div>
       ) : null}
@@ -441,15 +409,14 @@ export function AssistantPendingFileChip({
   return (
     <span className={cx(
       "lemma-assistant-pending-file-chip",
-      "inline-flex max-w-full items-center gap-1.5 rounded-full bg-[var(--bg-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)]",
       className,
     )}>
-      <span className="lemma-assistant-pending-file-chip-label truncate max-w-[180px]">{label}</span>
+      <span className="lemma-assistant-pending-file-chip-label">{label}</span>
       {onRemove ? (
         <button
           type="button"
           onClick={onRemove}
-          className="lemma-assistant-pending-file-chip-remove inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-[var(--bg-canvas)]"
+          className="lemma-assistant-pending-file-chip-remove"
           title="Remove file"
         >
           ×
@@ -473,17 +440,14 @@ export function AssistantStatusPill({
   return (
     <div className={cx(
       "lemma-assistant-status-pill",
-      "inline-flex min-h-[30px] max-w-full items-center gap-2 rounded-full px-3 py-1.5 text-[12px] transition-all duration-200",
-      subtle
-        ? "lemma-assistant-status-pill-subtle border border-[color:color-mix(in_srgb,_var(--border-default)_72%,_transparent)] bg-[color:color-mix(in_srgb,_var(--bg-surface)_90%,_transparent)] text-[var(--text-tertiary)]"
-        : "border border-[color:color-mix(in_srgb,_var(--brand-primary)_24%,_var(--border-default))] bg-[color:color-mix(in_srgb,_var(--brand-glow)_28%,_var(--bg-surface))] text-[var(--text-secondary)]",
+      subtle && "lemma-assistant-status-pill-subtle",
       className,
     )}>
-      <span className="lemma-assistant-status-pill-dot relative inline-flex h-2.5 w-2.5 shrink-0">
-        <span className="lemma-assistant-status-pill-dot-ping absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--brand-primary)]/45" />
-        <span className="lemma-assistant-status-pill-dot-core relative inline-flex h-2.5 w-2.5 rounded-full bg-[var(--brand-primary)]" />
+      <span className="lemma-assistant-status-pill-dot">
+        <span className="lemma-assistant-status-pill-dot-ping" />
+        <span className="lemma-assistant-status-pill-dot-core" />
       </span>
-      <span className="lemma-assistant-status-pill-label truncate">{label}</span>
+      <span className="lemma-assistant-status-pill-label">{label}</span>
     </div>
   );
 }

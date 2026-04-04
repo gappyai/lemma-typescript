@@ -22,6 +22,7 @@ import type {
   AssistantPendingFileRenderArgs,
   AssistantPresentedFileRenderArgs,
   AssistantToolRenderArgs,
+  EmptyStateSuggestion,
 } from "./assistant-types.js";
 import {
   AssistantAskOverlay,
@@ -97,6 +98,7 @@ export interface AssistantExperienceViewProps {
   subtitle?: ReactNode;
   placeholder?: string;
   emptyState?: ReactNode;
+  emptyStateSuggestions?: EmptyStateSuggestion[];
   draft?: string;
   onDraftChange?: (value: string) => void;
   showConversationList?: boolean;
@@ -694,21 +696,21 @@ function defaultMessageContent({ message }: AssistantMessageRenderArgs): ReactNo
 
 function defaultPresentedFile({ filepath }: AssistantPresentedFileRenderArgs): ReactNode {
   return (
-    <div className="rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_78%,_transparent)] bg-[linear-gradient(180deg,color-mix(in_srgb,var(--bg-surface)_96%,transparent),color-mix(in_srgb,var(--bg-canvas)_76%,transparent))] px-3 py-2.5">
-      <div className="text-[14px] font-medium text-[var(--text-primary)]">{fileNameFromPath(filepath)}</div>
-      <div className="mt-1 text-[12px] text-[var(--text-tertiary)]">{filepath}</div>
+    <div className="lemma-assistant-presented-file-card">
+      <div className="lemma-assistant-presented-file-name">{fileNameFromPath(filepath)}</div>
+      <div className="lemma-assistant-presented-file-path">{filepath}</div>
     </div>
   );
 }
 
 function defaultPendingFile({ file, remove }: AssistantPendingFileRenderArgs): ReactNode {
   return (
-    <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[var(--bg-subtle)] px-2 py-1 text-[11px] text-[var(--text-secondary)]">
-      <span className="truncate max-w-[180px]">{file.name}</span>
+    <span className="lemma-assistant-pending-file-chip">
+      <span className="lemma-assistant-pending-file-chip-label">{file.name}</span>
       <button
         type="button"
         onClick={remove}
-        className="inline-flex h-4 w-4 items-center justify-center rounded-full hover:bg-[var(--bg-canvas)]"
+        className="lemma-assistant-pending-file-chip-remove"
         title="Remove file"
       >
         ×
@@ -723,15 +725,15 @@ export function PlanSummaryStrip({ plan, onHide }: { plan: PlanSummaryState; onH
   const hiddenCount = Math.max(0, plan.steps.length - visibleSteps.length);
 
   return (
-    <div className="lemma-assistant-plan-strip rounded-xl border border-[color:color-mix(in_srgb,_var(--border-default)_88%,_transparent)] bg-[var(--bg-surface)] px-3 py-2.5 shadow-[var(--shadow-sm)]">
-      <div className="lemma-assistant-plan-strip-header flex items-center justify-between gap-2">
-        <div className="lemma-assistant-plan-strip-summary inline-flex items-center gap-2">
-          <span className="lemma-assistant-plan-strip-title text-[12px] font-semibold text-[var(--text-primary)]">Task plan</span>
-          <span className="lemma-assistant-plan-strip-count text-[11px] text-[var(--text-tertiary)]">
+    <div className="lemma-assistant-plan-strip">
+      <div className="lemma-assistant-plan-strip-header">
+        <div className="lemma-assistant-plan-strip-summary">
+          <span className="lemma-assistant-plan-strip-title">Task plan</span>
+          <span className="lemma-assistant-plan-strip-count">
             {plan.completedCount}/{plan.steps.length} complete
           </span>
           {plan.inProgressCount > 0 ? (
-            <span className="lemma-assistant-plan-strip-active rounded-full bg-[color:color-mix(in_srgb,_var(--brand-primary)_16%,_transparent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--brand-primary)]">
+            <span className="lemma-assistant-plan-strip-active">
               {plan.inProgressCount} active
             </span>
           ) : null}
@@ -739,48 +741,52 @@ export function PlanSummaryStrip({ plan, onHide }: { plan: PlanSummaryState; onH
         <button
           type="button"
           onClick={onHide}
-          className="text-[11px] font-medium text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+          className="lemma-assistant-plan-strip-hide"
         >
           Hide
         </button>
       </div>
 
       {plan.activeStep ? (
-        <div className="mt-1.5 truncate text-[11px] text-[var(--text-secondary)]" title={plan.activeStep}>
+        <div className="lemma-assistant-plan-strip-current" title={plan.activeStep}>
           {plan.running ? "Running:" : "Current:"} {plan.activeStep}
         </div>
       ) : null}
 
-      <div className="lemma-assistant-plan-strip-steps mt-2 space-y-1">
+      <div className="lemma-assistant-plan-strip-steps">
         {visibleSteps.map((step, index) => (
-          <div key={`${step.step}-${index}`} className="lemma-assistant-plan-strip-step flex items-start gap-2 text-[11px]">
+          <div
+            key={`${step.step}-${index}`}
+            className="lemma-assistant-plan-strip-step"
+            data-status={step.status}
+          >
             <span className={cx(
-              "mt-1 inline-block h-2 w-2 shrink-0 rounded-full",
-              step.status === "completed" && "bg-[var(--state-success)]",
-              step.status === "in_progress" && "bg-[var(--brand-primary)]",
-              step.status === "pending" && "bg-[var(--border-default)]",
+              "lemma-assistant-plan-strip-step-dot",
+              step.status === "completed" && "lemma-assistant-plan-strip-step-dot-completed",
+              step.status === "in_progress" && "lemma-assistant-plan-strip-step-dot-in-progress",
+              step.status === "pending" && "lemma-assistant-plan-strip-step-dot-pending",
             )} />
             <span className={cx(
-              "leading-5",
-              step.status === "completed" && "text-[var(--text-tertiary)] line-through",
-              step.status === "in_progress" && "text-[var(--brand-primary)] font-medium",
-              step.status === "pending" && "text-[var(--text-secondary)]",
+              "lemma-assistant-plan-strip-step-label",
+              step.status === "completed" && "lemma-assistant-plan-strip-step-label-completed",
+              step.status === "in_progress" && "lemma-assistant-plan-strip-step-label-in-progress",
+              step.status === "pending" && "lemma-assistant-plan-strip-step-label-pending",
             )}>
               {step.step}
             </span>
           </div>
         ))}
         {plan.steps.length > 5 ? (
-          <div className="flex items-center gap-2 pt-0.5">
+          <div className="lemma-assistant-plan-strip-footer">
             <button
               type="button"
               onClick={() => setShowAll((prev) => !prev)}
-              className="text-[10px] font-medium text-[var(--brand-primary)] hover:text-[var(--text-primary)] transition-colors"
+              className="lemma-assistant-plan-strip-toggle"
             >
               {showAll ? "Show less" : `See all ${plan.steps.length} steps`}
             </button>
             {!showAll && hiddenCount > 0 ? (
-              <span className="text-[10px] text-[var(--text-tertiary)]">+{hiddenCount} more</span>
+              <span className="lemma-assistant-plan-strip-hidden-count">+{hiddenCount} more</span>
             ) : null}
           </div>
         ) : null}
@@ -800,10 +806,10 @@ export function ThinkingIndicator() {
   if (!show) return null;
 
   return (
-    <div className="lemma-assistant-thinking px-1 animate-in fade-in duration-300">
-      <div className="lemma-assistant-thinking-label inline-flex items-center gap-2.5 text-[12px] leading-5 text-[var(--text-tertiary)]">
-        <span className="lemma-assistant-thinking-dot inline-flex h-2 w-2 rounded-full bg-[var(--brand-accent)]" />
-        <span className="lemma-assistant-thinking-text font-semibold text-transparent bg-clip-text bg-[linear-gradient(110deg,var(--text-secondary),35%,var(--brand-accent),50%,var(--text-secondary),65%)] bg-[length:250%_100%] animate-pulse">
+    <div className="lemma-assistant-thinking">
+      <div className="lemma-assistant-thinking-label">
+        <span className="lemma-assistant-thinking-dot" />
+        <span className="lemma-assistant-thinking-text">
           Thinking...
         </span>
       </div>
@@ -811,36 +817,47 @@ export function ThinkingIndicator() {
   );
 }
 
-export function EmptyState({ onSendMessage }: { onSendMessage: (msg: string) => void }) {
-  const suggestions = [
-    { text: "Create an agent that summarizes documents", icon: "🤖" },
-    { text: "Add a table for tracking leads", icon: "📊" },
-    { text: "Create a full React desk page for an executive dashboard", icon: "🧩" },
-    { text: "Create a flow to process emails", icon: "⚡" },
-  ];
+export interface EmptyStateProps {
+  onSendMessage: (msg: string) => void;
+  suggestions?: EmptyStateSuggestion[];
+}
+
+export const DEFAULT_EMPTY_STATE_SUGGESTIONS: EmptyStateSuggestion[] = [
+  { text: "Help me get started", icon: "→" },
+  { text: "Summarize this for me", icon: "✦" },
+  { text: "Help me draft a reply", icon: "✎" },
+  { text: "Brainstorm next steps", icon: "⋯" },
+];
+
+export function EmptyState({
+  onSendMessage,
+  suggestions = DEFAULT_EMPTY_STATE_SUGGESTIONS,
+}: EmptyStateProps) {
 
   return (
-    <div className="lemma-assistant-empty-state text-center py-5 px-2">
-      <div className="lemma-assistant-empty-state-hero flex flex-col items-center justify-center mb-6">
-        <div className="lemma-assistant-empty-state-badge mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-primary),var(--brand-secondary))] shadow-[var(--shadow-xs)]">
-          <span className="text-[var(--text-on-brand)] text-lg">✨</span>
+    <div className="lemma-assistant-empty-state">
+      <div className="lemma-assistant-empty-state-hero">
+        <div className="lemma-assistant-empty-state-badge">
+          <span className="lemma-assistant-empty-state-badge-icon">✨</span>
         </div>
-        <h4 className="lemma-assistant-empty-state-title font-semibold text-[var(--text-primary)] text-[15px]">What can I help you build?</h4>
-        <p className="lemma-assistant-empty-state-copy text-[13px] text-[var(--text-tertiary)] mt-1.5 max-w-sm leading-relaxed">
-          I can create agents, set up data stores, build pages, and automate workflows for your pod.
+        <h4 className="lemma-assistant-empty-state-title">How can I help?</h4>
+        <p className="lemma-assistant-empty-state-copy">
+          Ask a question, share context, or start with one of these prompts.
         </p>
       </div>
 
-      <div className="lemma-assistant-empty-state-suggestions grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-[500px] mx-auto">
+      <div className="lemma-assistant-empty-state-suggestions">
         {suggestions.map((suggestion, index) => (
           <button
             key={`${suggestion.text}-${index}`}
             onClick={() => onSendMessage(suggestion.text)}
-            className="lemma-assistant-empty-state-suggestion text-left px-3 py-2.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] text-xs text-[var(--text-secondary)] hover:border-[color:color-mix(in_srgb,_var(--brand-accent)_52%,_var(--border-subtle))] hover:bg-[color:color-mix(in_srgb,_var(--brand-glow)_72%,_var(--bg-surface))] hover:text-[var(--text-primary)] transition-all duration-200 flex items-center gap-2.5 group"
+            className="lemma-assistant-empty-state-suggestion"
           >
-            <span className="text-base opacity-70 group-hover:opacity-100 transition-opacity">{suggestion.icon}</span>
-            <span className="flex-1 leading-snug">{suggestion.text}</span>
-            <span className="text-[var(--text-tertiary)] group-hover:text-[var(--state-warning)] group-hover:translate-x-0.5 transition-all opacity-0 group-hover:opacity-100">›</span>
+            {suggestion.icon ? (
+              <span className="lemma-assistant-empty-state-suggestion-icon">{suggestion.icon}</span>
+            ) : null}
+            <span className="lemma-assistant-empty-state-suggestion-text">{suggestion.text}</span>
+            <span className="lemma-assistant-empty-state-suggestion-arrow">›</span>
           </button>
         ))}
       </div>
@@ -858,18 +875,18 @@ function ReasoningPartCard({
   durationMs?: number;
 }) {
   return (
-    <details className="lemma-assistant-reasoning group" open={isStreaming}>
-      <summary className="lemma-assistant-reasoning-summary list-none cursor-pointer inline-flex items-center gap-1.5 text-[12px] leading-5 text-[var(--text-tertiary)]">
-        <span className="transition-transform group-open:rotate-90">›</span>
+    <details className="lemma-assistant-reasoning" open={isStreaming}>
+      <summary className="lemma-assistant-reasoning-summary">
+        <span className="lemma-assistant-reasoning-caret">›</span>
         <span className={cx(
-          "font-semibold",
-          isStreaming && "text-transparent bg-clip-text bg-[linear-gradient(110deg,var(--text-secondary),35%,var(--brand-accent),50%,var(--text-secondary),65%)] bg-[length:250%_100%] animate-pulse",
+          "lemma-assistant-reasoning-label",
+          isStreaming && "lemma-assistant-reasoning-label-streaming",
         )}>
           {isStreaming ? "Thinking" : `Thought${durationMs ? ` · ${Math.max(1, Math.round(durationMs / 1000))}s` : ""}`}
         </span>
       </summary>
-      <div className="lemma-assistant-reasoning-body mt-1 pl-4 border-l border-[var(--border-default)]">
-        <pre className="lemma-assistant-reasoning-text text-[11px] leading-5 text-[var(--text-tertiary)] whitespace-pre-wrap font-mono">{text}</pre>
+      <div className="lemma-assistant-reasoning-body">
+        <pre className="lemma-assistant-reasoning-text">{text}</pre>
       </div>
     </details>
   );
@@ -897,7 +914,7 @@ function PresentFilesCard({
   };
 
   return (
-    <div className="lemma-assistant-presented-files pt-1 space-y-2">
+    <div className="lemma-assistant-presented-files">
       {filepaths.map((filepath) => (
         <div key={`present-file-${filepath}`} className="lemma-assistant-presented-file">
           {(renderPresentedFile || defaultPresentedFile)({
@@ -940,7 +957,7 @@ function ToolDetailsPanel({
 
   if (renderToolInvocation) {
     return (
-      <div className="pl-4 border-l border-[var(--border-default)]">
+      <div className="lemma-assistant-tool-details-panel lemma-assistant-tool-details-panel-custom">
         {renderToolInvocation({
           invocation: {
             toolCallId: "detail-tool",
@@ -957,30 +974,30 @@ function ToolDetailsPanel({
   }
 
   return (
-    <div className="pl-4 border-l border-[var(--border-default)] space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-[10px] font-medium uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{formatToolDisplayName(toolName)}</div>
+    <div className="lemma-assistant-tool-details-panel">
+      <div className="lemma-assistant-tool-details-header">
+        <div className="lemma-assistant-tool-details-title">{formatToolDisplayName(toolName)}</div>
         {canNavigate && onNavigateResource ? (
           <button
             type="button"
             onClick={() => onNavigateResource(resultData.resourceType as string, resultData.resourceId as string, resultData)}
-            className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--state-success)] hover:text-[var(--state-success)] transition-colors"
+            className="lemma-assistant-tool-details-link"
           >
             Open ›
           </button>
         ) : null}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <div>
-          <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--text-tertiary)] mb-1">Input</div>
-          <div className="p-2 rounded bg-[color:color-mix(in_srgb,_var(--bg-canvas)_70%,_transparent)] font-mono text-[11px] max-h-24 overflow-auto">
-            <pre className="text-[var(--text-secondary)] whitespace-pre-wrap">{JSON.stringify(args, null, 2)}</pre>
+      <div className="lemma-assistant-tool-details-grid">
+        <div className="lemma-assistant-tool-details-section">
+          <div className="lemma-assistant-tool-details-label">Input</div>
+          <div className="lemma-assistant-tool-details-code">
+            <pre className="lemma-assistant-tool-details-code-text">{JSON.stringify(args, null, 2)}</pre>
           </div>
         </div>
-        <div>
-          <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--text-tertiary)] mb-1">Output</div>
-          <div className="p-2 rounded bg-[color:color-mix(in_srgb,_var(--bg-canvas)_70%,_transparent)] font-mono text-[11px] max-h-24 overflow-auto">
-            <pre className="text-[var(--text-secondary)] whitespace-pre-wrap">
+        <div className="lemma-assistant-tool-details-section">
+          <div className="lemma-assistant-tool-details-label">Output</div>
+          <div className="lemma-assistant-tool-details-code">
+            <pre className="lemma-assistant-tool-details-code-text">
               {Object.keys(resultData).length > 0 ? JSON.stringify(resultData, null, 2) : "No output yet"}
             </pre>
           </div>
@@ -1013,17 +1030,13 @@ function InlineToolCall({
     <button
       type="button"
       onClick={onClick}
-      className={cx(
-        "w-full text-left inline-flex items-center gap-1.5 text-[11px] leading-5 transition-colors hover:text-[var(--text-primary)]",
-        isExecuting && "text-[var(--state-info)]",
-        isComplete && "text-[var(--state-success)]",
-        isFailed && "text-[var(--state-error)]",
-        !isExecuting && !isComplete && !isFailed && "text-[var(--text-secondary)]",
-      )}
+      className="lemma-assistant-inline-tool-call"
+      data-state={isExecuting ? "executing" : isComplete ? "complete" : isFailed ? "failed" : "idle"}
+      data-selected={isSelected ? "true" : "false"}
     >
-      <span className="font-medium whitespace-nowrap">{formatToolDisplayName(invocation.toolName)}</span>
-      <span className="text-current/80 truncate">{summary}</span>
-      <span className="ml-auto transition-transform">{isSelected ? "⌄" : "›"}</span>
+      <span className="lemma-assistant-inline-tool-call-name">{formatToolDisplayName(invocation.toolName)}</span>
+      <span className="lemma-assistant-inline-tool-call-summary">{summary}</span>
+      <span className="lemma-assistant-inline-tool-call-caret">{isSelected ? "⌄" : "›"}</span>
     </button>
   );
 }
@@ -1062,30 +1075,34 @@ function ToolActivityRollup({
     : `Worked across ${toolParts.length} tool${toolParts.length === 1 ? "" : "s"}${failedCount > 0 ? ` · ${failedCount} failed` : ""}`;
 
   return (
-    <div className="lemma-assistant-tool-rollup space-y-1">
+    <div className="lemma-assistant-tool-rollup">
       <button
         type="button"
         onClick={() => setIsExpanded((prev) => !prev)}
-        className="lemma-assistant-tool-rollup-toggle inline-flex items-center gap-1.5 text-[11px] leading-5 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+        className="lemma-assistant-tool-rollup-toggle"
+        data-expanded={isExpanded ? "true" : "false"}
       >
-        <span className={cx("transition-transform", isExpanded && "rotate-90")}>›</span>
-        {isWorking ? <span className="inline-flex h-2 w-2 rounded-full bg-[var(--brand-accent)]" /> : null}
-        <span className={cx("text-[var(--text-secondary)]", isWorking && "font-medium")}>{summary}</span>
+        <span className="lemma-assistant-tool-rollup-caret">›</span>
+        {isWorking ? <span className="lemma-assistant-tool-rollup-dot" /> : null}
+        <span className={cx(
+          "lemma-assistant-tool-rollup-summary",
+          isWorking && "lemma-assistant-tool-rollup-summary-working",
+        )}>{summary}</span>
       </button>
 
       {isExpanded ? (
-        <div className="lemma-assistant-tool-rollup-details pl-4 border-l border-[var(--border-default)] space-y-1.5">
+        <div className="lemma-assistant-tool-rollup-details">
           {detailParts.map((part) => {
             if (part.type === "reasoning") {
               return (
                 <div
                   key={`thinking-${part.id}`}
-                  className="lemma-assistant-tool-rollup-thinking rounded-md bg-[var(--bg-canvas)] px-2.5 py-2"
+                  className="lemma-assistant-tool-rollup-thinking"
                 >
-                  <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
+                  <div className="lemma-assistant-tool-rollup-thinking-title">
                     {part.state === "streaming" ? "Thinking" : "Thought"}
                   </div>
-                  <pre className="text-[11px] leading-5 text-[var(--text-secondary)] whitespace-pre-wrap font-mono max-h-40 overflow-auto">
+                  <pre className="lemma-assistant-tool-rollup-thinking-text">
                     {part.text}
                   </pre>
                 </div>
@@ -1095,7 +1112,7 @@ function ToolActivityRollup({
             const invocation = part.toolInvocation;
             const isSelected = activeToolCallId === invocation.toolCallId;
             return (
-              <div key={part.id} className="lemma-assistant-tool-rollup-item space-y-1">
+              <div key={part.id} className="lemma-assistant-tool-rollup-item">
                 <InlineToolCall
                   invocation={invocation}
                   isSelected={isSelected}
@@ -1170,21 +1187,21 @@ function ShowWidgetToolCard({
   }, [onSendPrompt]);
 
   return (
-    <div className="lemma-assistant-widget-card space-y-2">
-      <div className="lemma-assistant-widget-card-header flex items-center justify-between gap-2">
-        <div className="lemma-assistant-widget-card-title text-[11px] font-semibold text-[var(--state-info)]">{displayName}</div>
+    <div className="lemma-assistant-widget-card">
+      <div className="lemma-assistant-widget-card-header">
+        <div className="lemma-assistant-widget-card-title">{displayName}</div>
         <span className={cx(
-          "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
-          isExecuting && "bg-[color:color-mix(in_srgb,_var(--state-info)_16%,_transparent)] text-[var(--state-info)]",
-          isFailed && "bg-[color:color-mix(in_srgb,_var(--state-error)_12%,_transparent)] text-[var(--state-error)]",
-          !isExecuting && !isFailed && "bg-[color:color-mix(in_srgb,_var(--state-success)_12%,_transparent)] text-[var(--state-success)]",
+          "lemma-assistant-widget-card-badge",
+          isExecuting && "lemma-assistant-widget-card-badge-rendering",
+          isFailed && "lemma-assistant-widget-card-badge-failed",
+          !isExecuting && !isFailed && "lemma-assistant-widget-card-badge-ready",
         )}>
           {isExecuting ? "Rendering" : isFailed ? "Failed" : "Ready"}
         </span>
       </div>
 
       {isFailed ? (
-        <p className="text-[11px] text-[var(--state-error)]">
+        <p className="lemma-assistant-widget-card-error">
           {typeof resultData.error === "string" && resultData.error.length > 0
             ? resultData.error
             : "Failed to render widget."}
@@ -1198,12 +1215,12 @@ function ShowWidgetToolCard({
           srcDoc={iframeDocument}
           sandbox="allow-scripts allow-forms allow-popups allow-downloads"
           height={height}
-          className="lemma-assistant-widget-card-frame w-full border-0 bg-transparent rounded-xl"
+          className="lemma-assistant-widget-card-frame"
         />
       ) : null}
 
       {!isFailed && !payload ? (
-        <p className="text-[11px] text-[var(--text-secondary)]">
+        <p className="lemma-assistant-widget-card-missing">
           Widget output is missing `widget_code`.
         </p>
       ) : null}
@@ -1306,8 +1323,8 @@ export function MessageGroup({
 
   if (message.role === "user") {
     return (
-      <div className="lemma-assistant-message lemma-assistant-message-user flex justify-end">
-        <div className="lemma-assistant-message-user-bubble max-w-[72ch] rounded-xl bg-[var(--brand-primary)] text-[var(--text-on-brand)] px-3.5 py-2.5">
+      <div className="lemma-assistant-message lemma-assistant-message-user">
+        <div className="lemma-assistant-message-user-bubble">
           {renderMessageContent({
             message: {
               ...message,
@@ -1322,15 +1339,15 @@ export function MessageGroup({
   }
 
   return (
-    <div className="lemma-assistant-message lemma-assistant-message-assistant px-1 py-0.5 space-y-1.5 max-w-[78ch]">
+    <div className="lemma-assistant-message lemma-assistant-message-assistant">
       {showAssistantHeader ? (
-        <div className="lemma-assistant-message-header inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
-          <span className="lemma-assistant-message-header-dot inline-block h-1.5 w-1.5 rounded-full bg-[color:color-mix(in_srgb,_var(--brand-primary)_40%,_transparent)]" />
+        <div className="lemma-assistant-message-header">
+          <span className="lemma-assistant-message-header-dot" />
           Lemma
         </div>
       ) : null}
 
-      <div className="lemma-assistant-message-body space-y-2">
+      <div className="lemma-assistant-message-body">
         {blocks.map((block) => {
           if (block.kind === "tools") {
             if (foldReasoningIntoToolRollup && block.id !== firstToolsBlockId) {
@@ -1371,7 +1388,7 @@ export function MessageGroup({
             }
 
             return (
-              <div key={part.id} className="lemma-assistant-message-text text-[13px] text-[var(--text-secondary)] leading-6">
+              <div key={part.id} className="lemma-assistant-message-text">
                 {renderMessageContent({
                   message: {
                     ...message,
@@ -1420,6 +1437,7 @@ export function AssistantExperienceView({
   subtitle = "Ask across your workspace and organization.",
   placeholder = "Message Lemma Assistant",
   emptyState,
+  emptyStateSuggestions,
   draft: controlledDraft,
   onDraftChange,
   showConversationList = false,
@@ -1719,11 +1737,7 @@ export function AssistantExperienceView({
 
   return (
     <div
-      className={cx(
-        "lemma-assistant-experience",
-        "flex h-full min-h-0 flex-col gap-3 font-sans antialiased",
-        showConversationList && "lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-3",
-      )}
+      className="lemma-assistant-experience"
       data-chrome-style={chromeStyle}
       data-status-placement={statusPlacement}
       data-radius={radius}
@@ -1734,12 +1748,12 @@ export function AssistantExperienceView({
       data-show-conversation-list={showConversationList ? "true" : "false"}
     >
       {showConversationList ? (
-        <aside className="lemma-assistant-experience-sidebar hidden min-h-0 overflow-hidden rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)] lg:flex lg:flex-col">
-          <div className="lemma-assistant-experience-sidebar-header border-b border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] px-4 py-3">
-            <div className="lemma-assistant-experience-sidebar-header-row flex items-center justify-between gap-3">
+        <aside className="lemma-assistant-experience-sidebar">
+          <div className="lemma-assistant-experience-sidebar-header">
+            <div className="lemma-assistant-experience-sidebar-header-row">
               <div className="lemma-assistant-experience-sidebar-copy">
-                <div className="lemma-assistant-experience-sidebar-title text-[13px] font-semibold text-[var(--text-primary)]">Conversations</div>
-                <div className="lemma-assistant-experience-sidebar-meta mt-1 text-[11px] text-[var(--text-tertiary)]">
+                <div className="lemma-assistant-experience-sidebar-title">Conversations</div>
+                <div className="lemma-assistant-experience-sidebar-meta">
                   {controller.conversations.length} total
                 </div>
               </div>
@@ -1747,14 +1761,14 @@ export function AssistantExperienceView({
                 <button
                   type="button"
                   onClick={controller.clearMessages}
-                  className="lemma-assistant-experience-sidebar-new rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  className="lemma-assistant-experience-sidebar-new"
                 >
                   New
                 </button>
               ) : null}
             </div>
           </div>
-          <div className="lemma-assistant-experience-sidebar-items min-h-0 flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="lemma-assistant-experience-sidebar-items">
             {controller.conversations.map((conversation) => {
               const isActive = conversation.id === controller.activeConversationId;
               return (
@@ -1764,16 +1778,13 @@ export function AssistantExperienceView({
                   onClick={() => controller.selectConversation(conversation.id)}
                   className={cx(
                     "lemma-assistant-experience-sidebar-item",
-                    "w-full rounded-xl border px-3 py-2.5 text-left transition-colors",
-                    isActive
-                      ? "lemma-assistant-experience-sidebar-item-active border-[color:color-mix(in_srgb,_var(--brand-primary)_44%,_var(--border-default))] bg-[color:color-mix(in_srgb,_var(--brand-glow)_42%,_var(--bg-surface))]"
-                      : "border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)]",
+                    isActive && "lemma-assistant-experience-sidebar-item-active",
                   )}
                 >
-                  <div className="lemma-assistant-experience-sidebar-item-title text-[12px] font-medium text-[var(--text-primary)]">
+                  <div className="lemma-assistant-experience-sidebar-item-title">
                     {renderConversationLabel({ conversation, isActive })}
                   </div>
-                  <div className="lemma-assistant-experience-sidebar-item-status mt-1 text-[10px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                  <div className="lemma-assistant-experience-sidebar-item-status">
                     {(conversation.status || "waiting").toLowerCase()}
                   </div>
                 </button>
@@ -1783,14 +1794,14 @@ export function AssistantExperienceView({
         </aside>
       ) : null}
 
-      <div className="lemma-assistant-experience-main flex h-full min-h-0 flex-col gap-3">
-        <div className="lemma-assistant-experience-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)]">
+      <div className="lemma-assistant-experience-main">
+        <div className="lemma-assistant-experience-card">
           <AssistantHeader
             className="lemma-assistant-experience-header"
             tone={headerTone}
             title={title}
             subtitle={subtitle}
-            badge={<span className="text-[var(--text-on-brand)] text-xs">✨</span>}
+            badge={<span className="lemma-assistant-experience-header-badge-icon">✨</span>}
             controls={showModelPicker || showNewConversationButton ? (
               <>
                 {showModelPicker ? (
@@ -1808,7 +1819,7 @@ export function AssistantExperienceView({
                     type="button"
                     onClick={controller.clearMessages}
                     title="New conversation"
-                    className="lemma-assistant-experience-new inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-tertiary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-secondary)]"
+                    className="lemma-assistant-experience-new"
                   >
                     ↺
                   </button>
@@ -1818,23 +1829,28 @@ export function AssistantExperienceView({
           />
 
           <AssistantMessageViewport
-            className="lemma-assistant-experience-viewport min-h-[180px]"
+            className="lemma-assistant-experience-viewport"
             ref={messagesContainerRef}
             onScroll={updatePinnedState}
           >
             {controller.messages.length === 0 && !isConversationBusy ? (
-              emptyState || <EmptyState onSendMessage={(message) => { void controller.sendMessage(message); }} />
+              emptyState || (
+                <EmptyState
+                  onSendMessage={(message) => { void controller.sendMessage(message); }}
+                  suggestions={emptyStateSuggestions}
+                />
+              )
             ) : null}
 
             {(controller.isLoadingMessages && controller.messages.length === 0) ? (
-              <div className="lemma-assistant-experience-loading flex justify-center py-6">
-                <span className="lemma-assistant-experience-loading-text text-[var(--text-tertiary)] text-sm">Loading…</span>
+              <div className="lemma-assistant-experience-loading">
+                <span className="lemma-assistant-experience-loading-text">Loading…</span>
               </div>
             ) : null}
 
             {(controller.isLoadingOlderMessages && controller.messages.length > 0) ? (
-              <div className="lemma-assistant-experience-loading-older flex justify-center py-1">
-                <span className="lemma-assistant-experience-loading-older-text text-[var(--text-tertiary)] text-xs">Loading older…</span>
+              <div className="lemma-assistant-experience-loading-older">
+                <span className="lemma-assistant-experience-loading-older-text">Loading older…</span>
               </div>
             ) : null}
 
@@ -1863,8 +1879,11 @@ export function AssistantExperienceView({
             })}
 
             {showInlineStatus ? (
-              <div className="lemma-assistant-experience-inline-status flex min-h-[38px] items-center px-1">
-                <div className={cx("transition-all duration-200", lastMessageHasContent ? "opacity-80" : "opacity-100")}>
+              <div className="lemma-assistant-experience-inline-status">
+                <div
+                  className="lemma-assistant-experience-inline-status-pill"
+                  data-has-content={lastMessageHasContent ? "true" : "false"}
+                >
                   <AssistantStatusPill
                     label={liveStatusLabel}
                     subtle={lastMessageHasContent}
@@ -1874,17 +1893,17 @@ export function AssistantExperienceView({
             ) : null}
 
             {controller.error ? (
-              <div className="lemma-assistant-experience-error bg-[color:color-mix(in_srgb,_var(--state-error)_12%,_transparent)] border border-[color:color-mix(in_srgb,_var(--state-error)_48%,_var(--border-subtle))] rounded-lg p-3 text-xs text-[var(--state-error)] flex items-start gap-2.5">
+              <div className="lemma-assistant-experience-error">
                 <div>
-                  <p className="font-medium">Something went wrong</p>
-                  <p className="text-[var(--state-error)] mt-1">{controller.error}</p>
+                  <p className="lemma-assistant-experience-error-title">Something went wrong</p>
+                  <p className="lemma-assistant-experience-error-copy">{controller.error}</p>
                 </div>
               </div>
             ) : null}
             {(controller.messages.length > 0 || isConversationBusy || !!controller.error) ? (
-              <div aria-hidden="true" className="h-14 shrink-0" />
+              <div aria-hidden="true" className="lemma-assistant-experience-bottom-spacer" />
             ) : null}
-            <div ref={bottomAnchorRef} aria-hidden="true" className="lemma-assistant-experience-bottom-anchor h-px" />
+            <div ref={bottomAnchorRef} aria-hidden="true" className="lemma-assistant-experience-bottom-anchor" />
           </AssistantMessageViewport>
         </div>
 
@@ -1896,7 +1915,7 @@ export function AssistantExperienceView({
               <button
                 type="button"
                 onClick={() => setIsPlanHidden(false)}
-                className="inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_srgb,_var(--border-default)_88%,_transparent)] bg-[var(--bg-surface)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-xs)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
+                className="lemma-assistant-experience-plan-button"
               >
                 Show plan ({planSummary.completedCount}/{planSummary.steps.length})
               </button>
@@ -1941,26 +1960,21 @@ export function AssistantExperienceView({
               mode={activeAskQuestion.type}
             />
           ) : (
-            <div className="lemma-assistant-experience-composer-body space-y-1.5">
-              <div className="lemma-assistant-experience-input-row relative flex items-end gap-2">
+            <div className="lemma-assistant-experience-composer-body">
+              <div className="lemma-assistant-experience-input-row">
                 <input
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  className="lemma-assistant-experience-file-input hidden"
+                  className="lemma-assistant-experience-file-input"
                   onChange={(event) => { void handleUploadSelection(event.target.files); }}
                 />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isConversationBusy || controller.isUploadingFiles}
-                  className={cx(
-                    "lemma-assistant-experience-upload",
-                    "mb-1.5 ml-1 h-9 w-9 rounded-full flex items-center justify-center transition-colors",
-                    isConversationBusy || controller.isUploadingFiles
-                      ? "bg-[var(--bg-subtle)] text-[var(--text-tertiary)]"
-                      : "bg-[var(--bg-subtle)] text-[var(--text-secondary)] hover:bg-[var(--bg-canvas)] hover:text-[var(--text-primary)]",
-                  )}
+                  className="lemma-assistant-experience-upload"
+                  data-disabled={isConversationBusy || controller.isUploadingFiles ? "true" : "false"}
                   title="Upload files"
                 >
                   {controller.isUploadingFiles ? "…" : "＋"}
@@ -1971,23 +1985,16 @@ export function AssistantExperienceView({
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={placeholder}
-                  className="lemma-assistant-experience-textarea flex-1 resize-none border-0 bg-transparent px-3 py-2.5 text-[14px] text-[var(--text-primary)] leading-6 focus:ring-0 focus:outline-none placeholder:text-[var(--text-tertiary)] min-h-[48px] max-h-[220px]"
+                  className="lemma-assistant-experience-textarea"
                   rows={1}
                   disabled={isConversationBusy}
                 />
-                <div className="lemma-assistant-experience-send-wrap pb-1.5 pr-1.5">
+                <div className="lemma-assistant-experience-send-wrap">
                   <button
                     onClick={isConversationBusy ? controller.stop : () => { void handleSubmit(); }}
                     disabled={!isConversationBusy && !draft.trim()}
-                    className={cx(
-                      "lemma-assistant-experience-send",
-                      "h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200",
-                      isConversationBusy
-                        ? "bg-[var(--text-primary)] text-[var(--text-inverse)] hover:bg-[color:color-mix(in_srgb,_var(--text-primary)_80%,_transparent)] hover:scale-105"
-                        : draft.trim()
-                          ? "bg-[var(--brand-primary)] text-[var(--text-on-brand)] shadow-[var(--shadow-xs)] hover:bg-[color:color-mix(in_srgb,_var(--brand-primary)_88%,_var(--text-primary))]"
-                          : "bg-[var(--bg-subtle)] text-[var(--text-tertiary)]",
-                    )}
+                    className="lemma-assistant-experience-send"
+                    data-state={isConversationBusy ? "busy" : draft.trim() ? "ready" : "idle"}
                     title={isConversationBusy ? "Stop generating" : "Send message"}
                   >
                     {isConversationBusy ? "■" : "→"}
