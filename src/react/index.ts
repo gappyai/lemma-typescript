@@ -47,6 +47,7 @@ export {
   AssistantPendingFileChip,
   AssistantShellLayout,
   AssistantStatusPill,
+  AssistantThemeScope,
 } from "./components/AssistantChrome.js";
 export type {
   AssistantAskOverlayProps,
@@ -58,12 +59,18 @@ export type {
   AssistantPendingFileChipProps,
   AssistantShellLayoutProps,
   AssistantStatusPillProps,
+  AssistantSurfaceTone,
+  AssistantThemeMode,
+  AssistantThemeScopeProps,
 } from "./components/AssistantChrome.js";
 export { AssistantExperienceView } from "./components/AssistantExperience.js";
 export type {
   ActiveToolBanner,
   AskUserInputQuestion,
+  AssistantChromeStyle,
   AssistantExperienceViewProps,
+  AssistantRadiusScale,
+  AssistantStatusPlacement,
   DisplayMessageRow,
   PendingAskUserInput,
   PlanStepState,

@@ -9,6 +9,8 @@
 # testing
 /coverage
 
+/examples/assistant-showcase/node_modules
+
 # next.js
 /.next/
 /out/

@@ -7,6 +7,8 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+import ReactMarkdown, { type Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { AvailableModels, type ConversationModel } from "../../types.js";
 import type {
   AssistantMessagePart,
@@ -23,7 +25,12 @@ import type {
 } from "./assistant-types.js";
 import {
   AssistantAskOverlay,
+  AssistantComposer,
+  AssistantHeader,
   AssistantMessageViewport,
+  AssistantModelPicker,
+  AssistantStatusPill,
+  type AssistantSurfaceTone,
 } from "./AssistantChrome.js";
 
 type ToolCardArgs = Record<string, unknown>;
@@ -80,6 +87,10 @@ export interface ActiveToolBanner {
   activeCount: number;
 }
 
+export type AssistantChromeStyle = "elevated" | "subtle" | "flat";
+export type AssistantStatusPlacement = "inline" | "composer" | "none";
+export type AssistantRadiusScale = "none" | "sm" | "md" | "lg" | "xl";
+
 export interface AssistantExperienceViewProps {
   controller: AssistantControllerView;
   title?: ReactNode;
@@ -89,6 +100,11 @@ export interface AssistantExperienceViewProps {
   draft?: string;
   onDraftChange?: (value: string) => void;
   showConversationList?: boolean;
+  chromeStyle?: AssistantChromeStyle;
+  statusPlacement?: AssistantStatusPlacement;
+  radius?: AssistantRadiusScale;
+  showModelPicker?: boolean;
+  showNewConversationButton?: boolean;
   onNavigateResource?: (resourceType: string, resourceId: string, meta?: Record<string, unknown>) => void;
   renderConversationLabel?: (args: AssistantConversationRenderArgs) => ReactNode;
   renderMessageContent?: (args: AssistantMessageRenderArgs) => ReactNode;
@@ -652,8 +668,28 @@ function defaultConversationLabel({ conversation }: AssistantConversationRenderA
   return conversation.title || "Untitled conversation";
 }
 
+const markdownComponents: Components = {
+  a: ({ node: _node, ...props }) => (
+    <a
+      {...props}
+      target={props.target || "_blank"}
+      rel={props.rel || "noreferrer noopener"}
+    />
+  ),
+};
+
 function defaultMessageContent({ message }: AssistantMessageRenderArgs): ReactNode {
-  return <div className="whitespace-pre-wrap">{message.content}</div>;
+  return (
+    <div className="lemma-assistant-markdown">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        skipHtml
+        components={markdownComponents}
+      >
+        {message.content}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
 function defaultPresentedFile({ filepath }: AssistantPresentedFileRenderArgs): ReactNode {
@@ -687,15 +723,15 @@ export function PlanSummaryStrip({ plan, onHide }: { plan: PlanSummaryState; onH
   const hiddenCount = Math.max(0, plan.steps.length - visibleSteps.length);
 
   return (
-    <div className="rounded-xl border border-[color:color-mix(in_srgb,_var(--brand-primary)_24%,_var(--border-subtle))] bg-[color:color-mix(in_srgb,_var(--brand-glow)_18%,_var(--bg-surface))] px-3 py-2.5 shadow-[var(--shadow-sm)]">
-      <div className="flex items-center justify-between gap-2">
-        <div className="inline-flex items-center gap-2">
-          <span className="text-[12px] font-semibold text-[var(--text-primary)]">Task plan</span>
-          <span className="text-[11px] text-[var(--text-tertiary)]">
+    <div className="lemma-assistant-plan-strip rounded-xl border border-[color:color-mix(in_srgb,_var(--border-default)_88%,_transparent)] bg-[var(--bg-surface)] px-3 py-2.5 shadow-[var(--shadow-sm)]">
+      <div className="lemma-assistant-plan-strip-header flex items-center justify-between gap-2">
+        <div className="lemma-assistant-plan-strip-summary inline-flex items-center gap-2">
+          <span className="lemma-assistant-plan-strip-title text-[12px] font-semibold text-[var(--text-primary)]">Task plan</span>
+          <span className="lemma-assistant-plan-strip-count text-[11px] text-[var(--text-tertiary)]">
             {plan.completedCount}/{plan.steps.length} complete
           </span>
           {plan.inProgressCount > 0 ? (
-            <span className="rounded-full bg-[color:color-mix(in_srgb,_var(--brand-primary)_16%,_transparent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--brand-primary)]">
+            <span className="lemma-assistant-plan-strip-active rounded-full bg-[color:color-mix(in_srgb,_var(--brand-primary)_16%,_transparent)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--brand-primary)]">
               {plan.inProgressCount} active
             </span>
           ) : null}
@@ -715,9 +751,9 @@ export function PlanSummaryStrip({ plan, onHide }: { plan: PlanSummaryState; onH
         </div>
       ) : null}
 
-      <div className="mt-2 space-y-1">
+      <div className="lemma-assistant-plan-strip-steps mt-2 space-y-1">
         {visibleSteps.map((step, index) => (
-          <div key={`${step.step}-${index}`} className="flex items-start gap-2 text-[11px]">
+          <div key={`${step.step}-${index}`} className="lemma-assistant-plan-strip-step flex items-start gap-2 text-[11px]">
             <span className={cx(
               "mt-1 inline-block h-2 w-2 shrink-0 rounded-full",
               step.status === "completed" && "bg-[var(--state-success)]",
@@ -764,10 +800,10 @@ export function ThinkingIndicator() {
   if (!show) return null;
 
   return (
-    <div className="px-1 animate-in fade-in duration-300">
-      <div className="inline-flex items-center gap-2.5 text-[12px] leading-5 text-[var(--text-tertiary)]">
-        <span className="inline-flex h-2 w-2 rounded-full bg-[var(--brand-accent)]" />
-        <span className="font-semibold text-transparent bg-clip-text bg-[linear-gradient(110deg,var(--text-secondary),35%,var(--brand-accent),50%,var(--text-secondary),65%)] bg-[length:250%_100%] animate-pulse">
+    <div className="lemma-assistant-thinking px-1 animate-in fade-in duration-300">
+      <div className="lemma-assistant-thinking-label inline-flex items-center gap-2.5 text-[12px] leading-5 text-[var(--text-tertiary)]">
+        <span className="lemma-assistant-thinking-dot inline-flex h-2 w-2 rounded-full bg-[var(--brand-accent)]" />
+        <span className="lemma-assistant-thinking-text font-semibold text-transparent bg-clip-text bg-[linear-gradient(110deg,var(--text-secondary),35%,var(--brand-accent),50%,var(--text-secondary),65%)] bg-[length:250%_100%] animate-pulse">
           Thinking...
         </span>
       </div>
@@ -784,23 +820,23 @@ export function EmptyState({ onSendMessage }: { onSendMessage: (msg: string) => 
   ];
 
   return (
-    <div className="text-center py-5 px-2">
-      <div className="flex flex-col items-center justify-center mb-6">
-        <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-primary),var(--brand-secondary))] shadow-[var(--shadow-xs)]">
+    <div className="lemma-assistant-empty-state text-center py-5 px-2">
+      <div className="lemma-assistant-empty-state-hero flex flex-col items-center justify-center mb-6">
+        <div className="lemma-assistant-empty-state-badge mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,var(--brand-primary),var(--brand-secondary))] shadow-[var(--shadow-xs)]">
           <span className="text-[var(--text-on-brand)] text-lg">✨</span>
         </div>
-        <h4 className="font-semibold text-[var(--text-primary)] text-[15px]">What can I help you build?</h4>
-        <p className="text-[13px] text-[var(--text-tertiary)] mt-1.5 max-w-sm leading-relaxed">
+        <h4 className="lemma-assistant-empty-state-title font-semibold text-[var(--text-primary)] text-[15px]">What can I help you build?</h4>
+        <p className="lemma-assistant-empty-state-copy text-[13px] text-[var(--text-tertiary)] mt-1.5 max-w-sm leading-relaxed">
           I can create agents, set up data stores, build pages, and automate workflows for your pod.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-[500px] mx-auto">
+      <div className="lemma-assistant-empty-state-suggestions grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-w-[500px] mx-auto">
         {suggestions.map((suggestion, index) => (
           <button
             key={`${suggestion.text}-${index}`}
             onClick={() => onSendMessage(suggestion.text)}
-            className="text-left px-3 py-2.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] text-xs text-[var(--text-secondary)] hover:border-[color:color-mix(in_srgb,_var(--brand-accent)_52%,_var(--border-subtle))] hover:bg-[color:color-mix(in_srgb,_var(--brand-glow)_72%,_var(--bg-surface))] hover:text-[var(--text-primary)] transition-all duration-200 flex items-center gap-2.5 group"
+            className="lemma-assistant-empty-state-suggestion text-left px-3 py-2.5 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] text-xs text-[var(--text-secondary)] hover:border-[color:color-mix(in_srgb,_var(--brand-accent)_52%,_var(--border-subtle))] hover:bg-[color:color-mix(in_srgb,_var(--brand-glow)_72%,_var(--bg-surface))] hover:text-[var(--text-primary)] transition-all duration-200 flex items-center gap-2.5 group"
           >
             <span className="text-base opacity-70 group-hover:opacity-100 transition-opacity">{suggestion.icon}</span>
             <span className="flex-1 leading-snug">{suggestion.text}</span>
@@ -822,8 +858,8 @@ function ReasoningPartCard({
   durationMs?: number;
 }) {
   return (
-    <details className="group" open={isStreaming}>
-      <summary className="list-none cursor-pointer inline-flex items-center gap-1.5 text-[12px] leading-5 text-[var(--text-tertiary)]">
+    <details className="lemma-assistant-reasoning group" open={isStreaming}>
+      <summary className="lemma-assistant-reasoning-summary list-none cursor-pointer inline-flex items-center gap-1.5 text-[12px] leading-5 text-[var(--text-tertiary)]">
         <span className="transition-transform group-open:rotate-90">›</span>
         <span className={cx(
           "font-semibold",
@@ -832,8 +868,8 @@ function ReasoningPartCard({
           {isStreaming ? "Thinking" : `Thought${durationMs ? ` · ${Math.max(1, Math.round(durationMs / 1000))}s` : ""}`}
         </span>
       </summary>
-      <div className="mt-1 pl-4 border-l border-[var(--border-default)]">
-        <pre className="text-[11px] leading-5 text-[var(--text-tertiary)] whitespace-pre-wrap font-mono">{text}</pre>
+      <div className="lemma-assistant-reasoning-body mt-1 pl-4 border-l border-[var(--border-default)]">
+        <pre className="lemma-assistant-reasoning-text text-[11px] leading-5 text-[var(--text-tertiary)] whitespace-pre-wrap font-mono">{text}</pre>
       </div>
     </details>
   );
@@ -861,9 +897,9 @@ function PresentFilesCard({
   };
 
   return (
-    <div className="pt-1 space-y-2">
+    <div className="lemma-assistant-presented-files pt-1 space-y-2">
       {filepaths.map((filepath) => (
-        <div key={`present-file-${filepath}`}>
+        <div key={`present-file-${filepath}`} className="lemma-assistant-presented-file">
           {(renderPresentedFile || defaultPresentedFile)({
             filepath,
             activeConversationId: conversationId ?? null,
@@ -923,7 +959,7 @@ function ToolDetailsPanel({
   return (
     <div className="pl-4 border-l border-[var(--border-default)] space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] font-medium text-[var(--text-secondary)]">{formatToolDisplayName(toolName)}</div>
+        <div className="text-[10px] font-medium uppercase tracking-[0.04em] text-[var(--text-tertiary)]">{formatToolDisplayName(toolName)}</div>
         {canNavigate && onNavigateResource ? (
           <button
             type="button"
@@ -978,7 +1014,7 @@ function InlineToolCall({
       type="button"
       onClick={onClick}
       className={cx(
-        "w-full text-left inline-flex items-center gap-1.5 text-[12px] leading-5 transition-colors hover:text-[var(--text-primary)]",
+        "w-full text-left inline-flex items-center gap-1.5 text-[11px] leading-5 transition-colors hover:text-[var(--text-primary)]",
         isExecuting && "text-[var(--state-info)]",
         isComplete && "text-[var(--state-success)]",
         isFailed && "text-[var(--state-error)]",
@@ -1026,11 +1062,11 @@ function ToolActivityRollup({
     : `Worked across ${toolParts.length} tool${toolParts.length === 1 ? "" : "s"}${failedCount > 0 ? ` · ${failedCount} failed` : ""}`;
 
   return (
-    <div className="space-y-1">
+    <div className="lemma-assistant-tool-rollup space-y-1">
       <button
         type="button"
         onClick={() => setIsExpanded((prev) => !prev)}
-        className="inline-flex items-center gap-1.5 text-[12px] leading-5 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+        className="lemma-assistant-tool-rollup-toggle inline-flex items-center gap-1.5 text-[11px] leading-5 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
       >
         <span className={cx("transition-transform", isExpanded && "rotate-90")}>›</span>
         {isWorking ? <span className="inline-flex h-2 w-2 rounded-full bg-[var(--brand-accent)]" /> : null}
@@ -1038,13 +1074,13 @@ function ToolActivityRollup({
       </button>
 
       {isExpanded ? (
-        <div className="pl-4 border-l border-[var(--border-default)] space-y-1.5">
+        <div className="lemma-assistant-tool-rollup-details pl-4 border-l border-[var(--border-default)] space-y-1.5">
           {detailParts.map((part) => {
             if (part.type === "reasoning") {
               return (
                 <div
                   key={`thinking-${part.id}`}
-                  className="rounded-md bg-[var(--bg-canvas)] px-2.5 py-2"
+                  className="lemma-assistant-tool-rollup-thinking rounded-md bg-[var(--bg-canvas)] px-2.5 py-2"
                 >
                   <div className="mb-1 text-[10px] font-medium uppercase tracking-[0.1em] text-[var(--text-tertiary)]">
                     {part.state === "streaming" ? "Thinking" : "Thought"}
@@ -1059,7 +1095,7 @@ function ToolActivityRollup({
             const invocation = part.toolInvocation;
             const isSelected = activeToolCallId === invocation.toolCallId;
             return (
-              <div key={part.id} className="space-y-1">
+              <div key={part.id} className="lemma-assistant-tool-rollup-item space-y-1">
                 <InlineToolCall
                   invocation={invocation}
                   isSelected={isSelected}
@@ -1134,9 +1170,9 @@ function ShowWidgetToolCard({
   }, [onSendPrompt]);
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <div className="text-[11px] font-semibold text-[var(--state-info)]">{displayName}</div>
+    <div className="lemma-assistant-widget-card space-y-2">
+      <div className="lemma-assistant-widget-card-header flex items-center justify-between gap-2">
+        <div className="lemma-assistant-widget-card-title text-[11px] font-semibold text-[var(--state-info)]">{displayName}</div>
         <span className={cx(
           "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
           isExecuting && "bg-[color:color-mix(in_srgb,_var(--state-info)_16%,_transparent)] text-[var(--state-info)]",
@@ -1162,7 +1198,7 @@ function ShowWidgetToolCard({
           srcDoc={iframeDocument}
           sandbox="allow-scripts allow-forms allow-popups allow-downloads"
           height={height}
-          className="w-full border-0 bg-transparent rounded-xl"
+          className="lemma-assistant-widget-card-frame w-full border-0 bg-transparent rounded-xl"
         />
       ) : null}
 
@@ -1270,8 +1306,8 @@ export function MessageGroup({
 
   if (message.role === "user") {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[72ch] rounded-xl bg-[var(--brand-primary)] text-[var(--text-on-brand)] px-3.5 py-2.5">
+      <div className="lemma-assistant-message lemma-assistant-message-user flex justify-end">
+        <div className="lemma-assistant-message-user-bubble max-w-[72ch] rounded-xl bg-[var(--brand-primary)] text-[var(--text-on-brand)] px-3.5 py-2.5">
           {renderMessageContent({
             message: {
               ...message,
@@ -1286,15 +1322,15 @@ export function MessageGroup({
   }
 
   return (
-    <div className="px-1 py-0.5 space-y-1.5 max-w-[78ch]">
+    <div className="lemma-assistant-message lemma-assistant-message-assistant px-1 py-0.5 space-y-1.5 max-w-[78ch]">
       {showAssistantHeader ? (
-        <div className="inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-[color:color-mix(in_srgb,_var(--brand-primary)_40%,_transparent)]" />
+        <div className="lemma-assistant-message-header inline-flex items-center gap-1.5 text-[11px] text-[var(--text-tertiary)]">
+          <span className="lemma-assistant-message-header-dot inline-block h-1.5 w-1.5 rounded-full bg-[color:color-mix(in_srgb,_var(--brand-primary)_40%,_transparent)]" />
           Lemma
         </div>
       ) : null}
 
-      <div className="space-y-2">
+      <div className="lemma-assistant-message-body space-y-2">
         {blocks.map((block) => {
           if (block.kind === "tools") {
             if (foldReasoningIntoToolRollup && block.id !== firstToolsBlockId) {
@@ -1335,7 +1371,7 @@ export function MessageGroup({
             }
 
             return (
-              <div key={part.id} className="text-[13px] text-[var(--text-secondary)] leading-6">
+              <div key={part.id} className="lemma-assistant-message-text text-[13px] text-[var(--text-secondary)] leading-6">
                 {renderMessageContent({
                   message: {
                     ...message,
@@ -1387,6 +1423,11 @@ export function AssistantExperienceView({
   draft: controlledDraft,
   onDraftChange,
   showConversationList = false,
+  chromeStyle = "subtle",
+  statusPlacement = "inline",
+  radius = "md",
+  showModelPicker = true,
+  showNewConversationButton = true,
   onNavigateResource,
   renderConversationLabel = defaultConversationLabel,
   renderMessageContent = defaultMessageContent,
@@ -1406,6 +1447,7 @@ export function AssistantExperienceView({
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bottomAnchorRef = useRef<HTMLDivElement>(null);
   const isPinnedToBottomRef = useRef(true);
   const loadingOlderFromScrollRef = useRef(false);
   const isConversationBusy = controller.isLoading || controller.isActiveConversationRunning;
@@ -1429,6 +1471,16 @@ export function AssistantExperienceView({
   }, []);
 
   const scrollToLatest = useCallback((behavior: ScrollBehavior = "auto") => {
+    const anchor = bottomAnchorRef.current;
+    if (anchor) {
+      anchor.scrollIntoView({
+        block: "end",
+        behavior,
+      });
+      isPinnedToBottomRef.current = true;
+      return;
+    }
+
     const el = messagesContainerRef.current;
     if (!el) return;
     el.scrollTo({
@@ -1473,10 +1525,19 @@ export function AssistantExperienceView({
 
     if (isPinnedToBottomRef.current) {
       requestAnimationFrame(() => {
-        scrollToLatest(isConversationBusy ? "auto" : "smooth");
+        requestAnimationFrame(() => {
+          scrollToLatest(isConversationBusy ? "auto" : "smooth");
+        });
       });
     }
   }, [controller.messages, isConversationBusy, scrollToLatest]);
+
+  useEffect(() => {
+    isPinnedToBottomRef.current = true;
+    requestAnimationFrame(() => {
+      scrollToLatest("auto");
+    });
+  }, [controller.activeConversationId, scrollToLatest]);
 
   useEffect(() => {
     resizeComposer();
@@ -1613,7 +1674,10 @@ export function AssistantExperienceView({
     if (selectedFiles.length === 0) return;
 
     try {
-      await controller.uploadFiles(selectedFiles);
+      await controller.uploadFiles(selectedFiles, { deferUntilSend: true });
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
     } finally {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -1647,32 +1711,50 @@ export function AssistantExperienceView({
     ? effectiveAskOverlayState.answers[effectiveAskOverlayState.currentQuestionIndex] || []
     : [];
   const canContinueAsk = activeAskAnswers.length > 0;
+  const liveStatusLabel = activeToolBanner?.summary || "Thinking through this...";
+  const headerTone: AssistantSurfaceTone = chromeStyle === "elevated" ? "default" : chromeStyle === "flat" ? "flat" : "subtle";
+  const composerTone: AssistantSurfaceTone = chromeStyle === "flat" ? "flat" : chromeStyle === "subtle" ? "subtle" : "default";
+  const showInlineStatus = statusPlacement === "inline" && isConversationBusy;
+  const showComposerStatus = statusPlacement === "composer" && isConversationBusy;
 
   return (
-    <div className={cx(
-      "flex h-full min-h-0 flex-col gap-3 font-sans antialiased",
-      showConversationList && "lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-3",
-    )}>
+    <div
+      className={cx(
+        "lemma-assistant-experience",
+        "flex h-full min-h-0 flex-col gap-3 font-sans antialiased",
+        showConversationList && "lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-3",
+      )}
+      data-chrome-style={chromeStyle}
+      data-status-placement={statusPlacement}
+      data-radius={radius}
+      data-show-model-picker={showModelPicker ? "true" : "false"}
+      data-busy={isConversationBusy ? "true" : "false"}
+      data-has-plan={planSummary ? "true" : "false"}
+      data-has-pending-files={controller.pendingFiles.length > 0 ? "true" : "false"}
+      data-show-conversation-list={showConversationList ? "true" : "false"}
+    >
       {showConversationList ? (
-        <aside className="hidden min-h-0 overflow-hidden rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)] lg:flex lg:flex-col">
-          <div className="border-b border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-[13px] font-semibold text-[var(--text-primary)]">Conversations</div>
-                <div className="mt-1 text-[11px] text-[var(--text-tertiary)]">
+        <aside className="lemma-assistant-experience-sidebar hidden min-h-0 overflow-hidden rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)] lg:flex lg:flex-col">
+          <div className="lemma-assistant-experience-sidebar-header border-b border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] px-4 py-3">
+            <div className="lemma-assistant-experience-sidebar-header-row flex items-center justify-between gap-3">
+              <div className="lemma-assistant-experience-sidebar-copy">
+                <div className="lemma-assistant-experience-sidebar-title text-[13px] font-semibold text-[var(--text-primary)]">Conversations</div>
+                <div className="lemma-assistant-experience-sidebar-meta mt-1 text-[11px] text-[var(--text-tertiary)]">
                   {controller.conversations.length} total
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={controller.clearMessages}
-                className="rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-              >
-                New
-              </button>
+              {showNewConversationButton ? (
+                <button
+                  type="button"
+                  onClick={controller.clearMessages}
+                  className="lemma-assistant-experience-sidebar-new rounded-full border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                >
+                  New
+                </button>
+              ) : null}
             </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="lemma-assistant-experience-sidebar-items min-h-0 flex-1 overflow-y-auto p-3 space-y-2">
             {controller.conversations.map((conversation) => {
               const isActive = conversation.id === controller.activeConversationId;
               return (
@@ -1681,16 +1763,17 @@ export function AssistantExperienceView({
                   type="button"
                   onClick={() => controller.selectConversation(conversation.id)}
                   className={cx(
+                    "lemma-assistant-experience-sidebar-item",
                     "w-full rounded-xl border px-3 py-2.5 text-left transition-colors",
                     isActive
-                      ? "border-[color:color-mix(in_srgb,_var(--brand-primary)_44%,_var(--border-default))] bg-[color:color-mix(in_srgb,_var(--brand-glow)_42%,_var(--bg-surface))]"
+                      ? "lemma-assistant-experience-sidebar-item-active border-[color:color-mix(in_srgb,_var(--brand-primary)_44%,_var(--border-default))] bg-[color:color-mix(in_srgb,_var(--brand-glow)_42%,_var(--bg-surface))]"
                       : "border-[var(--border-default)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)]",
                   )}
                 >
-                  <div className="text-[12px] font-medium text-[var(--text-primary)]">
+                  <div className="lemma-assistant-experience-sidebar-item-title text-[12px] font-medium text-[var(--text-primary)]">
                     {renderConversationLabel({ conversation, isActive })}
                   </div>
-                  <div className="mt-1 text-[10px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
+                  <div className="lemma-assistant-experience-sidebar-item-status mt-1 text-[10px] uppercase tracking-[0.08em] text-[var(--text-tertiary)]">
                     {(conversation.status || "waiting").toLowerCase()}
                   </div>
                 </button>
@@ -1700,45 +1783,42 @@ export function AssistantExperienceView({
         </aside>
       ) : null}
 
-      <div className="flex h-full min-h-0 flex-col gap-3">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)]">
-          <div className="flex items-center justify-between border-b border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] px-4 py-3">
-            <div className="flex items-center gap-2.5">
-              <div className="h-7 w-7 rounded-full bg-[linear-gradient(135deg,var(--brand-primary),var(--brand-secondary))] flex items-center justify-center shadow-[var(--shadow-xs)]">
-                <span className="text-[var(--text-on-brand)] text-xs">✨</span>
-              </div>
-              <div>
-                <h3 className="font-semibold text-[var(--text-primary)] text-[13px] leading-tight">{title}</h3>
-                <p className="text-[11px] text-[var(--text-tertiary)]">{subtitle}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <select
-                value={controller.conversationModel || ""}
-                onChange={(event) => { void handleModelChange(event.target.value || null); }}
-                disabled={isConversationBusy || isUpdatingModel}
-                className="h-8 rounded-full border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] px-3 text-[11px] text-[var(--text-secondary)]"
-              >
-                <option value="">Auto</option>
-                {availableModels.map((availableModel) => (
-                  <option key={availableModel} value={availableModel}>
-                    {availableModel}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                onClick={controller.clearMessages}
-                title="New conversation"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-tertiary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-secondary)]"
-              >
-                ↺
-              </button>
-            </div>
-          </div>
+      <div className="lemma-assistant-experience-main flex h-full min-h-0 flex-col gap-3">
+        <div className="lemma-assistant-experience-card flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] shadow-[var(--shadow-lg)]">
+          <AssistantHeader
+            className="lemma-assistant-experience-header"
+            tone={headerTone}
+            title={title}
+            subtitle={subtitle}
+            badge={<span className="text-[var(--text-on-brand)] text-xs">✨</span>}
+            controls={showModelPicker || showNewConversationButton ? (
+              <>
+                {showModelPicker ? (
+                  <AssistantModelPicker
+                    value={controller.conversationModel}
+                    options={availableModels}
+                    onChange={(nextModel) => { void handleModelChange(nextModel); }}
+                    disabled={isConversationBusy || isUpdatingModel}
+                    autoLabel="Auto"
+                    className="lemma-assistant-experience-model-picker"
+                  />
+                ) : null}
+                {showNewConversationButton ? (
+                  <button
+                    type="button"
+                    onClick={controller.clearMessages}
+                    title="New conversation"
+                    className="lemma-assistant-experience-new inline-flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-tertiary)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-secondary)]"
+                  >
+                    ↺
+                  </button>
+                ) : null}
+              </>
+            ) : undefined}
+          />
 
           <AssistantMessageViewport
-            className="min-h-[180px]"
+            className="lemma-assistant-experience-viewport min-h-[180px]"
             ref={messagesContainerRef}
             onScroll={updatePinnedState}
           >
@@ -1747,14 +1827,14 @@ export function AssistantExperienceView({
             ) : null}
 
             {(controller.isLoadingMessages && controller.messages.length === 0) ? (
-              <div className="flex justify-center py-6">
-                <span className="text-[var(--text-tertiary)] text-sm">Loading…</span>
+              <div className="lemma-assistant-experience-loading flex justify-center py-6">
+                <span className="lemma-assistant-experience-loading-text text-[var(--text-tertiary)] text-sm">Loading…</span>
               </div>
             ) : null}
 
             {(controller.isLoadingOlderMessages && controller.messages.length > 0) ? (
-              <div className="flex justify-center py-1">
-                <span className="text-[var(--text-tertiary)] text-xs">Loading older…</span>
+              <div className="lemma-assistant-experience-loading-older flex justify-center py-1">
+                <span className="lemma-assistant-experience-loading-older-text text-[var(--text-tertiary)] text-xs">Loading older…</span>
               </div>
             ) : null}
 
@@ -1782,12 +1862,19 @@ export function AssistantExperienceView({
               );
             })}
 
-            {isConversationBusy && controller.messages.length > 0 && !activeToolBanner && !lastMessageHasContent ? (
-              <ThinkingIndicator />
+            {showInlineStatus ? (
+              <div className="lemma-assistant-experience-inline-status flex min-h-[38px] items-center px-1">
+                <div className={cx("transition-all duration-200", lastMessageHasContent ? "opacity-80" : "opacity-100")}>
+                  <AssistantStatusPill
+                    label={liveStatusLabel}
+                    subtle={lastMessageHasContent}
+                  />
+                </div>
+              </div>
             ) : null}
 
             {controller.error ? (
-              <div className="bg-[color:color-mix(in_srgb,_var(--state-error)_12%,_transparent)] border border-[color:color-mix(in_srgb,_var(--state-error)_48%,_var(--border-subtle))] rounded-lg p-3 text-xs text-[var(--state-error)] flex items-start gap-2.5">
+              <div className="lemma-assistant-experience-error bg-[color:color-mix(in_srgb,_var(--state-error)_12%,_transparent)] border border-[color:color-mix(in_srgb,_var(--state-error)_48%,_var(--border-subtle))] rounded-lg p-3 text-xs text-[var(--state-error)] flex items-start gap-2.5">
                 <div>
                   <p className="font-medium">Something went wrong</p>
                   <p className="text-[var(--state-error)] mt-1">{controller.error}</p>
@@ -1797,37 +1884,48 @@ export function AssistantExperienceView({
             {(controller.messages.length > 0 || isConversationBusy || !!controller.error) ? (
               <div aria-hidden="true" className="h-14 shrink-0" />
             ) : null}
+            <div ref={bottomAnchorRef} aria-hidden="true" className="lemma-assistant-experience-bottom-anchor h-px" />
           </AssistantMessageViewport>
         </div>
 
-        <div className="relative rounded-2xl border border-[color:color-mix(in_srgb,_var(--border-default)_80%,_transparent)] bg-[var(--bg-surface)] p-2 shadow-[var(--shadow-md)]">
-          {planSummary ? (
-            <div className="absolute bottom-[calc(100%+8px)] left-0 right-0 z-20">
-              {isPlanHidden ? (
-                <button
-                  type="button"
-                  onClick={() => setIsPlanHidden(false)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
-                >
-                  Show plan ({planSummary.completedCount}/{planSummary.steps.length})
-                </button>
-              ) : (
-                <PlanSummaryStrip
-                  plan={planSummary}
-                  onHide={() => setIsPlanHidden(true)}
-                />
-              )}
-            </div>
-          ) : null}
-
-          {isConversationBusy && activeToolBanner ? (
-            <div className="px-2 pb-1">
-              <div className="inline-flex max-w-full items-center gap-1.5 text-[11px] text-[var(--text-tertiary)] animate-in fade-in duration-200">
-                <span className="truncate">{activeToolBanner.summary}</span>
-              </div>
-            </div>
-          ) : null}
-
+        <AssistantComposer
+          className="lemma-assistant-experience-composer"
+          tone={composerTone}
+          floating={planSummary ? (
+            isPlanHidden ? (
+              <button
+                type="button"
+                onClick={() => setIsPlanHidden(false)}
+                className="inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_srgb,_var(--border-default)_88%,_transparent)] bg-[var(--bg-surface)] px-3 py-1.5 text-[11px] font-medium text-[var(--text-secondary)] shadow-[var(--shadow-xs)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-subtle)] transition-colors"
+              >
+                Show plan ({planSummary.completedCount}/{planSummary.steps.length})
+              </button>
+            ) : (
+              <PlanSummaryStrip
+                plan={planSummary}
+                onHide={() => setIsPlanHidden(true)}
+              />
+            )
+          ) : undefined}
+          status={showComposerStatus ? (
+            <AssistantStatusPill label={liveStatusLabel} subtle />
+          ) : undefined}
+          pendingFiles={controller.pendingFiles.length > 0 ? (
+            <>
+              {controller.pendingFiles.map((file) => {
+                const fileKey = `${file.name}:${file.size}:${file.lastModified}`;
+                return (
+                  <div key={fileKey}>
+                    {renderPendingFile({
+                      file,
+                      remove: () => controller.removePendingFile(fileKey),
+                    })}
+                  </div>
+                );
+              })}
+            </>
+          ) : undefined}
+        >
           {activeAskQuestion && effectiveAskOverlayState && pendingAskUserInput ? (
             <AssistantAskOverlay
               questionNumber={effectiveAskOverlayState.currentQuestionIndex + 1}
@@ -1843,28 +1941,13 @@ export function AssistantExperienceView({
               mode={activeAskQuestion.type}
             />
           ) : (
-            <div className="space-y-1.5">
-              {controller.pendingFiles.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-1.5 px-1">
-                  {controller.pendingFiles.map((file) => {
-                    const fileKey = `${file.name}:${file.size}:${file.lastModified}`;
-                    return (
-                      <div key={fileKey}>
-                        {renderPendingFile({
-                          file,
-                          remove: () => controller.removePendingFile(fileKey),
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-              <div className="relative flex items-end gap-2">
+            <div className="lemma-assistant-experience-composer-body space-y-1.5">
+              <div className="lemma-assistant-experience-input-row relative flex items-end gap-2">
                 <input
                   ref={fileInputRef}
                   type="file"
                   multiple
-                  className="hidden"
+                  className="lemma-assistant-experience-file-input hidden"
                   onChange={(event) => { void handleUploadSelection(event.target.files); }}
                 />
                 <button
@@ -1872,6 +1955,7 @@ export function AssistantExperienceView({
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isConversationBusy || controller.isUploadingFiles}
                   className={cx(
+                    "lemma-assistant-experience-upload",
                     "mb-1.5 ml-1 h-9 w-9 rounded-full flex items-center justify-center transition-colors",
                     isConversationBusy || controller.isUploadingFiles
                       ? "bg-[var(--bg-subtle)] text-[var(--text-tertiary)]"
@@ -1887,15 +1971,16 @@ export function AssistantExperienceView({
                   onChange={(event) => setDraft(event.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={placeholder}
-                  className="flex-1 resize-none border-0 bg-transparent px-3 py-2.5 text-[14px] text-[var(--text-primary)] leading-6 focus:ring-0 focus:outline-none placeholder:text-[var(--text-tertiary)] min-h-[48px] max-h-[220px]"
+                  className="lemma-assistant-experience-textarea flex-1 resize-none border-0 bg-transparent px-3 py-2.5 text-[14px] text-[var(--text-primary)] leading-6 focus:ring-0 focus:outline-none placeholder:text-[var(--text-tertiary)] min-h-[48px] max-h-[220px]"
                   rows={1}
                   disabled={isConversationBusy}
                 />
-                <div className="pb-1.5 pr-1.5">
+                <div className="lemma-assistant-experience-send-wrap pb-1.5 pr-1.5">
                   <button
                     onClick={isConversationBusy ? controller.stop : () => { void handleSubmit(); }}
                     disabled={!isConversationBusy && !draft.trim()}
                     className={cx(
+                      "lemma-assistant-experience-send",
                       "h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200",
                       isConversationBusy
                         ? "bg-[var(--text-primary)] text-[var(--text-inverse)] hover:bg-[color:color-mix(in_srgb,_var(--text-primary)_80%,_transparent)] hover:scale-105"
@@ -1911,7 +1996,7 @@ export function AssistantExperienceView({
               </div>
             </div>
           )}
-        </div>
+        </AssistantComposer>
       </div>
     </div>
   );

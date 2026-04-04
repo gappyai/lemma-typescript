@@ -1,6 +1,6 @@
 {
   "name": "lemma-sdk",
-  "version": "0.2.12",
+  "version": "0.2.19",
   "description": "Official TypeScript SDK for Lemma pod-scoped APIs",
   "type": "module",
   "main": "dist/index.js",
@@ -29,6 +29,7 @@
       "types": "./dist/react/index.d.ts",
       "default": "./dist/react/index.js"
     },
+    "./react/styles.css": "./dist/react/styles.css",
     "./browser-bundle": "./dist/browser/lemma-client.js"
   },
   "unpkg": "dist/browser/lemma-client.js",
@@ -37,7 +38,7 @@
   ],
   "scripts": {
     "generate:client": "./scripts/generate_openapi_client.sh",
-    "build": "npm run clean && tsc -p tsconfig.json && npm run build:bundle",
+    "build": "npm run clean && tsc -p tsconfig.json && node ./scripts/copy_react_styles.mjs && npm run build:bundle",
     "build:bundle": "tsc -p tsconfig.bundle.json && node ./scripts/build_browser_bundle.mjs",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run build",
@@ -52,6 +53,8 @@
     }
   },
   "dependencies": {
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "supertokens-web-js": "^0.16.0"
   },
   "devDependencies": {

@@ -169,12 +169,179 @@ Notes:
 
 ## Assistants + Agent Runs
 
-### React assistant controller + primitives
+### React assistant UI
 
-`lemma-sdk/react` now exposes the assistant controller plus the reusable UI primitives used by the app shell. A simple integration looks like this:
+`lemma-sdk/react` ships the assistant controller, the default assistant experience, and the lower-level UI primitives used to build custom shells.
+
+Import the bundled stylesheet once anywhere in your app:
 
 ```tsx
+import "lemma-sdk/react/styles.css";
+```
+
+The stylesheet includes the SDK theme tokens and semantic assistant classes. You do not need the Lemma app's internal Tailwind setup just to render the assistant correctly.
+
+#### Important for Tailwind apps
+
+If your app uses Tailwind and installs `lemma-sdk` from npm, Tailwind must scan the SDK package too. Otherwise the assistant can look half-styled: native file inputs may appear, layouts can collapse, spacing disappears, and buttons/header chrome look wrong.
+
+For Tailwind v3, add the SDK package to `content`:
+
+```js
+// tailwind.config.js
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "./node_modules/lemma-sdk/dist/react/**/*.{js,mjs}",
+  ],
+}
+```
+
+If you are developing against a local checkout of the SDK source instead of the published npm package, scan the source files too:
+
+```js
+// tailwind.config.js
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+    "../lemma-typescript/src/react/**/*.{ts,tsx}",
+  ],
+}
+```
+
+If you alias the package to local SDK source in Vite, make sure the alias points at the React source and stylesheet:
+
+```ts
+// vite.config.ts
+import path from "node:path";
+
+export default {
+  resolve: {
+    alias: {
+      "lemma-sdk/react/styles.css": path.resolve(__dirname, "../lemma-typescript/src/react/styles.css"),
+      "lemma-sdk/react": path.resolve(__dirname, "../lemma-typescript/src/react/index.ts"),
+      "lemma-sdk": path.resolve(__dirname, "../lemma-typescript/src/index.ts"),
+    },
+  },
+};
+```
+
+Quick checklist for developers:
+
+- import `lemma-sdk/react/styles.css` once
+- give the assistant container a real height
+- if the assistant is inside flex/grid, add `min-height: 0` on the relevant parent
+- if you use Tailwind, scan the SDK package or SDK source
+- if you use `AssistantEmbedded`, pass `theme` directly there
+- if you use `AssistantExperienceView`, wrap it in `AssistantThemeScope`
+
+The assistant UI renders markdown by default:
+
+- GitHub-flavored markdown is enabled for assistant and user messages
+- raw HTML is not rendered
+- links open safely in a new tab by default
+- lists, tables, blockquotes, inline code, and fenced code blocks are styled out of the box
+
+#### Choose an integration level
+
+##### 1. `AssistantEmbedded` for the fastest setup
+
+Use `AssistantEmbedded` when you want a ready-made assistant surface with the SDK defaults.
+
+```tsx
+import "lemma-sdk/react/styles.css";
+import { AssistantEmbedded } from "lemma-sdk/react";
+
+function SupportAssistant() {
+  return (
+    <div style={{ height: 720, minHeight: 0 }}>
+      <AssistantEmbedded
+        client={client}
+        podId="pod_123"
+        assistantId="uuid"
+        title="Support Assistant"
+        subtitle="Ask questions about this pod."
+        placeholder="Message Support Assistant"
+        showConversationList
+        showModelPicker={false}
+        radius="lg"
+        theme="auto"
+      />
+    </div>
+  );
+}
+```
+
+Important notes:
+
+- `theme` accepts `"auto" | "light" | "dark"`
+- `radius` lets you pick the built-in rounding scale from `"none"` through `"xl"`
+- `showModelPicker={false}` hides the built-in model chooser when you do not want model controls visible
+- `theme="auto"` follows the host app when it uses common selectors like `.dark`, `[data-theme="dark"]`, `[data-mode="dark"]`, and also falls back to `prefers-color-scheme`
+- the parent container must have a real height; if it lives inside flex/grid, `min-height: 0` is usually needed too
+- attachments are queued into the composer and sent with the next message by default
+
+##### 2. `AssistantExperienceView` for the default UI with your own controller
+
+Use `AssistantExperienceView` when you want the built-in assistant layout, but you need to own the controller lifecycle yourself.
+
+```tsx
+import "lemma-sdk/react/styles.css";
 import {
+  AssistantExperienceView,
+  AssistantThemeScope,
+  useAssistantController,
+} from "lemma-sdk/react";
+
+function ControlledAssistant() {
+  const assistant = useAssistantController({
+    client,
+    podId: "pod_123",
+    assistantId: "uuid",
+  });
+
+  return (
+    <AssistantThemeScope theme="dark" style={{ height: 720 }}>
+      <AssistantExperienceView
+        controller={assistant}
+        title="Support Assistant"
+        subtitle="Direct use of the default assistant experience."
+        placeholder="Message Support Assistant"
+        showConversationList
+        chromeStyle="subtle"
+        statusPlacement="inline"
+      />
+    </AssistantThemeScope>
+  );
+}
+```
+
+Useful props on `AssistantExperienceView`:
+
+- `showConversationList`: show the built-in conversation sidebar
+- `chromeStyle`: `"elevated" | "subtle" | "flat"`
+- `statusPlacement`: `"inline" | "composer" | "none"`
+- `radius`: `"none" | "sm" | "md" | "lg" | "xl"`
+- `showModelPicker`: show or hide the built-in model selector
+- `showNewConversationButton`: show or hide the built-in reset/new-conversation button
+- `renderMessageContent`: override markdown rendering for custom message content
+- `renderToolInvocation`: replace the default tool activity renderer
+- `renderPresentedFile` and `renderPendingFile`: customize attachment rendering
+
+##### 3. `useAssistantController` + primitives for a custom shell
+
+Use the primitives when you want full control over layout and app chrome.
+
+```tsx
+import "lemma-sdk/react/styles.css";
+import {
+  AssistantComposer,
+  AssistantHeader,
+  AssistantMessageViewport,
+  AssistantShellLayout,
+  AssistantThemeScope,
   MessageGroup,
   PlanSummaryStrip,
   ThinkingIndicator,
@@ -184,11 +351,11 @@ import {
   useAssistantController,
 } from "lemma-sdk/react";
 
-function AssistantSurface() {
+function CustomAssistantShell() {
   const assistant = useAssistantController({
     client,
-    assistantId: "support_assistant",
     podId: "pod_123",
+    assistantId: "uuid",
   });
 
   const rows = buildDisplayMessageRows(assistant.messages);
@@ -196,35 +363,48 @@ function AssistantSurface() {
   const activeToolBanner = getActiveToolBanner(assistant.messages);
 
   return (
-    <div>
-      {plan ? <PlanSummaryStrip plan={plan} onHide={() => {}} /> : null}
-      {activeToolBanner ? <div>{activeToolBanner.summary}</div> : null}
+    <AssistantThemeScope theme="auto" style={{ height: 720 }}>
+      <AssistantShellLayout
+        main={(
+          <div className="flex min-h-0 flex-1 flex-col gap-3">
+            <AssistantHeader
+              title="Lemma Assistant"
+              subtitle="Ask anything"
+            />
 
-      {rows.map((row, index) => (
-        <MessageGroup
-          key={row.id}
-          message={row.message}
-          conversationId={assistant.activeConversationId}
-          onWidgetSendPrompt={(text) => assistant.sendMessage(text)}
-          isStreaming={assistant.isActiveConversationRunning && row.sourceIndexes.includes(assistant.messages.length - 1)}
-          showAssistantHeader={index === 0 || rows[index - 1]?.message.role !== "assistant"}
-          renderMessageContent={({ message }) => <div>{message.content}</div>}
-        />
-      ))}
+            {plan ? <PlanSummaryStrip plan={plan} onHide={() => {}} /> : null}
+            {activeToolBanner ? <div>{activeToolBanner.summary}</div> : null}
 
-      {assistant.isActiveConversationRunning ? <ThinkingIndicator /> : null}
-    </div>
+            <AssistantMessageViewport>
+              {rows.map((row, index) => (
+                <MessageGroup
+                  key={row.id}
+                  message={row.message}
+                  conversationId={assistant.activeConversationId}
+                  onWidgetSendPrompt={(text) => assistant.sendMessage(text)}
+                  isStreaming={assistant.isActiveConversationRunning && row.sourceIndexes.includes(assistant.messages.length - 1)}
+                  showAssistantHeader={index === 0 || rows[index - 1]?.message.role !== "assistant"}
+                  renderMessageContent={({ message }) => <div>{message.content}</div>}
+                />
+              ))}
+
+              {assistant.isActiveConversationRunning ? <ThinkingIndicator /> : null}
+            </AssistantMessageViewport>
+
+            <AssistantComposer>
+              <textarea placeholder="Message Lemma Assistant" />
+            </AssistantComposer>
+          </div>
+        )}
+      />
+    </AssistantThemeScope>
   );
 }
 ```
 
-The intended split is:
+Useful primitives exported from `lemma-sdk/react`:
 
-- SDK: `useAssistantController`, message/tool normalization, plan parsing, tool rollups, and assistant UI primitives.
-- App: modal shell, fullscreen behavior, route navigation, workspace/file viewers, and product-specific renderers.
-
-Useful UI primitives exported from `lemma-sdk/react`:
-
+- `AssistantThemeScope`
 - `AssistantHeader`
 - `AssistantConversationList`
 - `AssistantModelPicker`
@@ -236,26 +416,34 @@ Useful UI primitives exported from `lemma-sdk/react`:
 - `AssistantStatusPill`
 - `MessageGroup`
 - `PlanSummaryStrip`
+- `ThinkingIndicator`
 
-For a direct plug-and-play component, `AssistantEmbedded` wires `useAssistantController` into the default assistant experience:
+#### Theming
+
+Use `AssistantThemeScope` around custom assistant layouts:
 
 ```tsx
-import { AssistantEmbedded } from "lemma-sdk/react";
+import { AssistantThemeScope } from "lemma-sdk/react";
 
-function SupportAssistant() {
-  return (
-    <AssistantEmbedded
-      client={client}
-      assistantId="support_assistant"
-      podId="pod_123"
-      title="Support Assistant"
-      subtitle="Ask questions about this pod."
-      placeholder="Message Support Assistant"
-      showConversationList
-    />
-  );
-}
+<AssistantThemeScope theme="light">
+  <YourAssistant />
+</AssistantThemeScope>
 ```
+
+Theme behavior:
+
+- `theme="auto"`: follows host dark-mode selectors and system color scheme
+- `theme="light"`: forces the light SDK palette
+- `theme="dark"`: forces the dark SDK palette
+
+If you use `AssistantEmbedded`, pass `theme` directly on that component instead of wrapping it again.
+
+#### What belongs in the SDK vs your app
+
+The intended split is:
+
+- SDK: `useAssistantController`, message/tool normalization, markdown rendering, plan parsing, tool rollups, and reusable assistant UI primitives
+- App: modal shell, fullscreen/window controls, route navigation, workspace/file viewers, and product-specific renderers
 
 ### Assistant names (resource key)
 
