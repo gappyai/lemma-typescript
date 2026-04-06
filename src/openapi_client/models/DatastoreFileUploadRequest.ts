@@ -6,8 +6,8 @@ import type { FileVisibility } from './FileVisibility.js';
 export type DatastoreFileUploadRequest = {
     data: string;
     description?: (string | null);
+    directory_path?: string;
     name?: (string | null);
-    parent_id?: (string | null);
     search_enabled?: boolean;
     visibility?: (FileVisibility | null);
 };

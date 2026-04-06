@@ -10,7 +10,6 @@ export type CreateTriggerRequest = {
     account_id?: (string | null);
     application_trigger_id?: (string | null);
     config?: Record<string, any>;
-    datastore_id?: (string | null);
     filter_instruction?: (string | null);
     filter_output_schema?: (Record<string, any> | null);
     pod_id?: (string | null);

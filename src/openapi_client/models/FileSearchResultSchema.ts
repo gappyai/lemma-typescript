@@ -7,6 +7,7 @@ export type FileSearchResultSchema = {
     content: string;
     file_id: string;
     metadata?: (Record<string, any> | null);
+    path: string;
     score: number;
 };
 

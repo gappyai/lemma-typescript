@@ -6,8 +6,8 @@ import type { FileVisibility } from './FileVisibility.js';
 export type update = {
     data?: (string | null);
     description?: (string | null);
-    name?: (string | null);
-    parent_id?: (string | null);
+    new_path?: (string | null);
+    path: string;
     search_enabled?: (boolean | null);
     visibility?: (FileVisibility | null);
 };

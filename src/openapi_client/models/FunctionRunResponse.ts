@@ -20,5 +20,7 @@ export type FunctionRunResponse = {
     status: FunctionRunStatus;
     user_email?: (string | null);
     user_id: string;
+    workspace_process_id?: (string | null);
+    workspace_session_id?: (string | null);
 };
 

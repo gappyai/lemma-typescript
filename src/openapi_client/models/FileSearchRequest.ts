@@ -2,14 +2,16 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { FileSearchScopeMode } from './FileSearchScopeMode.js';
 import type { SearchMethod } from './SearchMethod.js';
 export type FileSearchRequest = {
     limit?: number;
-    /**
-     * Optional folder id to scope search results to that folder subtree.
-     */
-    parent_id?: (string | null);
     query: string;
+    scope_mode?: FileSearchScopeMode;
+    /**
+     * Optional folder path to scope search results.
+     */
+    scope_path?: (string | null);
     search_method?: SearchMethod;
 };
 

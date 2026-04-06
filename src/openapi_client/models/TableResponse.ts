@@ -10,10 +10,10 @@ export type TableResponse = {
     columns: Array<ColumnSchema>;
     config: (Record<string, any> | null);
     created_at: string;
-    datastore_id: string;
     enable_rls: boolean;
     id: string;
     name: string;
+    pod_id: string;
     primary_key_column: string;
     updated_at: string;
 };

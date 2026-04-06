@@ -11,7 +11,6 @@ export type TriggerResponse = {
     application_trigger_id: (string | null);
     config: Record<string, any>;
     created_at: string;
-    datastore_id: (string | null);
     filter_instruction: (string | null);
     filter_output_schema: (Record<string, any> | null);
     id: string;

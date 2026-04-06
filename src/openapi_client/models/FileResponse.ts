@@ -4,20 +4,18 @@
 /* eslint-disable */
 import type { FileVisibility } from './FileVisibility.js';
 export type FileResponse = {
-    content_hash: (string | null);
     created_at: string;
-    datastore_id: string;
     description: (string | null);
-    file_path: (string | null);
-    graph_status?: string;
     id: string;
+    indexed_at?: (string | null);
     kind: string;
+    last_processing_error?: (string | null);
     metadata?: (Record<string, any> | null);
     mime_type?: (string | null);
     name: string;
     owner_user_id?: (string | null);
-    parent_id?: (string | null);
-    permissions_inherit?: boolean;
+    path: string;
+    pod_id: string;
     search_enabled?: boolean;
     size_bytes?: number;
     status: string;

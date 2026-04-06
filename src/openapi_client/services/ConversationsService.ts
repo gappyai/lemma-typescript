@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AvailableModelsListResponse } from '../models/AvailableModelsListResponse.js';
 import type { ConversationListResponse } from '../models/ConversationListResponse.js';
 import type { ConversationMessageListResponse } from '../models/ConversationMessageListResponse.js';
 import type { ConversationResponse } from '../models/ConversationResponse.js';
@@ -223,6 +224,18 @@ export class ConversationsService {
             errors: {
                 422: `Validation Error`,
             },
+        });
+    }
+    /**
+     * List Available Models
+     * Get list of all available models in the system.
+     * @returns AvailableModelsListResponse Successful Response
+     * @throws ApiError
+     */
+    public static conversationModelsList(): CancelablePromise<AvailableModelsListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/models',
         });
     }
 }

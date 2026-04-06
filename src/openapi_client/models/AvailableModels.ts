@@ -8,8 +8,7 @@ export enum AvailableModels {
     GEMINI_FLASH_LITE = 'GEMINI_FLASH_LITE',
     KIMI_K2 = 'KIMI_K2',
     GPT_OSS = 'GPT_OSS',
-    DEEPSEEK_V31 = 'DEEPSEEK_V31',
-    CLAUDE_SONNET_4 = 'CLAUDE_SONNET_4',
-    QWEN3_235B = 'QWEN3_235B',
+    DEEPSEEK_V32 = 'DEEPSEEK_V32',
     GLM_5 = 'GLM_5',
+    QWEN3_6 = 'QWEN3_6',
 }

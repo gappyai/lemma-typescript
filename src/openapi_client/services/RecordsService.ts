@@ -8,7 +8,6 @@ import type { BulkUpdateRecordsRequest } from '../models/BulkUpdateRecordsReques
 import type { CreateRecordRequest } from '../models/CreateRecordRequest.js';
 import type { DatastoreMessageResponse } from '../models/DatastoreMessageResponse.js';
 import type { RecordListResponse } from '../models/RecordListResponse.js';
-import type { RecordQueryRequest } from '../models/RecordQueryRequest.js';
 import type { RecordResponse } from '../models/RecordResponse.js';
 import type { UpdateRecordRequest } from '../models/UpdateRecordRequest.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
@@ -17,10 +16,15 @@ import { request as __request } from '../core/request.js';
 export class RecordsService {
     /**
      * List Records
-     * List table records with token pagination only. Use `record.query` when you need structured filters or explicit sort clauses.
+     * List table records with token pagination only. Use the datastore query endpoint for joins, aggregates, or custom read-only SQL.
      * @param podId
      * @param tableName
      * @param limit Max number of rows to return.
+     * @param offset Row offset for direct pagination.
+     * @param sortBy Optional column name to sort by.
+     * @param order Sort direction for `sort_by`: `asc` or `desc`.
+     * @param filter Optional repeated JSON filters for advanced comparisons. Example: `filter={"field":"amount","op":"gt","value":100}`
+     * @param sort Optional repeated JSON sort clauses. Example: `sort={"field":"created_at","direction":"desc"}`
      * @param pageToken Opaque token from a previous response page.
      * @returns RecordListResponse Successful Response
      * @throws ApiError
@@ -29,6 +33,11 @@ export class RecordsService {
         podId: string,
         tableName: string,
         limit: number = 20,
+        offset?: number,
+        sortBy?: (string | null),
+        order: string = 'asc',
+        filter?: (Array<string> | null),
+        sort?: (Array<string> | null),
         pageToken?: (string | null),
     ): CancelablePromise<RecordListResponse> {
         return __request(OpenAPI, {
@@ -40,6 +49,11 @@ export class RecordsService {
             },
             query: {
                 'limit': limit,
+                'offset': offset,
+                'sort_by': sortBy,
+                'order': order,
+                'filter': filter,
+                'sort': sort,
                 'page_token': pageToken,
             },
             errors: {
@@ -148,34 +162,6 @@ export class RecordsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/pods/{pod_id}/datastore/tables/{table_name}/records/bulk/update',
-            path: {
-                'pod_id': podId,
-                'table_name': tableName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Query Records
-     * Query one table with structured filters and sorting. Use this instead of dynamic query parameters when you need filtering. Example filters: `[{"field": "status", "op": "eq", "value": "OPEN"}]`.
-     * @param podId
-     * @param tableName
-     * @param requestBody
-     * @returns RecordListResponse Successful Response
-     * @throws ApiError
-     */
-    public static recordQuery(
-        podId: string,
-        tableName: string,
-        requestBody: RecordQueryRequest,
-    ): CancelablePromise<RecordListResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/query',
             path: {
                 'pod_id': podId,
                 'table_name': tableName,
