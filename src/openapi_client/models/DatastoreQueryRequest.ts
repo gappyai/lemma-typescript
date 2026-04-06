@@ -7,7 +7,7 @@
  */
 export type DatastoreQueryRequest = {
     /**
-     * Read-only SQL query executed inside this datastore schema. Only SELECT-style queries are allowed; mutating statements are blocked. Write queries such as INSERT, UPDATE, DELETE, ALTER, DROP, CREATE, and TRUNCATE are rejected. Example: `SELECT id, amount FROM expenses WHERE amount > 100 ORDER BY created_at DESC LIMIT 20`.
+     * Read-only SQL query executed inside this datastore schema. Only SELECT-style queries are allowed; mutating statements are blocked. Queries against RLS-enabled tables are rejected; use table-scoped record APIs instead. Write queries such as INSERT, UPDATE, DELETE, ALTER, DROP, CREATE, and TRUNCATE are rejected. Example: `SELECT id, amount FROM expenses WHERE amount > 100 ORDER BY created_at DESC LIMIT 20`.
      */
     query: string;
 };

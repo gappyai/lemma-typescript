@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { PodMemberAddRequest } from '../models/PodMemberAddRequest.js';
+import type { PodMemberDetailResponse } from '../models/PodMemberDetailResponse.js';
 import type { PodMemberListResponse } from '../models/PodMemberListResponse.js';
 import type { PodMemberResponse } from '../models/PodMemberResponse.js';
 import type { PodMemberUpdateRoleRequest } from '../models/PodMemberUpdateRoleRequest.js';
@@ -68,20 +69,44 @@ export class PodMembersService {
      * Remove Pod Member
      * Remove a member from a pod
      * @param podId
-     * @param memberId
+     * @param userId
      * @returns void
      * @throws ApiError
      */
     public static podMemberRemove(
         podId: string,
-        memberId: string,
+        userId: string,
     ): CancelablePromise<void> {
         return __request(OpenAPI, {
             method: 'DELETE',
-            url: '/pods/{pod_id}/members/{member_id}',
+            url: '/pods/{pod_id}/members/{user_id}',
             path: {
                 'pod_id': podId,
-                'member_id': memberId,
+                'user_id': userId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Pod Member
+     * Get a pod member by user id
+     * @param podId
+     * @param userId
+     * @returns PodMemberDetailResponse Successful Response
+     * @throws ApiError
+     */
+    public static podMemberGet(
+        podId: string,
+        userId: string,
+    ): CancelablePromise<PodMemberDetailResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/members/{user_id}',
+            path: {
+                'pod_id': podId,
+                'user_id': userId,
             },
             errors: {
                 422: `Validation Error`,
@@ -92,22 +117,22 @@ export class PodMembersService {
      * Update Member Role
      * Update a pod member's role
      * @param podId
-     * @param memberId
+     * @param userId
      * @param requestBody
      * @returns PodMemberResponse Successful Response
      * @throws ApiError
      */
     public static podMemberUpdateRole(
         podId: string,
-        memberId: string,
+        userId: string,
         requestBody: PodMemberUpdateRoleRequest,
     ): CancelablePromise<PodMemberResponse> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/members/{member_id}/role',
+            url: '/pods/{pod_id}/members/{user_id}/role',
             path: {
                 'pod_id': podId,
-                'member_id': memberId,
+                'user_id': userId,
             },
             body: requestBody,
             mediaType: 'application/json',

@@ -3,13 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { PodRole } from './PodRole.js';
+import type { UserResponse } from './UserResponse.js';
 /**
- * Pod member response schema.
+ * Pod member detail response schema.
  */
-export type PodMemberResponse = {
+export type PodMemberDetailResponse = {
     created_at: string;
     role: PodRole;
     updated_at: string;
+    user?: (UserResponse | null);
     user_email: string;
     user_id: string;
     user_name?: (string | null);

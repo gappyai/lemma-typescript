@@ -49,6 +49,10 @@ export type ColumnSchema = {
      */
     required?: boolean;
     /**
+     * Whether the column is system-managed by the backend.
+     */
+    system?: boolean;
+    /**
      * Column data type
      */
     type: DatastoreDataType;

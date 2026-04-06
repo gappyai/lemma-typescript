@@ -8,7 +8,7 @@ import type { ColumnSchema } from './ColumnSchema.js';
  */
 export type CreateTableRequest = {
     /**
-     * Table column definitions. Each column name must be unique. Use `type`, `required`, `default`, `foreign_key`, and `computed` as needed.
+     * Table column definitions. Each column name must be unique. Use `type`, `required`, `default`, `foreign_key`, and `computed` as needed. The backend also materializes physical system columns so table metadata reflects the real schema: `id` when omitted as the primary key, `created_at`, `updated_at`, and `user_id` when RLS is enabled.
      */
     columns: Array<ColumnSchema>;
     /**
