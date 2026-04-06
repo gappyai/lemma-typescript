@@ -23,8 +23,8 @@ export class RecordsService {
      * @param offset Row offset for direct pagination.
      * @param sortBy Optional column name to sort by.
      * @param order Sort direction for `sort_by`: `asc` or `desc`.
-     * @param filter Optional repeated JSON filters for advanced comparisons. Example: `filter={"field":"amount","op":"gt","value":100}`
-     * @param sort Optional repeated JSON sort clauses. Example: `sort={"field":"created_at","direction":"desc"}`
+     * @param filter Optional repeated JSON filters for advanced comparisons. Each `filter` value must be a JSON object with shape `{"field":"<column_name>","op":"<operator>","value":<comparison_value>}`. Allowed operators are: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `like`, `ilike`. Repeat the query parameter to combine multiple filters with AND semantics. Examples: `filter={"field":"amount","op":"gt","value":100}` and `filter={"field":"status","op":"eq","value":"OPEN"}`.
+     * @param sort Optional repeated JSON sort clauses. Each `sort` value must be a JSON object with shape `{"field":"<column_name>","direction":"<direction>"}`. Allowed directions are: `asc`, `desc`. Repeat the query parameter to provide multi-column sorting in priority order. Example: `sort={"field":"created_at","direction":"desc"}`.
      * @param pageToken Opaque token from a previous response page.
      * @returns RecordListResponse Successful Response
      * @throws ApiError
