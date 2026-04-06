@@ -45,6 +45,8 @@ function isOptimisticId(messageId: string): boolean {
   return messageId.startsWith("optimistic-user-");
 }
 
+const OPTIMISTIC_MATCH_WINDOW_MS = 2 * 60 * 1000;
+
 function upsertRuntimeMessage(
   previous: RuntimeConversationMessage[],
   incoming: RuntimeConversationMessage,
@@ -60,11 +62,28 @@ function upsertRuntimeMessage(
   if (incoming.role === "user") {
     const incomingText = messageText(incoming.content);
     if (incomingText) {
-      const optimisticIndex = next.findIndex((message) => (
-        message.role === "user"
-        && isOptimisticId(message.id)
-        && messageText(message.content) === incomingText
-      ));
+      const incomingTimestamp = messageTime(incoming);
+      let optimisticIndex = -1;
+      let bestDistance = Number.POSITIVE_INFINITY;
+
+      next.forEach((message, index) => {
+        if (
+          message.role !== "user"
+          || !isOptimisticId(message.id)
+          || messageText(message.content) !== incomingText
+        ) {
+          return;
+        }
+
+        const distance = Math.abs(messageTime(message) - incomingTimestamp);
+        if (distance > OPTIMISTIC_MATCH_WINDOW_MS || distance >= bestDistance) {
+          return;
+        }
+
+        optimisticIndex = index;
+        bestDistance = distance;
+      });
+
       if (optimisticIndex >= 0) {
         next[optimisticIndex] = incoming;
         return next;
@@ -121,7 +140,19 @@ export function useAssistantRuntime({
       .map((message) => toRuntimeMessage(message, conversationId))
       .filter((message) => !conversationId || message.conversation_id === conversationId);
 
-    setRuntimeMessages([...normalized].sort((a, b) => messageTime(a) - messageTime(b)));
+    setRuntimeMessages((previous) => {
+      const scopedPrevious = previous.filter((message) => !conversationId || message.conversation_id === conversationId);
+
+      // Loads can complete after optimistic appends or stream events. Merge the
+      // loaded snapshot into the current runtime state so newer local messages
+      // are not temporarily dropped while the server catches up.
+      const merged = normalized.reduce(
+        (accumulator, message) => upsertRuntimeMessage(accumulator, message),
+        scopedPrevious,
+      );
+
+      return [...merged].sort((a, b) => messageTime(a) - messageTime(b));
+    });
   }, [conversationId]);
 
   const appendOptimisticUserMessage = useCallback((

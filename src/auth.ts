@@ -37,6 +37,11 @@ export type AuthListener = (state: AuthState) => void;
 
 export type AuthRedirectMode = "login" | "signup";
 
+type AuthQueryParams = Record<
+  string,
+  string | number | boolean | Array<string | number | boolean> | null | undefined
+>;
+
 export interface BuildAuthUrlOptions {
   /** Optional auth path segment relative to authUrl pathname, e.g. "callback" -> /auth/callback. */
   path?: string;
@@ -45,7 +50,38 @@ export interface BuildAuthUrlOptions {
   /** Redirect URI passed to auth service. */
   redirectUri?: string;
   /** Additional query parameters appended to auth URL. */
-  params?: Record<string, string | number | boolean | Array<string | number | boolean> | null | undefined>;
+  params?: AuthQueryParams;
+}
+
+export interface BuildFederatedLogoutUrlOptions {
+  /**
+   * Optional auth path segment for logout, relative to authUrl pathname.
+   * Defaults to "logout" (for example: https://auth.example.com/auth/logout).
+   */
+  path?: string;
+  /**
+   * Post-logout redirect URI passed to the auth service.
+   */
+  redirectUri?: string;
+  /**
+   * Query parameter name used for redirect URI. Defaults to "redirect_uri".
+   */
+  redirectParam?: string;
+  /** Additional query parameters appended to logout URL. */
+  params?: AuthQueryParams;
+}
+
+export interface RedirectToFederatedLogoutOptions
+  extends Omit<BuildFederatedLogoutUrlOptions, "redirectUri"> {
+  /**
+   * Post-logout redirect URI. Defaults to current location.
+   */
+  redirectUri?: string;
+  /**
+   * Whether to clear the local session before redirecting upstream.
+   * Defaults to true.
+   */
+  localSignOut?: boolean;
 }
 
 export interface ResolveSafeRedirectUriOptions {
@@ -58,6 +94,14 @@ export interface ResolveSafeRedirectUriOptions {
 }
 
 const DEFAULT_BLOCKED_REDIRECT_PATHS = ["/login", "/signup", "/auth"];
+const SUPERTOKENS_FRONTEND_MARKER_KEYS = [
+  "sFrontToken",
+  "st-last-access-token-update",
+  "sIRTFrontend",
+  "sAntiCsrf",
+  "st-access-token",
+  "st-refresh-token",
+];
 
 const LOCALSTORAGE_TOKEN_KEY = "lemma_token";
 function readStorageToken(): string | null {
@@ -169,6 +213,32 @@ export function buildAuthUrl(authUrl: string, options: BuildAuthUrlOptions = {})
   return url.toString();
 }
 
+export function buildFederatedLogoutUrl(
+  authUrl: string,
+  options: BuildFederatedLogoutUrlOptions = {},
+): string {
+  const url = new URL(authUrl);
+  url.pathname = resolveAuthPath(url.pathname, options.path ?? "logout");
+
+  for (const [key, value] of Object.entries(options.params ?? {})) {
+    if (value === null || value === undefined) continue;
+    if (Array.isArray(value)) {
+      url.searchParams.delete(key);
+      for (const item of value) {
+        url.searchParams.append(key, String(item));
+      }
+      continue;
+    }
+    url.searchParams.set(key, String(value));
+  }
+
+  if (options.redirectUri && options.redirectUri.trim()) {
+    url.searchParams.set(options.redirectParam ?? "redirect_uri", options.redirectUri);
+  }
+
+  return url.toString();
+}
+
 export function resolveSafeRedirectUri(
   rawValue: string | null | undefined,
   options: ResolveSafeRedirectUriOptions,
@@ -256,6 +326,71 @@ export class AuthManager {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
     return match ? decodeURIComponent(match[1]) : undefined;
+  }
+
+  private getCookieDomainCandidates(): Array<string | undefined> {
+    if (typeof window === "undefined") {
+      return [undefined];
+    }
+
+    const host = window.location.hostname;
+    const isIpv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
+    const isIpv6 = host.includes(":");
+    if (!host || host === "localhost" || isIpv4 || isIpv6) {
+      return [undefined];
+    }
+
+    const domains = new Set<string>();
+    const parts = host.split(".").filter(Boolean);
+    for (let i = 0; i < parts.length - 1; i += 1) {
+      const candidate = parts.slice(i).join(".");
+      if (!candidate) continue;
+      domains.add(candidate);
+      domains.add(`.${candidate}`);
+    }
+
+    return [undefined, ...domains];
+  }
+
+  private expireCookie(name: string, domain?: string): void {
+    if (typeof document === "undefined") return;
+    const domainPart = domain ? `;domain=${domain}` : "";
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;max-age=0;path=/${domainPart};samesite=lax`;
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;max-age=0;path=/${domainPart}`;
+  }
+
+  /**
+   * Defensive cleanup for stale SuperTokens frontend marker cookies/storage.
+   * This helps recover when signout/session-expiry paths leave local markers behind.
+   */
+  private clearFrontendSessionMarkers(): void {
+    if (typeof window === "undefined") return;
+
+    for (const key of SUPERTOKENS_FRONTEND_MARKER_KEYS) {
+      try {
+        window.localStorage.removeItem(key);
+      } catch {
+        // ignore storage errors
+      }
+      try {
+        window.sessionStorage.removeItem(key);
+      } catch {
+        // ignore storage errors
+      }
+    }
+
+    const domains = this.getCookieDomainCandidates();
+    for (const key of SUPERTOKENS_FRONTEND_MARKER_KEYS) {
+      for (const domain of domains) {
+        this.expireCookie(key, domain);
+      }
+    }
+  }
+
+  private applyUnauthenticatedState(): AuthState {
+    const next: AuthState = { status: "unauthenticated", user: null };
+    this.setState(next);
+    return next;
   }
 
   private clearInjectedToken(): void {
@@ -387,16 +522,12 @@ export class AuthManager {
 
       // Only 401 means not authenticated — 403 means authenticated but forbidden
       if (response.status === 401) {
-        const next: AuthState = { status: "unauthenticated", user: null };
-        this.setState(next);
-        return next;
+        return this.applyUnauthenticatedState();
       }
 
       if (!response.ok) {
         // For non-401 errors on /users/me, treat as unauthenticated (conservative)
-        const next: AuthState = { status: "unauthenticated", user: null };
-        this.setState(next);
-        return next;
+        return this.applyUnauthenticatedState();
       }
 
       const user = (await response.json()) as UserInfo;
@@ -404,9 +535,7 @@ export class AuthManager {
       this.setState(next);
       return next;
     } catch {
-      const next: AuthState = { status: "unauthenticated", user: null };
-      this.setState(next);
-      return next;
+      return this.applyUnauthenticatedState();
     }
   }
 
@@ -415,7 +544,7 @@ export class AuthManager {
    * Does NOT redirect — call redirectToAuth() explicitly if desired.
    */
   markUnauthenticated(): void {
-    this.setState({ status: "unauthenticated", user: null });
+    this.applyUnauthenticatedState();
   }
 
   /**
@@ -446,6 +575,10 @@ export class AuthManager {
       }
     }
 
+    // Always clear frontend markers on logout attempt, even if backend session
+    // cleanup is partial. This avoids stale local "EXISTS" signals.
+    this.clearFrontendSessionMarkers();
+
     const isAuthenticated = await this.isAuthenticatedViaCookie();
     if (!isAuthenticated) {
       this.markUnauthenticated();
@@ -461,6 +594,13 @@ export class AuthManager {
   }
 
   /**
+   * Build upstream/federated logout URL.
+   */
+  getFederatedLogoutUrl(options: BuildFederatedLogoutUrlOptions = {}): string {
+    return buildFederatedLogoutUrl(this.authUrl, options);
+  }
+
+  /**
    * Redirect to the auth service, passing the current URL as redirect_uri.
    * After the user authenticates, the auth service should redirect back to
    * the original URL and set the session cookie.
@@ -471,5 +611,26 @@ export class AuthManager {
     }
     const redirectUri = options.redirectUri ?? window.location.href;
     window.location.href = this.getAuthUrl({ ...options, redirectUri });
+  }
+
+  /**
+   * Optional full logout flow:
+   * 1. clear local SDK/session cookies
+   * 2. redirect to auth service logout endpoint to terminate upstream SSO
+   */
+  async redirectToFederatedLogout(options: RedirectToFederatedLogoutOptions = {}): Promise<void> {
+    this.assertBrowserContext();
+
+    const redirectUri = options.redirectUri ?? window.location.href;
+    const localSignOut = options.localSignOut ?? true;
+
+    if (localSignOut) {
+      await this.signOut();
+    }
+
+    window.location.href = this.getFederatedLogoutUrl({
+      ...options,
+      redirectUri,
+    });
   }
 }

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type {
+  AvailableModelInfo,
   Conversation,
   ConversationMessage,
   ConversationModel,
@@ -10,6 +11,10 @@ import { useAssistantSession } from "./useAssistantSession.js";
 
 export interface AssistantConversationScope {
   podId?: string | null;
+  assistantName?: string | null;
+  /**
+   * @deprecated Use assistantName instead.
+   */
   assistantId?: string | null;
   organizationId?: string | null;
 }
@@ -71,6 +76,7 @@ export interface UseAssistantControllerResult {
   messages: AssistantRenderableMessage[];
   conversations: Conversation[];
   activeConversationId: string | null;
+  availableModels: AvailableModelInfo[];
   conversationModel: ConversationModel | null;
   isActiveConversationRunning: boolean;
   isLoading: boolean;
@@ -116,6 +122,7 @@ type AssistantApiConversationMessage = ConversationMessage & {
 
 const EMPTY_SCOPE_KEY = JSON.stringify({
   podId: null,
+  assistantName: null,
   assistantId: null,
   organizationId: null,
 });
@@ -730,6 +737,7 @@ function isConversationRunning(status: unknown): boolean {
 export function useAssistantController({
   client,
   podId,
+  assistantName,
   assistantId,
   organizationId,
   enabled = true,
@@ -738,6 +746,7 @@ export function useAssistantController({
   const [messages, setMessages] = useState<AssistantRenderableMessage[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [availableModels, setAvailableModels] = useState<AvailableModelInfo[]>([]);
   const [conversationModel, setConversationModelState] = useState<ConversationModel | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
@@ -756,17 +765,19 @@ export function useAssistantController({
 
   const scope = useMemo<AssistantConversationScope>(() => ({
     podId: podId ?? null,
+    assistantName: assistantName ?? assistantId ?? null,
     assistantId: assistantId ?? null,
     organizationId: organizationId ?? null,
-  }), [assistantId, organizationId, podId]);
+  }), [assistantId, assistantName, organizationId, podId]);
 
   const scopeKey = useMemo(
     () => JSON.stringify({
       podId: scope.podId ?? null,
+      assistantName: scope.assistantName ?? null,
       assistantId: scope.assistantId ?? null,
       organizationId: scope.organizationId ?? null,
     }),
-    [scope.assistantId, scope.organizationId, scope.podId],
+    [scope.assistantId, scope.assistantName, scope.organizationId, scope.podId],
   );
 
   const handleAssistantSessionError = useCallback((sessionError: unknown) => {
@@ -776,6 +787,7 @@ export function useAssistantController({
   const assistantSession = useAssistantSession({
     client,
     podId: scope.podId ?? undefined,
+    assistantName: scope.assistantName ?? undefined,
     assistantId: scope.assistantId ?? undefined,
     organizationId: scope.organizationId ?? undefined,
     conversationId: activeConversationId ?? undefined,
@@ -880,6 +892,15 @@ export function useAssistantController({
     }
   }, [scope, sessionListConversations]);
 
+  const loadAvailableModels = useCallback(async (): Promise<AvailableModelInfo[]> => {
+    try {
+      const response = await client.conversations.listModels();
+      return response.items ?? [];
+    } catch {
+      return [];
+    }
+  }, [client]);
+
   const loadConversationMessages = useCallback(async (conversationId: string) => {
     setIsLoadingMessages(true);
     try {
@@ -942,6 +963,25 @@ export function useAssistantController({
   }, [conversations]);
 
   useEffect(() => {
+    if (!enabled) {
+      setAvailableModels([]);
+      return;
+    }
+
+    let cancelled = false;
+    void loadAvailableModels()
+      .then((models) => {
+        if (cancelled) return;
+        setAvailableModels(models);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, loadAvailableModels]);
+
+  useEffect(() => {
     const conversationId = activeConversationIdRef.current;
     if (!conversationId) {
       setMessages([]);
@@ -997,6 +1037,7 @@ export function useAssistantController({
       loadingConversationIdRef.current = null;
       skipInitialLoadConversationIdsRef.current.clear();
       setActiveConversationId(null);
+      setAvailableModels([]);
       setConversationModelState(null);
       setConversations([]);
       setMessages([]);
@@ -1082,8 +1123,12 @@ export function useAssistantController({
     const activeConversation = conversationsRef.current.find((conversation) => conversation.id === conversationId);
     const conversationIsRunning = isConversationRunning(activeConversation?.status);
     if (!hadActiveStream && !conversationIsRunning) return;
+    const previousStatus = activeConversation?.status;
     touchConversation(conversationId, { status: "waiting" as Conversation["status"] });
-    void sessionStop(conversationId).catch(() => undefined);
+    void sessionStop(conversationId).catch((error) => {
+      touchConversation(conversationId, { status: previousStatus });
+      setLocalError((prev) => prev || (error instanceof Error ? error.message : "Failed to stop conversation"));
+    });
   }, [isStreaming, sessionCancel, sessionIsStreaming, sessionStop, touchConversation]);
 
   const selectConversation = useCallback((conversationId: string | null) => {
@@ -1330,6 +1375,7 @@ export function useAssistantController({
     messages,
     conversations,
     activeConversationId,
+    availableModels,
     conversationModel,
     isActiveConversationRunning,
     isLoading,

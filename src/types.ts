@@ -1,5 +1,3 @@
-import type { RecordFilter as GeneratedRecordFilter } from "./openapi_client/models/RecordFilter.js";
-import type { RecordSort as GeneratedRecordSort } from "./openapi_client/models/RecordSort.js";
 import type {
   AgentResponse,
   AssistantResponse,
@@ -33,9 +31,17 @@ export interface PageResult<T> {
   total?: number;
 }
 
-export type RecordFilter = GeneratedRecordFilter;
+export interface RecordFilter {
+  field: string;
+  op: string;
+  value?: unknown;
+  values?: unknown[];
+}
 
-export type RecordSort = GeneratedRecordSort;
+export interface RecordSort {
+  field: string;
+  direction?: "asc" | "desc" | string;
+}
 
 export interface ListRecordsOptions {
   filters?: RecordFilter[];
@@ -75,7 +81,7 @@ export type UpdateAssistantInput = UpdateAssistantRequest;
 
 export type Conversation = ConversationResponse;
 export type ConversationMessage = ConversationMessageResponse;
-export type ConversationModel = `${AvailableModels}`;
+export type ConversationModel = `${AvailableModels}` | (string & {});
 
 export type Task = TaskResponse;
 export type TaskMessage = TaskMessageResponse;

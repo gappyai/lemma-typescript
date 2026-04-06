@@ -3,7 +3,7 @@
 "./browser.js": function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ApiError = exports.setTestingToken = exports.resolveSafeRedirectUri = exports.getTestingToken = exports.clearTestingToken = exports.buildAuthUrl = exports.AuthManager = exports.LemmaClient = void 0;
+exports.ApiError = exports.setTestingToken = exports.resolveSafeRedirectUri = exports.getTestingToken = exports.clearTestingToken = exports.buildFederatedLogoutUrl = exports.buildAuthUrl = exports.AuthManager = exports.LemmaClient = void 0;
 /**
  * Browser bundle entry point.
  * Exposes LemmaClient as globalThis.LemmaClient.LemmaClient
@@ -19,6 +19,7 @@ Object.defineProperty(exports, "LemmaClient", { enumerable: true, get: function 
 var auth_js_1 = require("./auth.js");
 Object.defineProperty(exports, "AuthManager", { enumerable: true, get: function () { return auth_js_1.AuthManager; } });
 Object.defineProperty(exports, "buildAuthUrl", { enumerable: true, get: function () { return auth_js_1.buildAuthUrl; } });
+Object.defineProperty(exports, "buildFederatedLogoutUrl", { enumerable: true, get: function () { return auth_js_1.buildFederatedLogoutUrl; } });
 Object.defineProperty(exports, "clearTestingToken", { enumerable: true, get: function () { return auth_js_1.clearTestingToken; } });
 Object.defineProperty(exports, "getTestingToken", { enumerable: true, get: function () { return auth_js_1.getTestingToken; } });
 Object.defineProperty(exports, "resolveSafeRedirectUri", { enumerable: true, get: function () { return auth_js_1.resolveSafeRedirectUri; } });
@@ -198,10 +199,19 @@ exports.setTestingToken = setTestingToken;
 exports.getTestingToken = getTestingToken;
 exports.clearTestingToken = clearTestingToken;
 exports.buildAuthUrl = buildAuthUrl;
+exports.buildFederatedLogoutUrl = buildFederatedLogoutUrl;
 exports.resolveSafeRedirectUri = resolveSafeRedirectUri;
 const session_1 = require("supertokens-web-js/recipe/session");
 const supertokens_js_1 = require("./supertokens.js");
 const DEFAULT_BLOCKED_REDIRECT_PATHS = ["/login", "/signup", "/auth"];
+const SUPERTOKENS_FRONTEND_MARKER_KEYS = [
+    "sFrontToken",
+    "st-last-access-token-update",
+    "sIRTFrontend",
+    "sAntiCsrf",
+    "st-access-token",
+    "st-refresh-token",
+];
 const LOCALSTORAGE_TOKEN_KEY = "lemma_token";
 function readStorageToken() {
     if (typeof window === "undefined")
@@ -305,6 +315,26 @@ function buildAuthUrl(authUrl, options = {}) {
     }
     return url.toString();
 }
+function buildFederatedLogoutUrl(authUrl, options = {}) {
+    const url = new URL(authUrl);
+    url.pathname = resolveAuthPath(url.pathname, options.path ?? "logout");
+    for (const [key, value] of Object.entries(options.params ?? {})) {
+        if (value === null || value === undefined)
+            continue;
+        if (Array.isArray(value)) {
+            url.searchParams.delete(key);
+            for (const item of value) {
+                url.searchParams.append(key, String(item));
+            }
+            continue;
+        }
+        url.searchParams.set(key, String(value));
+    }
+    if (options.redirectUri && options.redirectUri.trim()) {
+        url.searchParams.set(options.redirectParam ?? "redirect_uri", options.redirectUri);
+    }
+    return url.toString();
+}
 function resolveSafeRedirectUri(rawValue, options) {
     const siteOrigin = normalizeOrigin(options.siteOrigin);
     const blockedPaths = options.blockedPaths ?? DEFAULT_BLOCKED_REDIRECT_PATHS;
@@ -374,6 +404,67 @@ class AuthManager {
         const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
         const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`));
         return match ? decodeURIComponent(match[1]) : undefined;
+    }
+    getCookieDomainCandidates() {
+        if (typeof window === "undefined") {
+            return [undefined];
+        }
+        const host = window.location.hostname;
+        const isIpv4 = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
+        const isIpv6 = host.includes(":");
+        if (!host || host === "localhost" || isIpv4 || isIpv6) {
+            return [undefined];
+        }
+        const domains = new Set();
+        const parts = host.split(".").filter(Boolean);
+        for (let i = 0; i < parts.length - 1; i += 1) {
+            const candidate = parts.slice(i).join(".");
+            if (!candidate)
+                continue;
+            domains.add(candidate);
+            domains.add(`.${candidate}`);
+        }
+        return [undefined, ...domains];
+    }
+    expireCookie(name, domain) {
+        if (typeof document === "undefined")
+            return;
+        const domainPart = domain ? `;domain=${domain}` : "";
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;max-age=0;path=/${domainPart};samesite=lax`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;max-age=0;path=/${domainPart}`;
+    }
+    /**
+     * Defensive cleanup for stale SuperTokens frontend marker cookies/storage.
+     * This helps recover when signout/session-expiry paths leave local markers behind.
+     */
+    clearFrontendSessionMarkers() {
+        if (typeof window === "undefined")
+            return;
+        for (const key of SUPERTOKENS_FRONTEND_MARKER_KEYS) {
+            try {
+                window.localStorage.removeItem(key);
+            }
+            catch {
+                // ignore storage errors
+            }
+            try {
+                window.sessionStorage.removeItem(key);
+            }
+            catch {
+                // ignore storage errors
+            }
+        }
+        const domains = this.getCookieDomainCandidates();
+        for (const key of SUPERTOKENS_FRONTEND_MARKER_KEYS) {
+            for (const domain of domains) {
+                this.expireCookie(key, domain);
+            }
+        }
+    }
+    applyUnauthenticatedState() {
+        const next = { status: "unauthenticated", user: null };
+        this.setState(next);
+        return next;
     }
     clearInjectedToken() {
         this.injectedToken = null;
@@ -483,15 +574,11 @@ class AuthManager {
             const response = await fetch(`${this.apiUrl}/users/me`, this.getRequestInit({ method: "GET" }));
             // Only 401 means not authenticated — 403 means authenticated but forbidden
             if (response.status === 401) {
-                const next = { status: "unauthenticated", user: null };
-                this.setState(next);
-                return next;
+                return this.applyUnauthenticatedState();
             }
             if (!response.ok) {
                 // For non-401 errors on /users/me, treat as unauthenticated (conservative)
-                const next = { status: "unauthenticated", user: null };
-                this.setState(next);
-                return next;
+                return this.applyUnauthenticatedState();
             }
             const user = (await response.json());
             const next = { status: "authenticated", user };
@@ -499,9 +586,7 @@ class AuthManager {
             return next;
         }
         catch {
-            const next = { status: "unauthenticated", user: null };
-            this.setState(next);
-            return next;
+            return this.applyUnauthenticatedState();
         }
     }
     /**
@@ -509,7 +594,7 @@ class AuthManager {
      * Does NOT redirect — call redirectToAuth() explicitly if desired.
      */
     markUnauthenticated() {
-        this.setState({ status: "unauthenticated", user: null });
+        this.applyUnauthenticatedState();
     }
     /**
      * Sign out the current user session.
@@ -537,6 +622,9 @@ class AuthManager {
                 // best effort fallback only
             }
         }
+        // Always clear frontend markers on logout attempt, even if backend session
+        // cleanup is partial. This avoids stale local "EXISTS" signals.
+        this.clearFrontendSessionMarkers();
         const isAuthenticated = await this.isAuthenticatedViaCookie();
         if (!isAuthenticated) {
             this.markUnauthenticated();
@@ -550,6 +638,12 @@ class AuthManager {
         return buildAuthUrl(this.authUrl, options);
     }
     /**
+     * Build upstream/federated logout URL.
+     */
+    getFederatedLogoutUrl(options = {}) {
+        return buildFederatedLogoutUrl(this.authUrl, options);
+    }
+    /**
      * Redirect to the auth service, passing the current URL as redirect_uri.
      * After the user authenticates, the auth service should redirect back to
      * the original URL and set the session cookie.
@@ -560,6 +654,23 @@ class AuthManager {
         }
         const redirectUri = options.redirectUri ?? window.location.href;
         window.location.href = this.getAuthUrl({ ...options, redirectUri });
+    }
+    /**
+     * Optional full logout flow:
+     * 1. clear local SDK/session cookies
+     * 2. redirect to auth service logout endpoint to terminate upstream SSO
+     */
+    async redirectToFederatedLogout(options = {}) {
+        this.assertBrowserContext();
+        const redirectUri = options.redirectUri ?? window.location.href;
+        const localSignOut = options.localSignOut ?? true;
+        if (localSignOut) {
+            await this.signOut();
+        }
+        window.location.href = this.getFederatedLogoutUrl({
+            ...options,
+            redirectUri,
+        });
     }
 }
 exports.AuthManager = AuthManager;
@@ -1527,29 +1638,38 @@ class ConversationsNamespace {
     list(options = {}) {
         return this.http.request("GET", "/conversations", {
             params: {
-                assistant_id: options.assistant_id,
+                assistant_name: options.assistant_name ?? options.assistant_id,
                 pod_id: this.resolvePodId(options.pod_id),
                 organization_id: options.organization_id,
+                global_only: options.global_only ?? false,
                 limit: options.limit ?? 20,
                 page_token: options.page_token,
             },
         });
     }
-    listByAssistant(assistantId, options = {}) {
-        return this.list({ ...options, assistant_id: assistantId });
+    listByAssistant(assistantName, options = {}) {
+        return this.list({ ...options, assistant_name: assistantName });
+    }
+    listByAssistantName(assistantName, options = {}) {
+        return this.listByAssistant(assistantName, options);
+    }
+    listModels() {
+        return this.http.request("GET", "/models");
     }
     create(payload) {
+        const { assistant_id, ...requestBody } = payload;
         return this.http.request("POST", "/conversations", {
             body: {
-                ...payload,
-                pod_id: this.resolvePodId(payload.pod_id),
+                ...requestBody,
+                pod_id: this.resolvePodId(requestBody.pod_id),
+                assistant_name: requestBody.assistant_name ?? assistant_id,
             },
         });
     }
-    createForAssistant(assistantId, payload = {}) {
+    createForAssistant(assistantName, payload = {}) {
         return this.create({
             ...payload,
-            assistant_id: assistantId,
+            assistant_name: assistantName,
         });
     }
     get(conversationId, options = {}) {
@@ -1835,6 +1955,35 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilesNamespace = void 0;
 const SearchMethod_js_1 = require("./openapi_client/models/SearchMethod.js");
 const FilesService_js_1 = require("./openapi_client/services/FilesService.js");
+function joinDatastorePath(basePath, leaf) {
+    const normalizedLeaf = leaf.replace(/^\/+/, "");
+    const trimmedBase = (basePath ?? "/").trim();
+    const normalizedBase = trimmedBase.length > 0 ? trimmedBase : "/";
+    if (normalizedBase === "/") {
+        return `/${normalizedLeaf}`;
+    }
+    return `${normalizedBase.replace(/\/+$/, "")}/${normalizedLeaf}`;
+}
+function getDirectoryPath(path) {
+    const normalized = path.trim();
+    if (!normalized || normalized === "/") {
+        return "/";
+    }
+    const withoutTrailing = normalized.replace(/\/+$/, "");
+    const index = withoutTrailing.lastIndexOf("/");
+    if (index <= 0) {
+        return "/";
+    }
+    return withoutTrailing.slice(0, index);
+}
+function getBaseName(path) {
+    const normalized = path.trim().replace(/\/+$/, "");
+    const index = normalized.lastIndexOf("/");
+    if (index === -1) {
+        return normalized;
+    }
+    return normalized.slice(index + 1);
+}
 class FilesNamespace {
     constructor(client, http, podId) {
         this.client = client;
@@ -1843,22 +1992,22 @@ class FilesNamespace {
         this.folder = {
             create: (name, options = {}) => {
                 const payload = {
-                    name,
+                    path: joinDatastorePath(options.directoryPath ?? options.parentId, name),
                     description: options.description,
-                    parent_id: options.parentId,
                 };
                 return this.client.request(() => FilesService_js_1.FilesService.fileFolderCreate(this.podId(), payload));
             },
         };
     }
     list(options = {}) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileList(this.podId(), options.parentId, options.limit ?? 100, options.pageToken));
+        const directoryPath = options.directoryPath ?? options.parentId ?? "/";
+        return this.client.request(() => FilesService_js_1.FilesService.fileList(this.podId(), directoryPath, options.limit ?? 100, options.pageToken));
     }
-    get(fileId) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileGet(this.podId(), fileId));
+    get(path) {
+        return this.client.request(() => FilesService_js_1.FilesService.fileGet(this.podId(), path));
     }
-    delete(fileId) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileDelete(this.podId(), fileId));
+    delete(path) {
+        return this.client.request(() => FilesService_js_1.FilesService.fileDelete(this.podId(), path));
     }
     search(query, options = {}) {
         return this.client.request(() => FilesService_js_1.FilesService.fileSearch(this.podId(), {
@@ -1867,28 +2016,37 @@ class FilesNamespace {
             search_method: options.searchMethod ?? SearchMethod_js_1.SearchMethod.HYBRID,
         }));
     }
-    download(fileId) {
-        return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/${fileId}/download`);
+    download(path) {
+        const encodedPath = encodeURIComponent(path);
+        return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/download?path=${encodedPath}`);
     }
     upload(file, options = {}) {
         const payload = {
             data: file,
             name: options.name ?? (file instanceof File ? file.name : undefined),
             description: options.description,
-            parent_id: options.parentId,
+            directory_path: options.directoryPath ?? options.parentId ?? "/",
             search_enabled: options.searchEnabled ?? true,
         };
         return this.client.request(() => FilesService_js_1.FilesService.fileUpload(this.podId(), payload));
     }
-    update(fileId, options = {}) {
+    update(path, options = {}) {
+        const targetDirectory = options.directoryPath ?? options.parentId;
+        const resolvedNewPath = options.newPath
+            ?? (options.name
+                ? joinDatastorePath(targetDirectory ?? getDirectoryPath(path), options.name)
+                : undefined)
+            ?? (targetDirectory
+                ? joinDatastorePath(targetDirectory, getBaseName(path))
+                : undefined);
         const payload = {
+            path,
             data: options.file,
-            name: options.name,
             description: options.description,
-            parent_id: options.parentId,
+            new_path: resolvedNewPath,
             search_enabled: options.searchEnabled,
         };
-        return this.client.request(() => FilesService_js_1.FilesService.fileUpdate(this.podId(), fileId, payload));
+        return this.client.request(() => FilesService_js_1.FilesService.fileUpdate(this.podId(), payload));
     }
 }
 exports.FilesNamespace = FilesNamespace;
@@ -1920,13 +2078,13 @@ class FilesService {
     /**
      * List Files
      * @param podId
-     * @param parentId
+     * @param directoryPath
      * @param limit
      * @param pageToken
      * @returns FileListResponse Successful Response
      * @throws ApiError
      */
-    static fileList(podId, parentId, limit = 100, pageToken) {
+    static fileList(podId, directoryPath = '/', limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files',
@@ -1934,7 +2092,7 @@ class FilesService {
                 'pod_id': podId,
             },
             query: {
-                'parent_id': parentId,
+                'directory_path': directoryPath,
                 'limit': limit,
                 'page_token': pageToken,
             },
@@ -1959,6 +2117,93 @@ class FilesService {
             },
             formData: formData,
             mediaType: 'multipart/form-data',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete File
+     * @param podId
+     * @param path
+     * @returns DatastoreMessageResponse Successful Response
+     * @throws ApiError
+     */
+    static fileDelete(podId, path) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}/datastore/files/by-path',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get File
+     * @param podId
+     * @param path
+     * @returns FileResponse Successful Response
+     * @throws ApiError
+     */
+    static fileGet(podId, path) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/datastore/files/by-path',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update File
+     * @param podId
+     * @param formData
+     * @returns FileResponse Successful Response
+     * @throws ApiError
+     */
+    static fileUpdate(podId, formData) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'PATCH',
+            url: '/pods/{pod_id}/datastore/files/by-path',
+            path: {
+                'pod_id': podId,
+            },
+            formData: formData,
+            mediaType: 'multipart/form-data',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Download File
+     * @param podId
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static fileDownload(podId, path) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/datastore/files/download',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'path': path,
+            },
             errors: {
                 422: `Validation Error`,
             },
@@ -2007,82 +2252,23 @@ class FilesService {
         });
     }
     /**
-     * Delete File
+     * Get Directory Tree
      * @param podId
-     * @param fileId
-     * @returns DatastoreMessageResponse Successful Response
+     * @param rootPath
+     * @param filesPerDirectory
+     * @returns DirectoryTreeResponse Successful Response
      * @throws ApiError
      */
-    static fileDelete(podId, fileId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/datastore/files/{file_id}',
-            path: {
-                'pod_id': podId,
-                'file_id': fileId,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Get File
-     * @param podId
-     * @param fileId
-     * @returns FileResponse Successful Response
-     * @throws ApiError
-     */
-    static fileGet(podId, fileId) {
+    static fileTree(podId, rootPath = '/', filesPerDirectory = 3) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/datastore/files/{file_id}',
+            url: '/pods/{pod_id}/datastore/files/tree',
             path: {
                 'pod_id': podId,
-                'file_id': fileId,
             },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Update File
-     * @param podId
-     * @param fileId
-     * @param formData
-     * @returns FileResponse Successful Response
-     * @throws ApiError
-     */
-    static fileUpdate(podId, fileId, formData) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'PATCH',
-            url: '/pods/{pod_id}/datastore/files/{file_id}',
-            path: {
-                'pod_id': podId,
-                'file_id': fileId,
-            },
-            formData: formData,
-            mediaType: 'multipart/form-data',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Download File
-     * @param podId
-     * @param fileId
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    static fileDownload(podId, fileId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/datastore/files/{file_id}/download',
-            path: {
-                'pod_id': podId,
-                'file_id': fileId,
+            query: {
+                'root_path': rootPath,
+                'files_per_directory': filesPerDirectory,
             },
             errors: {
                 422: `Validation Error`,
@@ -3566,6 +3752,18 @@ const RecordsService_js_1 = require("./openapi_client/services/RecordsService.js
 function getRecordsPath(podId, table) {
     return `/pods/${encodeURIComponent(podId)}/datastore/tables/${encodeURIComponent(table)}/records`;
 }
+function serializeFilters(filters) {
+    if (!filters || filters.length === 0) {
+        return undefined;
+    }
+    return filters.map((filter) => JSON.stringify(filter));
+}
+function serializeSort(sort) {
+    if (!sort || sort.length === 0) {
+        return undefined;
+    }
+    return sort.map((entry) => JSON.stringify(entry));
+}
 class RecordsNamespace {
     constructor(client, http, podId) {
         this.client = client;
@@ -3589,13 +3787,7 @@ class RecordsNamespace {
     list(table, options = {}) {
         const { filters, sort, limit, pageToken, offset, sortBy, order, params } = options;
         if (filters || sort) {
-            const payload = {
-                filters,
-                sort,
-                limit,
-                page_token: pageToken,
-            };
-            return this.client.request(() => RecordsService_js_1.RecordsService.recordQuery(this.podId(), table, payload));
+            return this.client.request(() => RecordsService_js_1.RecordsService.recordList(this.podId(), table, limit ?? 20, offset, sortBy ?? undefined, order ?? "asc", serializeFilters(filters), serializeSort(sort), pageToken));
         }
         const hasCustomParams = typeof offset === "number" ||
             typeof sortBy === "string" ||
@@ -3613,7 +3805,7 @@ class RecordsNamespace {
                 },
             });
         }
-        return this.client.request(() => RecordsService_js_1.RecordsService.recordList(this.podId(), table, limit ?? 20, pageToken));
+        return this.client.request(() => RecordsService_js_1.RecordsService.recordList(this.podId(), table, limit ?? 20, offset, sortBy ?? undefined, order ?? "asc", undefined, undefined, pageToken));
     }
     listWithParams(table, params) {
         return this.http.request("GET", getRecordsPath(this.podId(), table), {
@@ -3633,7 +3825,7 @@ class RecordsNamespace {
         return this.client.request(() => RecordsService_js_1.RecordsService.recordDelete(this.podId(), table, recordId));
     }
     query(table, payload) {
-        return this.client.request(() => RecordsService_js_1.RecordsService.recordQuery(this.podId(), table, payload));
+        return this.client.request(() => RecordsService_js_1.RecordsService.recordList(this.podId(), table, payload.limit ?? 20, payload.offset, payload.sort_by ?? undefined, payload.order ?? "asc", serializeFilters(payload.filters), serializeSort(payload.sort), payload.page_token));
     }
 }
 exports.RecordsNamespace = RecordsNamespace;
@@ -3648,15 +3840,20 @@ const request_js_1 = require("./openapi_client/core/request.js");
 class RecordsService {
     /**
      * List Records
-     * List table records with token pagination only. Use `record.query` when you need structured filters or explicit sort clauses.
+     * List table records with token pagination only. Use the datastore query endpoint for joins, aggregates, or custom read-only SQL.
      * @param podId
      * @param tableName
      * @param limit Max number of rows to return.
+     * @param offset Row offset for direct pagination.
+     * @param sortBy Optional column name to sort by.
+     * @param order Sort direction for `sort_by`: `asc` or `desc`.
+     * @param filter Optional repeated JSON filters for advanced comparisons. Example: `filter={"field":"amount","op":"gt","value":100}`
+     * @param sort Optional repeated JSON sort clauses. Example: `sort={"field":"created_at","direction":"desc"}`
      * @param pageToken Opaque token from a previous response page.
      * @returns RecordListResponse Successful Response
      * @throws ApiError
      */
-    static recordList(podId, tableName, limit = 20, pageToken) {
+    static recordList(podId, tableName, limit = 20, offset, sortBy, order = 'asc', filter, sort, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/tables/{table_name}/records',
@@ -3666,6 +3863,11 @@ class RecordsService {
             },
             query: {
                 'limit': limit,
+                'offset': offset,
+                'sort_by': sortBy,
+                'order': order,
+                'filter': filter,
+                'sort': sort,
                 'page_token': pageToken,
             },
             errors: {
@@ -3758,30 +3960,6 @@ class RecordsService {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
             url: '/pods/{pod_id}/datastore/tables/{table_name}/records/bulk/update',
-            path: {
-                'pod_id': podId,
-                'table_name': tableName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Query Records
-     * Query one table with structured filters and sorting. Use this instead of dynamic query parameters when you need filtering. Example filters: `[{"field": "status", "op": "eq", "value": "OPEN"}]`.
-     * @param podId
-     * @param tableName
-     * @param requestBody
-     * @returns RecordListResponse Successful Response
-     * @throws ApiError
-     */
-    static recordQuery(podId, tableName, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/datastore/tables/{table_name}/records/query',
             path: {
                 'pod_id': podId,
                 'table_name': tableName,

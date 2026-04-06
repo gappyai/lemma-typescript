@@ -500,19 +500,19 @@ function ThemeControls({
 
 function ShowcaseChrome({
   podId,
-  assistantId,
+  assistantName,
   organizationId,
   config,
 }: {
   podId: string;
-  assistantId: string;
+  assistantName: string;
   organizationId?: string;
   config: PreviewConfig;
 }) {
   const controller = useAssistantController({
     client: getClient(),
     podId,
-    assistantId,
+    assistantName,
     organizationId: organizationId || undefined,
     enabled: config.enabled,
   });
@@ -524,8 +524,19 @@ function ShowcaseChrome({
   const plan = useMemo(() => latestPlanSummary(controller.messages), [controller.messages]);
   const activeToolBanner = useMemo(() => getActiveToolBanner(controller.messages), [controller.messages]);
   const availableModels = useMemo(
-    () => Object.values(AvailableModels) as ConversationModel[],
-    [],
+    () => {
+      const dynamicModels = controller.availableModels
+        .map((model) => model.id as ConversationModel)
+        .filter((model) => model.trim().length > 0);
+      return dynamicModels.length > 0
+        ? dynamicModels
+        : (Object.values(AvailableModels) as ConversationModel[]);
+    },
+    [controller.availableModels],
+  );
+  const availableModelLabels = useMemo(
+    () => new Map(controller.availableModels.map((model) => [model.id, model.name])),
+    [controller.availableModels],
   );
   const emptyState = config.useCustomEmptyState
     ? (
@@ -621,6 +632,7 @@ function ShowcaseChrome({
                     <AssistantModelPicker
                       value={controller.conversationModel}
                       options={availableModels}
+                      getOptionLabel={(model) => availableModelLabels.get(model) ?? model}
                       onChange={(model) => void controller.setConversationModel(model)}
                     />
                     <button
@@ -729,12 +741,12 @@ function ShowcaseBody() {
   const controller = useAssistantController({
     client: getClient(),
     podId: SHOWCASE_CONFIG.podId || undefined,
-    assistantId: SHOWCASE_CONFIG.assistantId || undefined,
+    assistantName: SHOWCASE_CONFIG.assistantName || undefined,
     organizationId: SHOWCASE_CONFIG.organizationId || undefined,
-    enabled: isConfigured(SHOWCASE_CONFIG.podId) && isConfigured(SHOWCASE_CONFIG.assistantId) && previewConfig.enabled,
+    enabled: isConfigured(SHOWCASE_CONFIG.podId) && isConfigured(SHOWCASE_CONFIG.assistantName) && previewConfig.enabled,
   });
 
-  const hasRequiredConfig = isConfigured(SHOWCASE_CONFIG.podId) && isConfigured(SHOWCASE_CONFIG.assistantId);
+  const hasRequiredConfig = isConfigured(SHOWCASE_CONFIG.podId) && isConfigured(SHOWCASE_CONFIG.assistantName);
   const emptyState = previewConfig.useCustomEmptyState
     ? (
       <div>
@@ -789,7 +801,7 @@ function ShowcaseBody() {
 
 
       {!hasRequiredConfig ? (
-        <p>Set both <code>VITE_LEMMA_POD_ID</code> and <code>VITE_LEMMA_ASSISTANT_ID</code> in <code>.env</code> to enable the previews.</p>
+        <p>Set both <code>VITE_LEMMA_POD_ID</code> and <code>VITE_LEMMA_ASSISTANT_NAME</code> in <code>.env</code> to enable the previews.</p>
       ) : null}
 
       <label htmlFor="preview-mode">Preview</label>
@@ -852,7 +864,7 @@ function ShowcaseBody() {
             theme={themeMode}
             client={getClient()}
             podId={SHOWCASE_CONFIG.podId}
-            assistantId={SHOWCASE_CONFIG.assistantId}
+            assistantName={SHOWCASE_CONFIG.assistantName}
             organizationId={SHOWCASE_CONFIG.organizationId || undefined}
             enabled={previewConfig.enabled}
             title={previewConfig.title}
@@ -875,7 +887,7 @@ function ShowcaseBody() {
       {hasRequiredConfig && mode === "chrome" ? (
         <ShowcaseChrome
           podId={SHOWCASE_CONFIG.podId}
-          assistantId={SHOWCASE_CONFIG.assistantId}
+          assistantName={SHOWCASE_CONFIG.assistantName}
           organizationId={SHOWCASE_CONFIG.organizationId}
           config={previewConfig}
         />

@@ -1471,8 +1471,19 @@ export function AssistantExperienceView({
   const isConversationBusy = controller.isLoading || controller.isActiveConversationRunning;
 
   const availableModels = useMemo(
-    () => Object.values(AvailableModels) as ConversationModel[],
-    [],
+    () => {
+      const dynamicModels = controller.availableModels
+        .map((model) => model.id as ConversationModel)
+        .filter((model) => model.trim().length > 0);
+      return dynamicModels.length > 0
+        ? dynamicModels
+        : (Object.values(AvailableModels) as ConversationModel[]);
+    },
+    [controller.availableModels],
+  );
+  const availableModelLabels = useMemo(
+    () => new Map(controller.availableModels.map((model) => [model.id, model.name])),
+    [controller.availableModels],
   );
 
   const resizeComposer = useCallback(() => {
@@ -1808,6 +1819,7 @@ export function AssistantExperienceView({
                   <AssistantModelPicker
                     value={controller.conversationModel}
                     options={availableModels}
+                    getOptionLabel={(model) => availableModelLabels.get(model) ?? model}
                     onChange={(nextModel) => { void handleModelChange(nextModel); }}
                     disabled={isConversationBusy || isUpdatingModel}
                     autoLabel="Auto"

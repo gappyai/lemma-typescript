@@ -12,6 +12,7 @@ export { LemmaClient } from "./client.js";
 export {
   AuthManager,
   buildAuthUrl,
+  buildFederatedLogoutUrl,
   clearTestingToken,
   getTestingToken,
   resolveSafeRedirectUri,

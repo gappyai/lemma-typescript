@@ -1,4 +1,5 @@
 import type { HttpClient } from "../http.js";
+import type { AvailableModelsListResponse } from "../openapi_client/models/AvailableModelsListResponse.js";
 import type { AssistantListResponse } from "../openapi_client/models/AssistantListResponse.js";
 import type { AssistantResponse } from "../openapi_client/models/AssistantResponse.js";
 import type { ConversationListResponse } from "../openapi_client/models/ConversationListResponse.js";
@@ -71,17 +72,23 @@ export class ConversationsNamespace {
   }
 
   list(options: {
+    assistant_name?: string;
+    /**
+     * @deprecated Use assistant_name instead.
+     */
     assistant_id?: string;
     pod_id?: string;
     organization_id?: string;
+    global_only?: boolean;
     limit?: number;
     page_token?: string;
   } = {}): Promise<ConversationListResponse> {
     return this.http.request<ConversationListResponse>("GET", "/conversations", {
       params: {
-        assistant_id: options.assistant_id,
+        assistant_name: options.assistant_name ?? options.assistant_id,
         pod_id: this.resolvePodId(options.pod_id),
         organization_id: options.organization_id,
+        global_only: options.global_only ?? false,
         limit: options.limit ?? 20,
         page_token: options.page_token,
       },
@@ -89,33 +96,61 @@ export class ConversationsNamespace {
   }
 
   listByAssistant(
-    assistantId: string,
+    assistantName: string,
     options: {
       pod_id?: string;
       organization_id?: string;
+      global_only?: boolean;
       limit?: number;
       page_token?: string;
     } = {},
   ): Promise<ConversationListResponse> {
-    return this.list({ ...options, assistant_id: assistantId });
+    return this.list({ ...options, assistant_name: assistantName });
   }
 
-  create(payload: CreateConversationRequest): Promise<ConversationResponse> {
+  listByAssistantName(
+    assistantName: string,
+    options: {
+      pod_id?: string;
+      organization_id?: string;
+      global_only?: boolean;
+      limit?: number;
+      page_token?: string;
+    } = {},
+  ): Promise<ConversationListResponse> {
+    return this.listByAssistant(assistantName, options);
+  }
+
+  listModels(): Promise<AvailableModelsListResponse> {
+    return this.http.request<AvailableModelsListResponse>("GET", "/models");
+  }
+
+  create(
+    payload: CreateConversationRequest & {
+      /**
+       * @deprecated Use assistant_name instead.
+       */
+      assistant_id?: string | null;
+    },
+  ): Promise<ConversationResponse> {
+    const { assistant_id, ...requestBody } = payload;
+
     return this.http.request<ConversationResponse>("POST", "/conversations", {
       body: {
-        ...payload,
-        pod_id: this.resolvePodId(payload.pod_id),
+        ...requestBody,
+        pod_id: this.resolvePodId(requestBody.pod_id),
+        assistant_name: requestBody.assistant_name ?? assistant_id,
       },
     });
   }
 
   createForAssistant(
-    assistantId: string,
-    payload: Omit<CreateConversationRequest, "assistant_id"> = {},
+    assistantName: string,
+    payload: Omit<CreateConversationRequest, "assistant_name"> = {},
   ): Promise<ConversationResponse> {
     return this.create({
       ...payload,
-      assistant_id: assistantId,
+      assistant_name: assistantName,
     });
   }
 

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { AvailableModelInfo } from "../../types.js";
 import type {
   AssistantRenderableMessage,
   AssistantToolInvocation,
@@ -16,6 +17,7 @@ export interface AssistantControllerView {
   messages: AssistantRenderableMessage[];
   conversations: AssistantConversationListItem[];
   activeConversationId: string | null;
+  availableModels: AvailableModelInfo[];
   conversationModel: string | null;
   setConversationModel(model: string | null): Promise<void>;
   isActiveConversationRunning: boolean;

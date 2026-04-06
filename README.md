@@ -108,7 +108,12 @@ const assistantPayload: CreateAssistantInput = {
 ## Auth Helpers
 
 ```ts
-import { LemmaClient, buildAuthUrl, resolveSafeRedirectUri } from "lemma-sdk";
+import {
+  LemmaClient,
+  buildAuthUrl,
+  buildFederatedLogoutUrl,
+  resolveSafeRedirectUri,
+} from "lemma-sdk";
 
 const client = new LemmaClient({
   apiUrl: "https://api-next.asur.work",
@@ -131,6 +136,14 @@ await client.auth.signOut();
 const token = await client.auth.getAccessToken();
 const refreshed = await client.auth.refreshAccessToken();
 client.auth.redirectToAuth({ mode: "signup", redirectUri: safeRedirect });
+
+// Build upstream logout URL (server/client)
+const federatedLogoutUrl = buildFederatedLogoutUrl(client.authUrl, {
+  redirectUri: safeRedirect,
+});
+
+// Browser: sign out locally, then clear upstream SSO and return to app
+await client.auth.redirectToFederatedLogout({ redirectUri: safeRedirect });
 ```
 
 ### Browser Testing With Injected Token
@@ -240,7 +253,7 @@ function SupportAssistant() {
       <AssistantEmbedded
         client={client}
         podId="pod_123"
-        assistantId="uuid"
+        assistantName="support_assistant"
         title="Support Assistant"
         subtitle="Ask questions about this pod."
         placeholder="Message Support Assistant"
@@ -287,7 +300,7 @@ function ControlledAssistant() {
   const assistant = useAssistantController({
     client,
     podId: "pod_123",
-    assistantId: "uuid",
+    assistantName: "support_assistant",
   });
 
   return (
@@ -352,7 +365,7 @@ function CustomAssistantShell() {
   const assistant = useAssistantController({
     client,
     podId: "pod_123",
-    assistantId: "uuid",
+    assistantName: "support_assistant",
   });
 
   const rows = buildDisplayMessageRows(assistant.messages);

@@ -3,6 +3,7 @@ export type { LemmaConfig } from "./client.js";
 export {
   AuthManager,
   buildAuthUrl,
+  buildFederatedLogoutUrl,
   clearTestingToken,
   getTestingToken,
   resolveSafeRedirectUri,
@@ -15,6 +16,8 @@ export type {
   UserInfo,
   AuthRedirectMode,
   BuildAuthUrlOptions,
+  BuildFederatedLogoutUrlOptions,
+  RedirectToFederatedLogoutOptions,
   ResolveSafeRedirectUriOptions,
 } from "./auth.js";
 export { ApiError } from "./http.js";

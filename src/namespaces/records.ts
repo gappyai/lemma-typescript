@@ -4,12 +4,35 @@ import type { BulkCreateRecordsRequest } from "../openapi_client/models/BulkCrea
 import type { BulkDeleteRecordsRequest } from "../openapi_client/models/BulkDeleteRecordsRequest.js";
 import type { BulkUpdateRecordsRequest } from "../openapi_client/models/BulkUpdateRecordsRequest.js";
 import type { RecordListResponse } from "../openapi_client/models/RecordListResponse.js";
-import type { RecordQueryRequest } from "../openapi_client/models/RecordQueryRequest.js";
 import { RecordsService } from "../openapi_client/services/RecordsService.js";
-import type { ListRecordsOptions } from "../types.js";
+import type { ListRecordsOptions, RecordFilter, RecordSort } from "../types.js";
+
+export interface RecordQueryRequest {
+  filters?: RecordFilter[];
+  sort?: RecordSort[];
+  limit?: number;
+  page_token?: string;
+  offset?: number;
+  sort_by?: string;
+  order?: "asc" | "desc" | string;
+}
 
 function getRecordsPath(podId: string, table: string): string {
   return `/pods/${encodeURIComponent(podId)}/datastore/tables/${encodeURIComponent(table)}/records`;
+}
+
+function serializeFilters(filters?: RecordFilter[]): string[] | undefined {
+  if (!filters || filters.length === 0) {
+    return undefined;
+  }
+  return filters.map((filter) => JSON.stringify(filter));
+}
+
+function serializeSort(sort?: RecordSort[]): string[] | undefined {
+  if (!sort || sort.length === 0) {
+    return undefined;
+  }
+  return sort.map((entry) => JSON.stringify(entry));
 }
 
 export class RecordsNamespace {
@@ -23,13 +46,17 @@ export class RecordsNamespace {
     const { filters, sort, limit, pageToken, offset, sortBy, order, params } = options;
 
     if (filters || sort) {
-      const payload: RecordQueryRequest = {
-        filters,
-        sort,
-        limit,
-        page_token: pageToken,
-      };
-      return this.client.request(() => RecordsService.recordQuery(this.podId(), table, payload));
+      return this.client.request(() => RecordsService.recordList(
+        this.podId(),
+        table,
+        limit ?? 20,
+        offset,
+        sortBy ?? undefined,
+        order ?? "asc",
+        serializeFilters(filters),
+        serializeSort(sort),
+        pageToken,
+      ));
     }
 
     const hasCustomParams =
@@ -52,7 +79,17 @@ export class RecordsNamespace {
     }
 
     return this.client.request(() =>
-      RecordsService.recordList(this.podId(), table, limit ?? 20, pageToken),
+      RecordsService.recordList(
+        this.podId(),
+        table,
+        limit ?? 20,
+        offset,
+        sortBy ?? undefined,
+        order ?? "asc",
+        undefined,
+        undefined,
+        pageToken,
+      ),
     );
   }
 
@@ -82,7 +119,17 @@ export class RecordsNamespace {
   }
 
   query(table: string, payload: RecordQueryRequest) {
-    return this.client.request(() => RecordsService.recordQuery(this.podId(), table, payload));
+    return this.client.request(() => RecordsService.recordList(
+      this.podId(),
+      table,
+      payload.limit ?? 20,
+      payload.offset,
+      payload.sort_by ?? undefined,
+      payload.order ?? "asc",
+      serializeFilters(payload.filters),
+      serializeSort(payload.sort),
+      payload.page_token,
+    ));
   }
 
   readonly bulk = {

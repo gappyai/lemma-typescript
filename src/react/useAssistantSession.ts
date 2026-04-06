@@ -11,6 +11,10 @@ import { parseAssistantStreamEvent, upsertConversationMessage } from "../assista
 
 interface ConversationScope {
   podId?: string | null;
+  assistantName?: string | null;
+  /**
+   * @deprecated Use assistantName instead.
+   */
   assistantId?: string | null;
   organizationId?: string | null;
 }
@@ -18,6 +22,10 @@ interface ConversationScope {
 export interface UseAssistantSessionOptions {
   client: LemmaClient;
   podId?: string;
+  assistantName?: string;
+  /**
+   * @deprecated Use assistantName instead.
+   */
   assistantId?: string;
   organizationId?: string;
   conversationId?: string | null;
@@ -34,6 +42,10 @@ export interface CreateConversationInput {
   title?: string | null;
   model?: ConversationModel | null;
   podId?: string | null;
+  assistantName?: string | null;
+  /**
+   * @deprecated Use assistantName instead.
+   */
   assistantId?: string | null;
   organizationId?: string | null;
   setActive?: boolean;
@@ -113,8 +125,15 @@ function normalizeScope(
   defaults: ConversationScope,
   override?: ConversationScope,
 ): ConversationScope {
+  const resolvedAssistantName = override?.assistantName
+    ?? override?.assistantId
+    ?? defaults.assistantName
+    ?? defaults.assistantId
+    ?? null;
+
   return {
     podId: override?.podId ?? defaults.podId ?? client.podId ?? null,
+    assistantName: resolvedAssistantName,
     assistantId: override?.assistantId ?? defaults.assistantId ?? null,
     organizationId: override?.organizationId ?? defaults.organizationId ?? null,
   };
@@ -145,6 +164,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   const {
     client,
     podId: defaultPodId,
+    assistantName: defaultAssistantName,
     assistantId: defaultAssistantId,
     organizationId: defaultOrganizationId,
     conversationId: externalConversationId = null,
@@ -252,9 +272,10 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
 
   const defaultScope = useMemo<ConversationScope>(() => ({
     podId: defaultPodId ?? null,
+    assistantName: defaultAssistantName ?? defaultAssistantId ?? null,
     assistantId: defaultAssistantId ?? null,
     organizationId: defaultOrganizationId ?? null,
-  }), [defaultAssistantId, defaultOrganizationId, defaultPodId]);
+  }), [defaultAssistantId, defaultAssistantName, defaultOrganizationId, defaultPodId]);
 
   const listConversations = useCallback(async (input: {
     limit?: number;
@@ -267,7 +288,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
 
       const response = await client.conversations.list({
         pod_id: scope.podId ?? undefined,
-        assistant_id: scope.assistantId ?? undefined,
+        assistant_name: scope.assistantName ?? scope.assistantId ?? undefined,
         organization_id: scope.organizationId ?? undefined,
         limit: input.limit,
         page_token: input.pageToken,
@@ -296,7 +317,11 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     const payload = {
       title: input.title ?? undefined,
       pod_id: input.podId ?? defaultPodId ?? client.podId ?? undefined,
-      assistant_id: input.assistantId ?? defaultAssistantId ?? undefined,
+      assistant_name: input.assistantName
+        ?? input.assistantId
+        ?? defaultAssistantName
+        ?? defaultAssistantId
+        ?? undefined,
       organization_id: input.organizationId ?? defaultOrganizationId ?? undefined,
       model: typeof input.model === "undefined"
         ? undefined
@@ -315,7 +340,15 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     }
 
     return created;
-  }, [clearStreamingText, client, defaultAssistantId, defaultOrganizationId, defaultPodId, setConversationStatus]);
+  }, [
+    clearStreamingText,
+    client,
+    defaultAssistantId,
+    defaultAssistantName,
+    defaultOrganizationId,
+    defaultPodId,
+    setConversationStatus,
+  ]);
 
   const refreshConversation = useCallback(async (explicitConversationId?: string | null): Promise<Conversation | null> => {
     const id = explicitConversationId ?? conversationId;
@@ -581,12 +614,20 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       }
     }
 
+    const previousResumeKey = autoResumedKeyRef.current;
     autoResumedKeyRef.current = resumeKey;
-    await resume({
-      conversationId: id,
-      onlyIfRunning: true,
-    });
-    return true;
+    try {
+      await resume({
+        conversationId: id,
+        onlyIfRunning: true,
+      });
+      return true;
+    } catch (error) {
+      if (autoResumedKeyRef.current === resumeKey) {
+        autoResumedKeyRef.current = previousResumeKey;
+      }
+      throw error;
+    }
   }, [conversationId, isStreaming, refreshConversation, resume]);
 
   const stop = useCallback(async (explicitConversationId?: string | null): Promise<void> => {

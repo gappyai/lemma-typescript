@@ -4,7 +4,7 @@ export interface ShowcaseConfig {
   apiUrl: string;
   authUrl: string;
   podId: string;
-  assistantId: string;
+  assistantName: string;
   organizationId: string;
 }
 
@@ -13,7 +13,7 @@ export function getShowcaseConfig(): ShowcaseConfig {
     apiUrl: import.meta.env.VITE_LEMMA_API_URL ?? "/api",
     authUrl: import.meta.env.VITE_LEMMA_AUTH_URL ?? "http://localhost:4173",
     podId: import.meta.env.VITE_LEMMA_POD_ID ?? "",
-    assistantId: import.meta.env.VITE_LEMMA_ASSISTANT_ID ?? "",
+    assistantName: import.meta.env.VITE_LEMMA_ASSISTANT_NAME ?? "",
     organizationId: import.meta.env.VITE_LEMMA_ORGANIZATION_ID ?? "",
   };
 }

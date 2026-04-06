@@ -10,7 +10,11 @@ OUT_DIR="$SDK_DIR/src/openapi_client"
 
 normalize_json_file() {
   local json_path="$1"
-  python - "$json_path" <<'PY'
+  local python_bin="python"
+  if ! command -v "$python_bin" >/dev/null 2>&1; then
+    python_bin="python3"
+  fi
+  "$python_bin" - "$json_path" <<'PY'
 import json
 import sys
 from pathlib import Path

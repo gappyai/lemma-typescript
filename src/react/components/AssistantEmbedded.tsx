@@ -14,6 +14,7 @@ export interface AssistantEmbeddedProps
 export function AssistantEmbedded({
   client,
   podId,
+  assistantName,
   assistantId,
   organizationId,
   enabled = true,
@@ -23,6 +24,7 @@ export function AssistantEmbedded({
   const controller = useAssistantController({
     client,
     podId: podId ?? undefined,
+    assistantName: assistantName ?? undefined,
     assistantId: assistantId ?? undefined,
     organizationId: organizationId ?? undefined,
     enabled,
