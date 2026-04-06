@@ -15,18 +15,20 @@ import { request as __request } from '../core/request.js';
 export class ConversationsService {
     /**
      * List Conversations
-     * @param assistantId
+     * @param assistantName
      * @param podId
      * @param organizationId
+     * @param globalOnly
      * @param pageToken
      * @param limit
      * @returns ConversationListResponse Successful Response
      * @throws ApiError
      */
     public static conversationList(
-        assistantId?: (string | null),
+        assistantName?: (string | null),
         podId?: (string | null),
         organizationId?: (string | null),
+        globalOnly: boolean = false,
         pageToken?: (string | null),
         limit: number = 20,
     ): CancelablePromise<ConversationListResponse> {
@@ -34,9 +36,10 @@ export class ConversationsService {
             method: 'GET',
             url: '/conversations',
             query: {
-                'assistant_id': assistantId,
+                'assistant_name': assistantName,
                 'pod_id': podId,
                 'organization_id': organizationId,
+                'global_only': globalOnly,
                 'page_token': pageToken,
                 'limit': limit,
             },
