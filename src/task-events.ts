@@ -1,4 +1,4 @@
-import type { TaskMessage } from "./types.js";
+import type { Task, TaskMessage } from "./types.js";
 
 interface ParsedRecord {
   [key: string]: unknown;
@@ -7,6 +7,7 @@ interface ParsedRecord {
 export interface ParsedTaskStreamEvent {
   message?: TaskMessage;
   status?: string;
+  task?: Task;
 }
 
 function isRecord(value: unknown): value is ParsedRecord {
@@ -36,6 +37,33 @@ function toTaskMessage(value: unknown): TaskMessage | undefined {
   };
 
   return message;
+}
+
+function toTask(value: unknown): Task | undefined {
+  if (!isRecord(value)) return undefined;
+  if (typeof value.id !== "string") return undefined;
+
+  const status = normalizeStatus(value.status);
+  if (!status) return undefined;
+
+  if (typeof value.agent_id !== "string") return undefined;
+  if (typeof value.pod_id !== "string") return undefined;
+  if (typeof value.user_id !== "string") return undefined;
+  if (typeof value.created_at !== "string") return undefined;
+  if (typeof value.updated_at !== "string") return undefined;
+
+  return {
+    id: value.id,
+    agent_id: value.agent_id,
+    pod_id: value.pod_id,
+    user_id: value.user_id,
+    input_data: isRecord(value.input_data) ? value.input_data : null,
+    output_data: isRecord(value.output_data) ? value.output_data : null,
+    error: typeof value.error === "string" ? value.error : null,
+    status: status as Task["status"],
+    created_at: value.created_at,
+    updated_at: value.updated_at,
+  };
 }
 
 function extractPayload(record: ParsedRecord): unknown {
@@ -78,8 +106,14 @@ export function parseTaskStreamEvent(value: unknown): ParsedTaskStreamEvent {
     || eventType === "task"
     || eventType === "task_updated"
   ) {
+    const task = toTask(payload) ?? (isRecord(payload) ? toTask(payload.task) : undefined);
     const status = extractStatus(payload);
-    return status ? { status } : {};
+    if (task || status) {
+      return {
+        task,
+        status: status ?? task?.status,
+      };
+    }
   }
 
   return {};

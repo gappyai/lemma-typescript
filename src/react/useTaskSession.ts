@@ -52,6 +52,10 @@ function normalizeError(error: unknown, fallback: string): Error {
   return new Error(fallback);
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function useTaskSession({
   client,
   podId,
@@ -71,58 +75,104 @@ export function useTaskSession({
   const [error, setError] = useState<Error | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
+  const previousExternalTaskIdRef = useRef<string | null>(externalTaskId);
+  const taskIdRef = useRef<string | null>(externalTaskId);
+  const statusRef = useRef<string | undefined>(undefined);
+  const onEventRef = useRef(onEvent);
+  const onStatusRef = useRef(onStatus);
+  const onMessageRef = useRef(onMessage);
+  const onErrorRef = useRef(onError);
 
-  const setTaskId = useCallback((nextTaskId: string | null) => {
-    setTaskIdState(nextTaskId);
-    if (!nextTaskId) {
-      setTask(null);
-      setStatus(undefined);
-      setMessages([]);
+  const setTaskStatus = useCallback((nextStatus?: string) => {
+    const normalized = normalizeRunStatus(nextStatus);
+    setStatus(normalized);
+    statusRef.current = normalized;
+    if (normalized) {
+      onStatusRef.current?.(normalized);
     }
   }, []);
+
+  const setTaskId = useCallback((nextTaskId: string | null) => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+
+    setTaskIdState((currentTaskId) => {
+      if (currentTaskId === nextTaskId) {
+        return currentTaskId;
+      }
+
+      setError(null);
+      setIsStreaming(false);
+
+      if (!nextTaskId) {
+        setTask(null);
+        setTaskStatus(undefined);
+        setMessages([]);
+      }
+
+      return nextTaskId;
+    });
+  }, [setTaskStatus]);
 
   const disconnect = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
+    setIsStreaming(false);
   }, []);
 
   useEffect(() => {
-    if (externalTaskId === taskId) return;
-    setTaskIdState(externalTaskId);
-    if (!externalTaskId) {
-      disconnect();
-      setTask(null);
-      setStatus(undefined);
-      setMessages([]);
+    taskIdRef.current = taskId;
+  }, [taskId]);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    onEventRef.current = onEvent;
+  }, [onEvent]);
+
+  useEffect(() => {
+    onStatusRef.current = onStatus;
+  }, [onStatus]);
+
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
+
+  useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
+    if (previousExternalTaskIdRef.current === externalTaskId) {
+      return;
     }
-  }, [disconnect, externalTaskId, taskId]);
+
+    previousExternalTaskIdRef.current = externalTaskId;
+    setTaskId(externalTaskId);
+  }, [externalTaskId, setTaskId]);
 
   const refreshTask = useCallback(async (explicitTaskId?: string | null): Promise<Task | null> => {
-    const id = explicitTaskId ?? taskId;
+    const id = explicitTaskId ?? taskIdRef.current;
     if (!id) return null;
 
     try {
       client.setPodId(resolvePodId(client, podId));
       const nextTask = await client.tasks.get(id);
       setTask(nextTask);
-
-      const nextStatus = normalizeRunStatus(nextTask.status);
-      setStatus(nextStatus);
-      if (nextStatus) {
-        onStatus?.(nextStatus);
-      }
-
+      setTaskStatus(nextTask.status);
       return nextTask;
     } catch (refreshError) {
       const normalized = normalizeError(refreshError, "Failed to fetch task.");
       setError(normalized);
-      onError?.(refreshError);
+      onErrorRef.current?.(refreshError);
       return null;
     }
-  }, [client, onError, onStatus, podId, taskId]);
+  }, [client, podId, setTaskStatus]);
 
   const loadMessages = useCallback(async (explicitTaskId?: string | null): Promise<TaskMessage[]> => {
-    const id = explicitTaskId ?? taskId;
+    const id = explicitTaskId ?? taskIdRef.current;
     if (!id) return [];
 
     try {
@@ -134,16 +184,17 @@ export function useTaskSession({
     } catch (messageError) {
       const normalized = normalizeError(messageError, "Failed to fetch task messages.");
       setError(normalized);
-      onError?.(messageError);
+      onErrorRef.current?.(messageError);
       return [];
     }
-  }, [client, onError, podId, taskId]);
+  }, [client, podId]);
 
   const connect = useCallback(async (explicitTaskId?: string | null): Promise<void> => {
-    const id = explicitTaskId ?? taskId;
+    const id = explicitTaskId ?? taskIdRef.current;
     if (!id) return;
 
     setTaskIdState(id);
+    taskIdRef.current = id;
     disconnect();
 
     const controller = new AbortController();
@@ -152,39 +203,73 @@ export function useTaskSession({
     setError(null);
     setIsStreaming(true);
 
-    try {
-      client.setPodId(resolvePodId(client, podId));
-      const stream = await client.tasks.stream(id, { signal: controller.signal });
+    let reconnectDelayMs = 1000;
 
-      for await (const event of readSSE(stream)) {
-        if (controller.signal.aborted) {
+    try {
+      while (!controller.signal.aborted) {
+        if (isTerminalTaskStatus(statusRef.current)) {
           break;
         }
 
-        const payload = parseSSEJson(event);
-        onEvent?.(event, payload);
+        try {
+          client.setPodId(resolvePodId(client, podId));
+          const stream = await client.tasks.stream(id, { signal: controller.signal });
+          reconnectDelayMs = 1000;
 
-        const parsed = parseTaskStreamEvent(payload);
+          for await (const event of readSSE(stream)) {
+            if (controller.signal.aborted) {
+              break;
+            }
 
-        if (parsed.message) {
-          setMessages((previous) => upsertTaskMessage(previous, parsed.message!));
-          onMessage?.(parsed.message);
-        }
+            const payload = parseSSEJson(event);
+            onEventRef.current?.(event, payload);
 
-        if (parsed.status) {
-          setStatus(parsed.status);
-          onStatus?.(parsed.status);
+            const parsed = parseTaskStreamEvent(payload);
 
-          if (isTerminalTaskStatus(parsed.status)) {
+            if (parsed.task?.id === id) {
+              setTask(parsed.task);
+              setTaskStatus(parsed.task.status);
+            }
+
+            if (parsed.message) {
+              setMessages((previous) => upsertTaskMessage(previous, parsed.message!));
+              onMessageRef.current?.(parsed.message);
+            }
+
+            if (parsed.status) {
+              setTaskStatus(parsed.status);
+              setTask((previous) => {
+                if (!previous || previous.id !== id) return previous;
+                return {
+                  ...previous,
+                  status: parsed.status as Task["status"],
+                };
+              });
+            }
+
+            if (isTerminalTaskStatus(statusRef.current)) {
+              break;
+            }
+          }
+
+          if (controller.signal.aborted || isTerminalTaskStatus(statusRef.current)) {
             break;
           }
+
+          await sleep(Math.max(reconnectDelayMs, 2000));
+          reconnectDelayMs = Math.min(Math.max(reconnectDelayMs * 2, 2000), 6000);
+        } catch (streamError) {
+          if (streamError instanceof Error && streamError.name === "AbortError") {
+            break;
+          }
+
+          const normalized = normalizeError(streamError, "Failed to stream task run.");
+          setError(normalized);
+          onErrorRef.current?.(streamError);
+
+          await sleep(reconnectDelayMs);
+          reconnectDelayMs = Math.min(reconnectDelayMs * 2, 6000);
         }
-      }
-    } catch (streamError) {
-      if (!(streamError instanceof Error && streamError.name === "AbortError")) {
-        const normalized = normalizeError(streamError, "Failed to stream task run.");
-        setError(normalized);
-        onError?.(streamError);
       }
     } finally {
       if (abortRef.current === controller) {
@@ -192,7 +277,7 @@ export function useTaskSession({
       }
       setIsStreaming(false);
     }
-  }, [client, disconnect, onError, onEvent, onMessage, onStatus, podId, taskId]);
+  }, [client, disconnect, podId, setTaskStatus]);
 
   const start = useCallback(async (input: CreateTaskInput): Promise<Task> => {
     setError(null);
@@ -203,44 +288,36 @@ export function useTaskSession({
       input_data: input.inputData,
     });
 
+    taskIdRef.current = created.id;
     setTask(created);
     setTaskIdState(created.id);
-
-    const nextStatus = normalizeRunStatus(created.status);
-    setStatus(nextStatus);
-    if (nextStatus) {
-      onStatus?.(nextStatus);
-    }
+    setMessages([]);
+    setTaskStatus(created.status);
 
     if (autoConnectOnStart && !autoConnect) {
       await connect(created.id);
     }
 
     return created;
-  }, [autoConnect, autoConnectOnStart, client, connect, onStatus, podId]);
+  }, [autoConnect, autoConnectOnStart, client, connect, podId, setTaskStatus]);
 
   const stop = useCallback(async (): Promise<Task | null> => {
-    if (!taskId) return null;
+    const id = taskIdRef.current;
+    if (!id) return null;
 
     try {
       client.setPodId(resolvePodId(client, podId));
-      const stopped = await client.tasks.stop(taskId);
+      const stopped = await client.tasks.stop(id);
       setTask(stopped);
-
-      const nextStatus = normalizeRunStatus(stopped.status);
-      setStatus(nextStatus);
-      if (nextStatus) {
-        onStatus?.(nextStatus);
-      }
-
+      setTaskStatus(stopped.status);
       return stopped;
     } catch (stopError) {
       const normalized = normalizeError(stopError, "Failed to stop task run.");
       setError(normalized);
-      onError?.(stopError);
+      onErrorRef.current?.(stopError);
       return null;
     }
-  }, [client, onError, onStatus, podId, taskId]);
+  }, [client, podId, setTaskStatus]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -248,18 +325,30 @@ export function useTaskSession({
 
   useEffect(() => {
     if (!taskId) return;
-    void refreshTask(taskId);
-    void loadMessages(taskId);
-  }, [loadMessages, refreshTask, taskId]);
 
-  useEffect(() => {
-    if (!autoConnect || !taskId) {
-      return;
-    }
+    let cancelled = false;
 
-    void connect(taskId);
-    return () => disconnect();
-  }, [autoConnect, connect, disconnect, taskId]);
+    const bootstrapTask = async () => {
+      const latestTask = await refreshTask(taskId);
+      if (cancelled) return;
+
+      await loadMessages(taskId);
+      if (cancelled || !autoConnect) return;
+
+      const latestStatus = normalizeRunStatus(latestTask?.status) ?? normalizeRunStatus(statusRef.current);
+      if (isTerminalTaskStatus(latestStatus)) {
+        return;
+      }
+
+      await connect(taskId);
+    };
+
+    void bootstrapTask();
+    return () => {
+      cancelled = true;
+      disconnect();
+    };
+  }, [autoConnect, connect, disconnect, loadMessages, refreshTask, taskId]);
 
   return {
     taskId,

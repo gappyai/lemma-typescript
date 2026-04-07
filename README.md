@@ -1,23 +1,16 @@
 # Lemma TypeScript SDK (`lemma-sdk`)
 
-Official TypeScript SDK for Lemma APIs with pod-scoped namespaces, auth helpers, streaming support, and reusable React hooks.
+Official TypeScript SDK for Lemma APIs with:
+
+- Pod-scoped namespaces (`tables`, `records`, `files`, `assistants`,`agents` , `workflows`, `tasks`, .)
+- Built-in auth/session handling
+- SSE streaming helpers
+- React hooks and assistant UI components
 
 ## Install
 
 ```bash
 npm i lemma-sdk
-```
-
-For local workspace development against the checked-out SDK instead of npm:
-
-```bash
-npm i file:../lemma-typescript
-```
-
-If you want to import as `lemma`, use npm aliasing:
-
-```bash
-npm i lemma@npm:lemma-sdk
 ```
 
 ## Quick Start
@@ -26,8 +19,8 @@ npm i lemma@npm:lemma-sdk
 import { LemmaClient } from "lemma-sdk";
 
 const client = new LemmaClient({
-  apiUrl: "https://api-next.asur.work",
-  authUrl: "https://auth.asur.work/auth",
+  apiUrl: "https://api.lemma.work",
+  authUrl: "https://auth.lemma.work/auth",
   podId: "<pod-id>",
 });
 
@@ -38,588 +31,240 @@ const assistants = await client.assistants.list({ limit: 20 });
 const supportAssistant = await client.assistants.get("support_assistant");
 ```
 
-## Core Concepts
+## Configuration
 
-- `LemmaClient`: entrypoint with auth + API transport.
-- Namespace APIs (`client.agents`, `client.tasks`, `client.conversations`, etc.) for typed operations.
-- `client.request(method, path, options)` escape hatch for endpoints not yet modeled.
-- `client.resources` for generic file resource APIs (`conversation`, `assistant`, `task`, etc.).
-- Ergonomic type aliases exported at top level: `Agent`, `Assistant`, `Conversation`, `Task`, `TaskMessage`, `CreateAgentInput`, `CreateAssistantInput`, etc.
-- `client.withPod(podId)` returns a pod-scoped client that shares auth state with the parent client.
+`LemmaClient` config resolution order:
 
-## Table Access Grants (`accessible_tables`)
+1. Constructor overrides
+2. `window.__LEMMA_CONFIG__`
+3. Environment variables
+4. Defaults
 
-For function, agent, and assistant payloads, `accessible_tables` must be an array of objects:
+Supported env keys:
 
-- `table_name`: target table
-- `mode`: `READ` or `WRITE`
+- `VITE_LEMMA_API_URL`, `REACT_APP_LEMMA_API_URL`, `LEMMA_API_URL`
+- `VITE_LEMMA_AUTH_URL`, `REACT_APP_LEMMA_AUTH_URL`, `LEMMA_AUTH_URL`
+- `VITE_LEMMA_POD_ID`, `REACT_APP_LEMMA_POD_ID`, `LEMMA_POD_ID`
 
-`accessible_tables: ["table_name"]` is no longer valid.
+Defaults when unset:
 
-You do not pass a datastore name in SDK calls. Table and file operations are pod-scoped (`client.tables`, `client.records`, `client.files`) and take table/file identifiers directly.
+- `apiUrl`: `http://localhost:8000`
+- `authUrl`: `http://localhost:3000`
 
-Examples:
+## Pod Scoping
+
+Most namespaces are pod-scoped. You can set pod scope in three ways:
 
 ```ts
-import {
-  TableAccessMode,
-  type CreateFunctionRequest,
-  type CreateAgentInput,
-  type CreateAssistantInput,
-} from "lemma-sdk";
+client.setPodId("pod_a");
 
-const functionPayload: CreateFunctionRequest = {
-  name: "expense_summary",
-  code: "def handler(ctx):\n    return {'ok': True}",
-  config: {},
-  accessible_tables: [
-    { table_name: "expenses", mode: TableAccessMode.READ },
-    { table_name: "expense_summaries", mode: TableAccessMode.WRITE },
-  ],
-  accessible_folders: ["/reports"],
-  accessible_applications: [],
-};
+const podBClient = client.withPod("pod_b");
 
-const agentPayload: CreateAgentInput = {
-  name: "expense-summarizer",
-  instruction: "Summarize expenses without mutating data.",
-  tool_sets: [],
-  accessible_tables: [
-    { table_name: "expenses", mode: TableAccessMode.READ },
-    { table_name: "expense_notes", mode: TableAccessMode.WRITE },
-  ],
-  accessible_folders: [],
-  accessible_applications: [],
-};
-
-const assistantPayload: CreateAssistantInput = {
-  name: "expense_assistant",
-  instruction: "Answer expense questions and save approved notes.",
-  tool_sets: [],
-  accessible_tables: [
-    { table_name: "expenses", mode: TableAccessMode.READ },
-    { table_name: "expense_notes", mode: TableAccessMode.WRITE },
-  ],
-  accessible_folders: ["/notes"],
-  accessible_applications: [],
-};
+const conversations = await client.conversations.list({ pod_id: "pod_c" });
 ```
 
-## Auth Helpers
+## Namespace Overview
+
+Common pod-scoped namespaces:
+
+- `client.tables`
+- `client.records`
+- `client.files`
+- `client.functions`
+- `client.agents`
+- `client.tasks`
+- `client.assistants`
+- `client.workflows`
+- `client.desks`
+- `client.integrations`
+- `client.resources`
+
+Org/user-level namespaces:
+
+- `client.users`
+- `client.icons`
+- `client.pods`
+- `client.podMembers`
+- `client.organizations`
+- `client.podSurfaces`
+
+Escape hatch for unmapped endpoints:
 
 ```ts
-import {
-  LemmaClient,
-  buildAuthUrl,
-  buildFederatedLogoutUrl,
-  resolveSafeRedirectUri,
-} from "lemma-sdk";
+const result = await client.request("GET", "/models");
+```
 
-const client = new LemmaClient({
-  apiUrl: "https://api-next.asur.work",
-  authUrl: "https://auth.asur.work/auth",
+## CRUD Examples
+
+### Tables + Records
+
+```ts
+await client.tables.create({ name: "todos" });
+
+await client.records.create("todos", {
+  title: "Ship docs rewrite",
+  status: "todo",
 });
 
-// Build auth URLs (server/client)
-const loginUrl = buildAuthUrl(client.authUrl, { redirectUri: "https://app.asur.work/" });
-const signupUrl = buildAuthUrl(client.authUrl, { mode: "signup", redirectUri: "https://app.asur.work/" });
-
-// Redirect safety helper for auth route handlers
-const safeRedirect = resolveSafeRedirectUri("/pod/123", {
-  siteOrigin: "https://app.asur.work",
-  fallback: "/",
-});
-
-// Browser helpers
-await client.auth.checkAuth();
-await client.auth.signOut();
-const token = await client.auth.getAccessToken();
-const refreshed = await client.auth.refreshAccessToken();
-client.auth.redirectToAuth({ mode: "signup", redirectUri: safeRedirect });
-
-// Build upstream logout URL (server/client)
-const federatedLogoutUrl = buildFederatedLogoutUrl(client.authUrl, {
-  redirectUri: safeRedirect,
-});
-
-// Browser: sign out locally, then clear upstream SSO and return to app
-await client.auth.redirectToFederatedLogout({ redirectUri: safeRedirect });
-```
-
-### Browser Testing With Injected Token
-
-For desk and app testing, the SDK supports a fixed bearer token injected through localStorage.
-This is the only supported browser token-injection path.
-
-```ts
-import { LemmaClient, setTestingToken, clearTestingToken } from "lemma-sdk";
-
-setTestingToken("<access-token>");
-
-const client = new LemmaClient({
-  apiUrl: "/api",
-  authUrl: "http://localhost:4173",
-  podId: "<pod-id>",
-});
-
-await client.initialize();
-
-clearTestingToken();
-```
-
-Equivalent manual browser setup:
-
-```js
-localStorage.setItem("lemma_token", "<access-token>");
-window.location.reload();
-```
-
-Notes:
-
-- do not pass testing tokens in query parameters
-- prefer a same-origin dev proxy such as Vite `/api` during local browser testing to avoid CORS on `/users/me`
-- production auth should use the normal cookie/session flow
-
-## Assistants + Agent Runs
-
-### React assistant UI
-
-`lemma-sdk/react` ships the assistant controller, the default assistant experience, and the lower-level UI primitives used to build custom shells.
-
-Import the bundled stylesheet once anywhere in your app:
-
-```tsx
-import "lemma-sdk/react/styles.css";
-```
-
-The stylesheet includes the SDK theme tokens and the complete semantic assistant UI. The assistant components do not depend on the host app's Tailwind version or Tailwind content scanning.
-
-If you alias the package to local SDK source in Vite, make sure the alias points at the React source and stylesheet:
-
-```ts
-// vite.config.ts
-import path from "node:path";
-
-export default {
-  resolve: {
-    alias: {
-      "lemma-sdk/react/styles.css": path.resolve(__dirname, "../lemma-typescript/src/react/styles.css"),
-      "lemma-sdk/react": path.resolve(__dirname, "../lemma-typescript/src/react/index.ts"),
-      "lemma-sdk": path.resolve(__dirname, "../lemma-typescript/src/index.ts"),
-    },
-  },
-};
-```
-
-Quick checklist for developers:
-
-- import `lemma-sdk/react/styles.css` once
-- give the assistant container a real height
-- if the assistant is inside flex/grid, add `min-height: 0` on the relevant parent
-- if you use `AssistantEmbedded`, pass `theme` directly there
-- if you use `AssistantExperienceView`, wrap it in `AssistantThemeScope`
-
-The assistant UI renders markdown by default:
-
-- GitHub-flavored markdown is enabled for assistant and user messages
-- raw HTML is not rendered
-- links open safely in a new tab by default
-- lists, tables, blockquotes, inline code, and fenced code blocks are styled out of the box
-
-#### Recommended path
-
-For most apps, start with `AssistantEmbedded`.
-
-- use `AssistantEmbedded` when you want the SDK to handle the controller lifecycle and render the ready-made assistant UI
-- use `AssistantExperienceView` when you still want the SDK's default assistant UI, but you need to own the controller lifecycle yourself
-- use `useAssistantController` plus primitives only when you are intentionally building a custom shell or custom layout
-
-If you are unsure, use `AssistantEmbedded` first. It is the path we recommend and the one we expect most SDK consumers to ship.
-
-#### Choose an integration level
-
-##### 1. `AssistantEmbedded` for the fastest setup
-
-Use `AssistantEmbedded` when you want a ready-made assistant surface with the SDK defaults.
-This is the recommended integration for most users.
-
-```tsx
-import "lemma-sdk/react/styles.css";
-import { AssistantEmbedded } from "lemma-sdk/react";
-
-function SupportAssistant() {
-  return (
-    <div style={{ height: 720, minHeight: 0 }}>
-      <AssistantEmbedded
-        client={client}
-        podId="pod_123"
-        assistantName="support_assistant"
-        title="Support Assistant"
-        subtitle="Ask questions about this pod."
-        placeholder="Message Support Assistant"
-        emptyStateSuggestions={[
-          { text: "Summarize this conversation", icon: "✦" },
-          { text: "Help me draft a response", icon: "✎" },
-          { text: "List the next steps", icon: "→" },
-        ]}
-        showConversationList
-        showModelPicker={false}
-        radius="lg"
-        theme="auto"
-      />
-    </div>
-  );
-}
-```
-
-Important notes:
-
-- `theme` accepts `"auto" | "light" | "dark"`
-- `radius` lets you pick the built-in rounding scale from `"none"` through `"xl"`
-- `showModelPicker={false}` hides the built-in model chooser when you do not want model controls visible
-- `theme="auto"` follows the host app when it uses common selectors like `.dark`, `[data-theme="dark"]`, `[data-mode="dark"]`, and also falls back to `prefers-color-scheme`
-- the parent container must have a real height; if it lives inside flex/grid, `min-height: 0` is usually needed too
-- attachments are queued into the composer and sent with the next message by default
-- `emptyStateSuggestions` lets you replace the built-in prompt chips shown before the first message
-- prefer this component unless you specifically need to own controller state or replace the built-in layout
-
-##### 2. `AssistantExperienceView` for the default UI with your own controller
-
-Use `AssistantExperienceView` when you want the built-in assistant layout, but you need to own the controller lifecycle yourself.
-This is the second-best default when `AssistantEmbedded` is too opinionated for your integration.
-
-```tsx
-import "lemma-sdk/react/styles.css";
-import {
-  AssistantExperienceView,
-  AssistantThemeScope,
-  useAssistantController,
-} from "lemma-sdk/react";
-
-function ControlledAssistant() {
-  const assistant = useAssistantController({
-    client,
-    podId: "pod_123",
-    assistantName: "support_assistant",
-  });
-
-  return (
-    <AssistantThemeScope theme="dark" style={{ height: 720 }}>
-      <AssistantExperienceView
-        controller={assistant}
-        title="Support Assistant"
-        subtitle="Direct use of the default assistant experience."
-        placeholder="Message Support Assistant"
-        emptyStateSuggestions={[
-          { text: "Summarize the current context" },
-          { text: "Help me write a reply" },
-          { text: "What should I do next?" },
-        ]}
-        showConversationList
-        chromeStyle="subtle"
-        statusPlacement="inline"
-      />
-    </AssistantThemeScope>
-  );
-}
-```
-
-Useful props on `AssistantExperienceView`:
-
-- `showConversationList`: show the built-in conversation sidebar
-- `chromeStyle`: `"elevated" | "subtle" | "flat"`
-- `statusPlacement`: `"inline" | "composer" | "none"`
-- `radius`: `"none" | "sm" | "md" | "lg" | "xl"`
-- `showModelPicker`: show or hide the built-in model selector
-- `showNewConversationButton`: show or hide the built-in reset/new-conversation button
-- `emptyStateSuggestions`: replace the built-in generic prompt suggestions used by the default empty state
-- `renderMessageContent`: override markdown rendering for custom message content
-- `renderToolInvocation`: replace the default tool activity renderer
-- `renderPresentedFile` and `renderPendingFile`: customize attachment rendering
-- prefer this over building from primitives if you still want the SDK's default assistant experience
-
-##### 3. `useAssistantController` + primitives for a custom shell
-
-Use the primitives when you want full control over layout and app chrome.
-This is the advanced path and should be the exception, not the starting point.
-
-```tsx
-import "lemma-sdk/react/styles.css";
-import {
-  AssistantComposer,
-  AssistantHeader,
-  AssistantMessageViewport,
-  AssistantShellLayout,
-  AssistantThemeScope,
-  EmptyState,
-  MessageGroup,
-  PlanSummaryStrip,
-  ThinkingIndicator,
-  buildDisplayMessageRows,
-  getActiveToolBanner,
-  latestPlanSummary,
-  useAssistantController,
-} from "lemma-sdk/react";
-
-function CustomAssistantShell() {
-  const assistant = useAssistantController({
-    client,
-    podId: "pod_123",
-    assistantName: "support_assistant",
-  });
-
-  const rows = buildDisplayMessageRows(assistant.messages);
-  const plan = latestPlanSummary(assistant.messages);
-  const activeToolBanner = getActiveToolBanner(assistant.messages);
-
-  return (
-    <AssistantThemeScope theme="auto" style={{ height: 720 }}>
-      <AssistantShellLayout
-        main={(
-          <div className="flex min-h-0 flex-1 flex-col gap-3">
-            <AssistantHeader
-              title="Lemma Assistant"
-              subtitle="Ask anything"
-            />
-
-            {plan ? <PlanSummaryStrip plan={plan} onHide={() => {}} /> : null}
-            {activeToolBanner ? <div>{activeToolBanner.summary}</div> : null}
-
-            <AssistantMessageViewport>
-              {assistant.messages.length === 0 ? (
-                <EmptyState
-                  suggestions={[
-                    { text: "Summarize this for me" },
-                    { text: "Help me draft a reply" },
-                    { text: "Brainstorm next steps" },
-                  ]}
-                  onSendMessage={(text) => {
-                    void assistant.sendMessage(text);
-                  }}
-                />
-              ) : null}
-
-              {rows.map((row, index) => (
-                <MessageGroup
-                  key={row.id}
-                  message={row.message}
-                  conversationId={assistant.activeConversationId}
-                  onWidgetSendPrompt={(text) => assistant.sendMessage(text)}
-                  isStreaming={assistant.isActiveConversationRunning && row.sourceIndexes.includes(assistant.messages.length - 1)}
-                  showAssistantHeader={index === 0 || rows[index - 1]?.message.role !== "assistant"}
-                  renderMessageContent={({ message }) => <div>{message.content}</div>}
-                />
-              ))}
-
-              {assistant.isActiveConversationRunning ? <ThinkingIndicator /> : null}
-            </AssistantMessageViewport>
-
-            <AssistantComposer>
-              <textarea placeholder="Message Lemma Assistant" />
-            </AssistantComposer>
-          </div>
-        )}
-      />
-    </AssistantThemeScope>
-  );
-}
-```
-
-Useful primitives exported from `lemma-sdk/react`:
-
-- `AssistantThemeScope`
-- `AssistantHeader`
-- `AssistantConversationList`
-- `AssistantModelPicker`
-- `AssistantShellLayout`
-- `AssistantComposer`
-- `AssistantMessageViewport`
-- `AssistantAskOverlay`
-- `AssistantPendingFileChip`
-- `AssistantStatusPill`
-- `MessageGroup`
-- `PlanSummaryStrip`
-- `ThinkingIndicator`
-
-Guidance:
-
-- prefer `AssistantEmbedded` over this path when the SDK layout is acceptable
-- prefer `AssistantExperienceView` over this path when you only need controller ownership, theming control, or a few render overrides
-- reach for primitives only when you are replacing the layout itself or deeply integrating the assistant into app-specific chrome
-
-Default empty-state suggestions are intentionally generic so they work across support, internal tools, content, and general assistant use cases. Override them with `emptyStateSuggestions` when you want task-specific prompts.
-
-#### Theming
-
-Use `AssistantThemeScope` around custom assistant layouts:
-
-```tsx
-import { AssistantThemeScope } from "lemma-sdk/react";
-
-<AssistantThemeScope theme="light">
-  <YourAssistant />
-</AssistantThemeScope>
-```
-
-Theme behavior:
-
-- `theme="auto"`: follows host dark-mode selectors and system color scheme
-- `theme="light"`: forces the light SDK palette
-- `theme="dark"`: forces the dark SDK palette
-
-If you use `AssistantEmbedded`, pass `theme` directly on that component instead of wrapping it again.
-
-#### What belongs in the SDK vs your app
-
-The intended split is:
-
-- SDK: `useAssistantController`, message/tool normalization, markdown rendering, plan parsing, tool rollups, and reusable assistant UI primitives
-- App: modal shell, fullscreen/window controls, route navigation, workspace/file viewers, and product-specific renderers
-
-### Assistant names (resource key)
-
-Assistant CRUD is name-based:
-
-```ts
-await client.assistants.get("support_assistant");
-await client.assistants.update("support_assistant", { description: "Handles support triage" });
-await client.assistants.delete("old_assistant");
-```
-
-### Conversation scoping by assistant name
-
-```ts
-const conversations = await client.conversations.list({
-  assistantName: "support_assistant",
+const page = await client.records.list("todos", {
   limit: 20,
+  sort: [{ field: "created_at", direction: "desc" }],
+});
+```
+
+### Files (Datastore)
+
+```ts
+await client.files.folder.create("reports", { directoryPath: "/" });
+await client.files.upload(fileBlob, { directoryPath: "/reports", name: "q1.pdf" });
+
+const listing = await client.files.list({ directoryPath: "/reports" });
+const downloaded = await client.files.download("/reports/q1.pdf");
+```
+
+### Assistants + Conversations
+
+```ts
+await client.assistants.create({
+  name: "support_assistant",
+  instruction: "Help with support triage.",
 });
 
 const conversation = await client.conversations.createForAssistant("support_assistant", {
-  title: "Ticket triage",
+  title: "Ticket review",
+});
+
+await client.conversations.messages.send(conversation.id, {
+  content: "Summarize unresolved issues from today.",
 });
 ```
 
-### Conversations with SSE streaming
+## Streaming (SSE)
+
+Use `readSSE` + `parseSSEJson` for incremental events.
 
 ```ts
+import { readSSE, parseSSEJson } from "lemma-sdk";
+
 const stream = await client.conversations.sendMessageStream(conversationId, {
-  content: "Find open support tickets from yesterday",
+  content: "Analyze recent incidents",
 });
 
 for await (const event of readSSE(stream)) {
   const payload = parseSSEJson(event);
   if (!payload) continue;
-  console.log(payload);
+  console.log(event.event, payload);
 }
 ```
 
-### Task runs with SSE streaming
+Task stream example:
 
 ```ts
 const task = await client.tasks.create({
-  agentId: "triage-agent",
-  input: { ticketId: "TCK-1042" },
-  runtimeAccountIds: ["acc_123"],
+  agent_name: "triage_agent",
+  input_data: { ticketId: "TCK-1042" },
 });
 
-const stream = await client.tasks.stream(task.id);
-for await (const event of readSSE(stream)) {
-  const payload = parseSSEJson(event);
-  if (!payload) continue;
-  console.log(payload);
-}
+const taskStream = await client.tasks.stream(task.id);
 ```
 
-## React Helpers
+## Access Grants (`accessible_tables`)
 
-Import from `lemma-sdk/react`:
+When creating agents/functions/assistants, `accessible_tables` must use object entries:
 
-- `useAuth(client)`
-- `AuthGuard`
-- `useAgentRunStream(...)`
-- `useAssistantRun(...)`
-- `useAssistantSession(...)`
-- `useTaskSession(...)`
-- `useFunctionSession(...)`
-- `useFlowSession(...)`
+```ts
+import { TableAccessMode } from "lemma-sdk";
 
-Core run helpers from `lemma-sdk`:
+accessible_tables: [
+  { table_name: "expenses", mode: TableAccessMode.READ },
+  { table_name: "expense_notes", mode: TableAccessMode.WRITE },
+];
+```
 
-- `normalizeRunStatus(...)`
-- `isTerminalTaskStatus(...)`
-- `isTerminalFunctionStatus(...)`
-- `isTerminalFlowStatus(...)`
-- `parseTaskStreamEvent(...)`
-- `upsertTaskMessage(...)`
-- `parseAssistantStreamEvent(...)`
-- `upsertConversationMessage(...)`
+`["expenses"]` is not valid.
+
+## Auth
+
+Default mode is cookie/session auth (`credentials: "include"`).
+
+For local browser testing, token injection is supported via local storage key `lemma_token`:
+
+```ts
+import { setTestingToken, clearTestingToken } from "lemma-sdk";
+
+setTestingToken("<access-token>");
+clearTestingToken();
+```
+
+Auth helpers:
+
+- `buildAuthUrl(...)`
+- `buildFederatedLogoutUrl(...)`
+- `resolveSafeRedirectUri(...)`
+- `client.auth.redirectToAuth(...)`
+- `client.auth.redirectToFederatedLogout(...)`
+
+## React Package (`lemma-sdk/react`)
+
+Includes auth helpers, run hooks, and assistant UI primitives.
+
+Install React peer dependency in your app if not already installed:
+
+```bash
+npm i react react-dom
+```
+
+Import stylesheet once:
+
+```tsx
+import "lemma-sdk/react/styles.css";
+```
+
+Fastest assistant integration:
+
+```tsx
+import { AssistantEmbedded } from "lemma-sdk/react";
+
+<div style={{ height: 720, minHeight: 0 }}>
+  <AssistantEmbedded
+    client={client}
+    podId="<pod-id>"
+    assistantName="support_assistant"
+    title="Support Assistant"
+    placeholder="Message Support Assistant"
+    showConversationList
+  />
+</div>;
+```
+
+Auth guard example:
+
+```tsx
+import { AuthGuard } from "lemma-sdk/react";
+
+<AuthGuard client={client}>
+  <App />
+</AuthGuard>;
+```
+
+## Browser Bundle
+
+The package also ships a standalone browser bundle:
+
+- npm artifact path: `dist/browser/lemma-client.js`
+- export path: `lemma-sdk/browser-bundle`
+- global: `window.LemmaClient.LemmaClient`
 
 Example:
 
-```tsx
-import { useAssistantRun } from "lemma-sdk/react";
-
-const { sendMessage, stop, isStreaming } = useAssistantRun({
-  client,
-  podId,
-  conversationId,
-  onEvent: (event, payload) => {
-    console.log(event.event, payload);
-  },
-});
+```html
+<script src="https://unpkg.com/lemma-sdk@latest/dist/browser/lemma-client.js"></script>
+<script>
+  const client = new window.LemmaClient.LemmaClient({
+    apiUrl: "https://api.lemma.work",
+    authUrl: "https://auth.lemma.work/auth",
+    podId: "<pod-id>"
+  });
+</script>
 ```
 
-For the SDK consumption UI roadmap (AssistantChat / FunctionInvokeForm / FlowRunExperience / RunPanel), see:
-
-- `docs/sdk-consumption-ui-v2.md`
-
-## File Resources
-
-```ts
-await client.resources.upload("conversation", conversationId, file);
-const files = await client.resources.list("conversation", conversationId);
-```
-
-## Migration Tips
-
-When migrating from direct `fetch`/custom API clients:
-
-1. Replace auth/session bootstrapping with `LemmaClient`.
-2. Move pod-scoped calls into namespaces (`tasks`, `assistants`, `conversations`, etc.).
-3. Keep rare/unmodeled endpoints on `client.request(...)` temporarily.
-4. Replace SSE parsing code with `readSSE` + `parseSSEJson`.
-5. Gradually lift app-specific run/chat logic into reusable hooks in `lemma-sdk/react`.
-
-## Development
-
-### Regenerate OpenAPI client
-
-```bash
-bash scripts/generate_openapi_client.sh
-```
-
-### Build SDK
-
-```bash
-npm run build
-```
-
-Output:
-
-- `dist/` npm package artifacts
-- `dist/browser/lemma-client.js` standalone browser bundle
-- `public/lemma-client.js` committed copy for static serving
-
-### Release check
-
-```bash
-npm run release:check
-```
-
-### Publish
-
-```bash
-npm publish
-```
-
-As of March 26, 2026, npm package name `lemma` is already taken. This package publishes as `lemma-sdk`.

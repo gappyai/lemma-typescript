@@ -3365,17 +3365,38 @@ class PodMembersService {
      * Remove Pod Member
      * Remove a member from a pod
      * @param podId
-     * @param memberId
+     * @param userId
      * @returns void
      * @throws ApiError
      */
-    static podMemberRemove(podId, memberId) {
+    static podMemberRemove(podId, userId) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'DELETE',
-            url: '/pods/{pod_id}/members/{member_id}',
+            url: '/pods/{pod_id}/members/{user_id}',
             path: {
                 'pod_id': podId,
-                'member_id': memberId,
+                'user_id': userId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Pod Member
+     * Get a pod member by user id
+     * @param podId
+     * @param userId
+     * @returns PodMemberDetailResponse Successful Response
+     * @throws ApiError
+     */
+    static podMemberGet(podId, userId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/members/{user_id}',
+            path: {
+                'pod_id': podId,
+                'user_id': userId,
             },
             errors: {
                 422: `Validation Error`,
@@ -3386,18 +3407,18 @@ class PodMembersService {
      * Update Member Role
      * Update a pod member's role
      * @param podId
-     * @param memberId
+     * @param userId
      * @param requestBody
      * @returns PodMemberResponse Successful Response
      * @throws ApiError
      */
-    static podMemberUpdateRole(podId, memberId, requestBody) {
+    static podMemberUpdateRole(podId, userId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/members/{member_id}/role',
+            url: '/pods/{pod_id}/members/{user_id}/role',
             path: {
                 'pod_id': podId,
-                'member_id': memberId,
+                'user_id': userId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -3847,8 +3868,8 @@ class RecordsService {
      * @param offset Row offset for direct pagination.
      * @param sortBy Optional column name to sort by.
      * @param order Sort direction for `sort_by`: `asc` or `desc`.
-     * @param filter Optional repeated JSON filters for advanced comparisons. Example: `filter={"field":"amount","op":"gt","value":100}`
-     * @param sort Optional repeated JSON sort clauses. Example: `sort={"field":"created_at","direction":"desc"}`
+     * @param filter Optional repeated JSON filters for advanced comparisons. Each `filter` value must be a JSON object with shape `{"field":"<column_name>","op":"<operator>","value":<comparison_value>}`. Allowed operators are: `eq`, `ne`, `gt`, `gte`, `lt`, `lte`, `like`, `ilike`. Repeat the query parameter to combine multiple filters with AND semantics. Examples: `filter={"field":"amount","op":"gt","value":100}` and `filter={"field":"status","op":"eq","value":"OPEN"}`.
+     * @param sort Optional repeated JSON sort clauses. Each `sort` value must be a JSON object with shape `{"field":"<column_name>","direction":"<direction>"}`. Allowed directions are: `asc`, `desc`. Repeat the query parameter to provide multi-column sorting in priority order. Example: `sort={"field":"created_at","direction":"desc"}`.
      * @param pageToken Opaque token from a previous response page.
      * @returns RecordListResponse Successful Response
      * @throws ApiError
