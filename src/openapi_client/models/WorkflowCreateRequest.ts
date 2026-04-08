@@ -2,7 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FlowStart } from './FlowStart.js';
+import type { FlowStart_Input } from './FlowStart_Input.js';
+import type { WorkflowInstallMode } from './WorkflowInstallMode.js';
 export type WorkflowCreateRequest = {
     /**
      * Optional workflow description.
@@ -13,16 +14,16 @@ export type WorkflowCreateRequest = {
      */
     icon_url?: (string | null);
     /**
+     * Workflow installation scope for non-manual starts. `GLOBAL` means one pod-level installation, `USER` means each user installs their own.
+     */
+    mode?: WorkflowInstallMode;
+    /**
      * Workflow name.
      */
     name: string;
     /**
-     * Require per-user workflow installation before execution.
-     */
-    require_user_install?: boolean;
-    /**
      * Start configuration. If omitted, the workflow can be started manually via `workflow.start`.
      */
-    start?: (FlowStart | null);
+    start?: (FlowStart_Input | null);
 };
 

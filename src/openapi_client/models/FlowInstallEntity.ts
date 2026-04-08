@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FlowStart } from './FlowStart.js';
+import type { FlowStart_Output } from './FlowStart_Output.js';
 /**
  * Represents an installed flow instance.
  * Associate a Flow definition with a specific Trigger (Schedule or Event).
@@ -10,7 +10,7 @@ import type { FlowStart } from './FlowStart.js';
 export type FlowInstallEntity = {
     created_at?: string;
     flow_id: string;
-    flow_start: FlowStart;
+    flow_start: FlowStart_Output;
     id?: string;
     is_active?: boolean;
     pod_id: string;

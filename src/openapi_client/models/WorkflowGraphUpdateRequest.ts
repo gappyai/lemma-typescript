@@ -5,7 +5,7 @@
 import type { AgentNode } from './AgentNode.js';
 import type { DecisionNode } from './DecisionNode.js';
 import type { EndNode } from './EndNode.js';
-import type { FlowStart } from './FlowStart.js';
+import type { FlowStart_Input } from './FlowStart_Input.js';
 import type { FormNode } from './FormNode.js';
 import type { FunctionNode } from './FunctionNode.js';
 import type { LoopNode } from './LoopNode.js';
@@ -26,6 +26,6 @@ export type WorkflowGraphUpdateRequest = {
     /**
      * Optional replacement start configuration stored with the graph.
      */
-    start?: (FlowStart | null);
+    start?: (FlowStart_Input | null);
 };
 

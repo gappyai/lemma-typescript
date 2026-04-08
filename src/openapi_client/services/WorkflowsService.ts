@@ -227,7 +227,7 @@ export class WorkflowsService {
     }
     /**
      * Update Workflow Metadata
-     * Update workflow-level metadata such as description/install requirements. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
+     * Update workflow-level metadata such as description/install mode. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
      * @param podId
      * @param workflowName
      * @param requestBody

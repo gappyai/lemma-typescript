@@ -71,7 +71,7 @@ export class FilesService {
         });
     }
     /**
-     * Delete File
+     * Delete File Or Folder. Deleting a folder will cleanup whole subtreee
      * @param podId
      * @param path
      * @returns DatastoreMessageResponse Successful Response

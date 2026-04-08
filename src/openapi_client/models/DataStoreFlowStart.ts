@@ -2,15 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { DatastoreOperation } from './DatastoreOperation.js';
 export type DataStoreFlowStart = {
     /**
-     * Datastore namespace name to watch for change events.
+     * Datastore operations that should trigger this flow. Accepted values: INSERT, UPDATE, DELETE (aliases: WRITE, CREATE). Empty means all mutations for the selected table.
      */
-    datastore_name: string;
-    /**
-     * Datastore operations that should trigger this flow (for example: INSERT, UPDATE, DELETE).
-     */
-    operations: Array<string>;
+    operations?: Array<DatastoreOperation>;
     /**
      * Table name inside the datastore to subscribe to.
      */

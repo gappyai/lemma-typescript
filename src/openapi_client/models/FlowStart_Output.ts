@@ -6,7 +6,7 @@ import type { DataStoreFlowStart } from './DataStoreFlowStart.js';
 import type { EventFlowStart } from './EventFlowStart.js';
 import type { FlowStartType } from './FlowStartType.js';
 import type { ScheduledFlowStart } from './ScheduledFlowStart.js';
-export type FlowStart = {
+export type FlowStart_Output = {
     /**
      * Start mode configuration payload. Required for non-manual start types.
      */

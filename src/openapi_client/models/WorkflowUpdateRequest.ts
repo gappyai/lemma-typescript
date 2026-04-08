@@ -2,7 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FlowStart } from './FlowStart.js';
+import type { FlowStart_Input } from './FlowStart_Input.js';
+import type { WorkflowInstallMode } from './WorkflowInstallMode.js';
 export type WorkflowUpdateRequest = {
     /**
      * Updated workflow description.
@@ -13,12 +14,12 @@ export type WorkflowUpdateRequest = {
      */
     icon_url?: (string | null);
     /**
-     * Updated install requirement flag.
+     * Updated workflow installation scope.
      */
-    require_user_install?: (boolean | null);
+    mode?: (WorkflowInstallMode | null);
     /**
      * Updated start trigger configuration.
      */
-    start?: (FlowStart | null);
+    start?: (FlowStart_Input | null);
 };
 
