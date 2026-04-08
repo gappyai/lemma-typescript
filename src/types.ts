@@ -22,6 +22,7 @@ import type {
   UpdateAssistantRequest,
   UserResponse,
 } from "./openapi_client/index.js";
+import type { PodJoinRequest } from "./namespaces/pod-join-requests.js";
 
 /** Public ergonomic types. */
 
@@ -91,6 +92,7 @@ export type FlowRun = FlowRunEntity;
 export type Pod = PodResponse;
 export type PodConfig = PodConfigResponse;
 export type PodMember = PodMemberResponse;
+export type { PodJoinRequest };
 
 export type Organization = OrganizationResponse;
 export type OrganizationMember = OrganizationMemberResponse;

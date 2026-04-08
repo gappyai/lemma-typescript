@@ -47,6 +47,7 @@ export type { FunctionsNamespace } from "./namespaces/functions.js";
 export type { IconsNamespace } from "./namespaces/icons.js";
 export type { IntegrationsNamespace } from "./namespaces/integrations.js";
 export type { OrganizationsNamespace } from "./namespaces/organizations.js";
+export type { PodJoinRequestsNamespace } from "./namespaces/pod-join-requests.js";
 export type { PodMembersNamespace } from "./namespaces/pod-members.js";
 export type { PodsNamespace } from "./namespaces/pods.js";
 export type { PodSurfacesNamespace } from "./namespaces/pod-surfaces.js";

@@ -46,6 +46,7 @@ const icons_js_1 = require("./namespaces/icons.js");
 const integrations_js_1 = require("./namespaces/integrations.js");
 const organizations_js_1 = require("./namespaces/organizations.js");
 const pod_members_js_1 = require("./namespaces/pod-members.js");
+const pod_join_requests_js_1 = require("./namespaces/pod-join-requests.js");
 const pods_js_1 = require("./namespaces/pods.js");
 const pod_surfaces_js_1 = require("./namespaces/pod-surfaces.js");
 const records_js_1 = require("./namespaces/records.js");
@@ -84,6 +85,7 @@ class LemmaClient {
         this.icons = new icons_js_1.IconsNamespace(this._generated);
         this.pods = new pods_js_1.PodsNamespace(this._generated, this._http);
         this.podMembers = new pod_members_js_1.PodMembersNamespace(this._generated);
+        this.podJoinRequests = new pod_join_requests_js_1.PodJoinRequestsNamespace(this._http);
         this.organizations = new organizations_js_1.OrganizationsNamespace(this._generated, this._http);
         this.podSurfaces = new pod_surfaces_js_1.PodSurfacesNamespace(this._generated);
     }
@@ -2123,7 +2125,7 @@ class FilesService {
         });
     }
     /**
-     * Delete File
+     * Delete File Or Folder. Deleting a folder will cleanup whole subtreee
      * @param podId
      * @param path
      * @returns DatastoreMessageResponse Successful Response
@@ -3297,6 +3299,9 @@ class PodMembersNamespace {
     add(podId, payload) {
         return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberAdd(podId, payload));
     }
+    get(podId, userId) {
+        return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberGet(podId, userId));
+    }
     updateRole(podId, memberId, role) {
         return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberUpdateRole(podId, memberId, { role }));
     }
@@ -3429,6 +3434,41 @@ class PodMembersService {
     }
 }
 exports.PodMembersService = PodMembersService;
+
+},
+"./namespaces/pod-join-requests.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PodJoinRequestsNamespace = void 0;
+class PodJoinRequestsNamespace {
+    constructor(http) {
+        this.http = http;
+    }
+    create(podId) {
+        return this.http.request("POST", `/pods/${podId}/join-requests`);
+    }
+    me(podId) {
+        return this.http.request("GET", `/pods/${podId}/join-requests/me`);
+    }
+    list(podId, options = {}) {
+        return this.http.request("GET", `/pods/${podId}/join-requests`, {
+            params: {
+                status_filter: options.status,
+                limit: options.limit ?? 100,
+                page_token: options.pageToken ?? options.cursor,
+            },
+        });
+    }
+    approve(podId, joinRequestId, payload = {}) {
+        return this.http.request("POST", `/pods/${podId}/join-requests/${joinRequestId}/approve`, {
+            body: {
+                org_role: payload.orgRole ?? "ORG_MEMBER",
+                pod_role: payload.podRole ?? "POD_USER",
+            },
+        });
+    }
+}
+exports.PodJoinRequestsNamespace = PodJoinRequestsNamespace;
 
 },
 "./namespaces/pods.js": function (module, exports, require) {
@@ -4707,7 +4747,7 @@ class WorkflowsService {
     }
     /**
      * Update Workflow Metadata
-     * Update workflow-level metadata such as description/install requirements. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
+     * Update workflow-level metadata such as description/install mode. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
      * @param podId
      * @param workflowName
      * @param requestBody

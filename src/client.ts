@@ -11,6 +11,7 @@ import { IconsNamespace } from "./namespaces/icons.js";
 import { IntegrationsNamespace } from "./namespaces/integrations.js";
 import { OrganizationsNamespace } from "./namespaces/organizations.js";
 import { PodMembersNamespace } from "./namespaces/pod-members.js";
+import { PodJoinRequestsNamespace } from "./namespaces/pod-join-requests.js";
 import { PodsNamespace } from "./namespaces/pods.js";
 import { PodSurfacesNamespace } from "./namespaces/pod-surfaces.js";
 import { RecordsNamespace } from "./namespaces/records.js";
@@ -57,6 +58,7 @@ export class LemmaClient {
   readonly icons: IconsNamespace;
   readonly pods: PodsNamespace;
   readonly podMembers: PodMembersNamespace;
+  readonly podJoinRequests: PodJoinRequestsNamespace;
   readonly organizations: OrganizationsNamespace;
   readonly podSurfaces: PodSurfacesNamespace;
 
@@ -98,6 +100,7 @@ export class LemmaClient {
     this.icons = new IconsNamespace(this._generated);
     this.pods = new PodsNamespace(this._generated, this._http);
     this.podMembers = new PodMembersNamespace(this._generated);
+    this.podJoinRequests = new PodJoinRequestsNamespace(this._http);
     this.organizations = new OrganizationsNamespace(this._generated, this._http);
     this.podSurfaces = new PodSurfacesNamespace(this._generated);
   }

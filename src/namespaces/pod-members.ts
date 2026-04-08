@@ -19,6 +19,10 @@ export class PodMembersNamespace {
     return this.client.request(() => PodMembersService.podMemberAdd(podId, payload));
   }
 
+  get(podId: string, userId: string) {
+    return this.client.request(() => PodMembersService.podMemberGet(podId, userId));
+  }
+
   updateRole(podId: string, memberId: string, role: PodRole) {
     return this.client.request(() =>
       PodMembersService.podMemberUpdateRole(podId, memberId, { role }),
