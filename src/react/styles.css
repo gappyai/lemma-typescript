@@ -1547,6 +1547,12 @@
   border-left: 1px solid color-mix(in srgb, var(--border-default) 86%, transparent);
 }
 
+.lemma-assistant-tool-rollup-details-single {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
+}
+
 .lemma-assistant-tool-details-panel {
   margin-top: 6px;
   padding: 10px 12px;

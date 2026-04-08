@@ -1285,10 +1285,12 @@ function InlineToolCall({
   invocation,
   isSelected,
   onClick,
+  showStem = true,
 }: {
   invocation: AssistantToolInvocation;
   isSelected: boolean;
   onClick: () => void;
+  showStem?: boolean;
 }) {
   const resultData = (invocation.result || {}) as ToolCardResult;
   const isExecuting = invocation.state !== "result";
@@ -1302,6 +1304,7 @@ function InlineToolCall({
     : isFailed
       ? (typeof resultData.error === "string" ? resultData.error : "Tool failed")
       : (formatToolResultSummary(invocation.toolName, invocation.args, resultData) || "Completed");
+  const showSummary = summary !== "Completed";
 
   return (
     <button
@@ -1313,7 +1316,7 @@ function InlineToolCall({
     >
       <span className="lemma-assistant-inline-tool-call-rail" aria-hidden="true">
         <span className="lemma-assistant-inline-tool-call-node" />
-        <span className="lemma-assistant-inline-tool-call-stem" />
+        {showStem ? <span className="lemma-assistant-inline-tool-call-stem" /> : null}
       </span>
       <span className="lemma-assistant-inline-tool-call-main">
         <span className="lemma-assistant-inline-tool-call-head">
@@ -1322,7 +1325,7 @@ function InlineToolCall({
           <span className="lemma-assistant-inline-tool-call-caret">{isSelected ? "⌄" : "›"}</span>
         </span>
         <span className="lemma-assistant-inline-tool-call-meta">{toolMeta}</span>
-        <span className="lemma-assistant-inline-tool-call-summary">{summary}</span>
+        {showSummary ? <span className="lemma-assistant-inline-tool-call-summary">{summary}</span> : null}
       </span>
     </button>
   );
@@ -1359,6 +1362,7 @@ function ToolActivityRollup({
     part.toolInvocation.state === "result" && part.toolInvocation.result?.success === false
   )).length;
   const isWorking = !!activeInvocation || reasoningParts.some((part) => part.state === "streaming");
+  const isSingleDetail = detailParts.length === 1;
   const completionSummary = toolParts.length > 0
     ? `Completed ${toolParts.length} tool${toolParts.length === 1 ? "" : "s"}`
     : totalThoughtDurationMs > 0
@@ -1376,7 +1380,7 @@ function ToolActivityRollup({
       : `Worked through ${detailParts.length} step${detailParts.length === 1 ? "" : "s"}`}${failedCount > 0 ? ` · ${failedCount} failed` : ""}`;
 
   return (
-    <div className="lemma-assistant-tool-rollup">
+    <div className="lemma-assistant-tool-rollup" data-single={isSingleDetail ? "true" : "false"}>
       {shouldCollapse ? (
         <button
           type="button"
@@ -1405,18 +1409,23 @@ function ToolActivityRollup({
           <span className="lemma-assistant-tool-rollup-banner-line" aria-hidden="true" />
         </button>
       ) : (
-        <div className="lemma-assistant-tool-rollup-header">
-          {isWorking ? <span className="lemma-assistant-tool-rollup-dot" /> : null}
-          <span className={cx(
-            "lemma-assistant-tool-rollup-summary",
-            isWorking && "lemma-assistant-tool-rollup-summary-working",
-          )}>{summary}</span>
-        </div>
+        !isSingleDetail ? (
+          <div className="lemma-assistant-tool-rollup-header">
+            {isWorking ? <span className="lemma-assistant-tool-rollup-dot" /> : null}
+            <span className={cx(
+              "lemma-assistant-tool-rollup-summary",
+              isWorking && "lemma-assistant-tool-rollup-summary-working",
+            )}>{summary}</span>
+          </div>
+        ) : null
       )}
 
       {!shouldCollapse || isExpanded ? (
-        <div className="lemma-assistant-tool-rollup-details">
-          {detailParts.map((part) => {
+        <div className={cx(
+          "lemma-assistant-tool-rollup-details",
+          isSingleDetail && "lemma-assistant-tool-rollup-details-single",
+        )}>
+          {detailParts.map((part, partIndex) => {
             if (part.type === "reasoning") {
               return (
                 <div
@@ -1442,6 +1451,7 @@ function ToolActivityRollup({
                 <InlineToolCall
                   invocation={invocation}
                   isSelected={isSelected}
+                  showStem={partIndex < detailParts.length - 1}
                   onClick={() => setActiveToolCallId((prev) => (prev === invocation.toolCallId ? null : invocation.toolCallId))}
                 />
                 {isSelected ? (
