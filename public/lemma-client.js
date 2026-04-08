@@ -85,7 +85,7 @@ class LemmaClient {
         this.icons = new icons_js_1.IconsNamespace(this._generated);
         this.pods = new pods_js_1.PodsNamespace(this._generated, this._http);
         this.podMembers = new pod_members_js_1.PodMembersNamespace(this._generated);
-        this.podJoinRequests = new pod_join_requests_js_1.PodJoinRequestsNamespace(this._http);
+        this.podJoinRequests = new pod_join_requests_js_1.PodJoinRequestsNamespace(this._generated);
         this.organizations = new organizations_js_1.OrganizationsNamespace(this._generated, this._http);
         this.podSurfaces = new pod_surfaces_js_1.PodSurfacesNamespace(this._generated);
     }
@@ -3440,35 +3440,169 @@ exports.PodMembersService = PodMembersService;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PodJoinRequestsNamespace = void 0;
+const OrganizationRole_js_1 = require("./openapi_client/models/OrganizationRole.js");
+const PodRole_js_1 = require("./openapi_client/models/PodRole.js");
+const PodJoinRequestsService_js_1 = require("./openapi_client/services/PodJoinRequestsService.js");
 class PodJoinRequestsNamespace {
-    constructor(http) {
-        this.http = http;
+    constructor(client) {
+        this.client = client;
     }
     create(podId) {
-        return this.http.request("POST", `/pods/${podId}/join-requests`);
+        return this.client.request(() => PodJoinRequestsService_js_1.PodJoinRequestsService.podJoinRequestCreate(podId));
     }
     me(podId) {
-        return this.http.request("GET", `/pods/${podId}/join-requests/me`);
+        return this.client.request(() => PodJoinRequestsService_js_1.PodJoinRequestsService.podJoinRequestMe(podId));
     }
     list(podId, options = {}) {
-        return this.http.request("GET", `/pods/${podId}/join-requests`, {
-            params: {
-                status_filter: options.status,
-                limit: options.limit ?? 100,
-                page_token: options.pageToken ?? options.cursor,
+        return this.client.request(() => PodJoinRequestsService_js_1.PodJoinRequestsService.podJoinRequestList(podId, options.status, options.limit ?? 100, options.pageToken ?? options.cursor));
+    }
+    approve(podId, joinRequestId, payload = {}) {
+        return this.client.request(() => PodJoinRequestsService_js_1.PodJoinRequestsService.podJoinRequestApprove(podId, joinRequestId, {
+            org_role: payload.org_role ?? OrganizationRole_js_1.OrganizationRole.ORG_MEMBER,
+            pod_role: payload.pod_role ?? PodRole_js_1.PodRole.POD_USER,
+        }));
+    }
+}
+exports.PodJoinRequestsNamespace = PodJoinRequestsNamespace;
+
+},
+"./openapi_client/models/OrganizationRole.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.OrganizationRole = void 0;
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+/**
+ * Roles for organization membership.
+ */
+var OrganizationRole;
+(function (OrganizationRole) {
+    OrganizationRole["ORG_OWNER"] = "ORG_OWNER";
+    OrganizationRole["ORG_EDITOR"] = "ORG_EDITOR";
+    OrganizationRole["ORG_MEMBER"] = "ORG_MEMBER";
+})(OrganizationRole || (exports.OrganizationRole = OrganizationRole = {}));
+
+},
+"./openapi_client/models/PodRole.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PodRole = void 0;
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+/**
+ * Explicit pod role names used across authorization and pod APIs.
+ */
+var PodRole;
+(function (PodRole) {
+    PodRole["POD_ADMIN"] = "POD_ADMIN";
+    PodRole["POD_EDITOR"] = "POD_EDITOR";
+    PodRole["POD_USER"] = "POD_USER";
+    PodRole["POD_VIEWER"] = "POD_VIEWER";
+})(PodRole || (exports.PodRole = PodRole = {}));
+
+},
+"./openapi_client/services/PodJoinRequestsService.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PodJoinRequestsService = void 0;
+const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
+const request_js_1 = require("./openapi_client/core/request.js");
+class PodJoinRequestsService {
+    /**
+     * List Pod Join Requests
+     * List join requests for a pod
+     * @param podId
+     * @param statusFilter
+     * @param limit
+     * @param pageToken
+     * @returns PodJoinRequestListResponse Successful Response
+     * @throws ApiError
+     */
+    static podJoinRequestList(podId, statusFilter, limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/join-requests',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'status_filter': statusFilter,
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
             },
         });
     }
-    approve(podId, joinRequestId, payload = {}) {
-        return this.http.request("POST", `/pods/${podId}/join-requests/${joinRequestId}/approve`, {
-            body: {
-                org_role: payload.orgRole ?? "ORG_MEMBER",
-                pod_role: payload.podRole ?? "POD_USER",
+    /**
+     * Create Pod Join Request
+     * Create a join request for the current user to access this pod
+     * @param podId
+     * @returns PodJoinRequestCreateResponse Successful Response
+     * @throws ApiError
+     */
+    static podJoinRequestCreate(podId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/join-requests',
+            path: {
+                'pod_id': podId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get My Pod Join Request
+     * Get the current user's pending join request for this pod
+     * @param podId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static podJoinRequestMe(podId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/join-requests/me',
+            path: {
+                'pod_id': podId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Approve Pod Join Request
+     * Approve a pending pod join request and add user to org/pod
+     * @param podId
+     * @param joinRequestId
+     * @param requestBody
+     * @returns PodJoinRequestCreateResponse Successful Response
+     * @throws ApiError
+     */
+    static podJoinRequestApprove(podId, joinRequestId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/join-requests/{join_request_id}/approve',
+            path: {
+                'pod_id': podId,
+                'join_request_id': joinRequestId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
             },
         });
     }
 }
-exports.PodJoinRequestsNamespace = PodJoinRequestsNamespace;
+exports.PodJoinRequestsService = PodJoinRequestsService;
 
 },
 "./namespaces/pods.js": function (module, exports, require) {

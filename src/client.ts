@@ -100,7 +100,7 @@ export class LemmaClient {
     this.icons = new IconsNamespace(this._generated);
     this.pods = new PodsNamespace(this._generated, this._http);
     this.podMembers = new PodMembersNamespace(this._generated);
-    this.podJoinRequests = new PodJoinRequestsNamespace(this._http);
+    this.podJoinRequests = new PodJoinRequestsNamespace(this._generated);
     this.organizations = new OrganizationsNamespace(this._generated, this._http);
     this.podSurfaces = new PodSurfacesNamespace(this._generated);
   }

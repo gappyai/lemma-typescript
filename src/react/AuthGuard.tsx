@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { LemmaClient } from "../client.js";
 import { ApiError } from "../http.js";
-import type { PodJoinRequest } from "../namespaces/pod-join-requests.js";
+import type { PodJoinRequestCreateResponse } from "../openapi_client/models/PodJoinRequestCreateResponse.js";
 import { useAuth } from "./useAuth.js";
 
 export interface AuthGuardProps {
@@ -170,7 +170,7 @@ export function AuthGuard({
   const [membershipState, setMembershipState] = useState<MembershipState>("idle");
   const [membershipError, setMembershipError] = useState<string | null>(null);
   const [isSubmittingJoinRequest, setIsSubmittingJoinRequest] = useState(false);
-  const [joinRequest, setJoinRequest] = useState<PodJoinRequest | null>(null);
+  const [joinRequest, setJoinRequest] = useState<PodJoinRequestCreateResponse | null>(null);
 
   const checkMembership = useCallback(async () => {
     if (!isAuthenticated || !client.podId) {

@@ -1,40 +1,19 @@
-import type { HttpClient } from "../http.js";
-import type { OrganizationRole } from "../openapi_client/models/OrganizationRole.js";
-import type { PodRole } from "../openapi_client/models/PodRole.js";
-
-export type PodJoinRequestStatus = "PENDING" | "APPROVED" | "REJECTED";
-
-export interface PodJoinRequest {
-  id: string;
-  pod_id: string;
-  organization_id: string;
-  user_id: string;
-  status: PodJoinRequestStatus;
-  requested_at: string;
-  approved_at?: string | null;
-  approved_by_user_id?: string | null;
-  org_role?: OrganizationRole | null;
-  pod_role?: PodRole | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PodJoinRequestListResponse {
-  items: PodJoinRequest[];
-  limit: number;
-  total: number;
-  next_page_token?: string | null;
-}
+import type { GeneratedClientAdapter } from "../generated.js";
+import type { PodJoinRequestApproveRequest } from "../openapi_client/models/PodJoinRequestApproveRequest.js";
+import type { PodJoinRequestStatus } from "../openapi_client/models/PodJoinRequestStatus.js";
+import { OrganizationRole } from "../openapi_client/models/OrganizationRole.js";
+import { PodRole } from "../openapi_client/models/PodRole.js";
+import { PodJoinRequestsService } from "../openapi_client/services/PodJoinRequestsService.js";
 
 export class PodJoinRequestsNamespace {
-  constructor(private readonly http: HttpClient) {}
+  constructor(private readonly client: GeneratedClientAdapter) {}
 
   create(podId: string) {
-    return this.http.request<PodJoinRequest>("POST", `/pods/${podId}/join-requests`);
+    return this.client.request(() => PodJoinRequestsService.podJoinRequestCreate(podId));
   }
 
   me(podId: string) {
-    return this.http.request<PodJoinRequest | null>("GET", `/pods/${podId}/join-requests/me`);
+    return this.client.request(() => PodJoinRequestsService.podJoinRequestMe(podId));
   }
 
   list(
@@ -46,32 +25,26 @@ export class PodJoinRequestsNamespace {
       cursor?: string;
     } = {},
   ) {
-    return this.http.request<PodJoinRequestListResponse>("GET", `/pods/${podId}/join-requests`, {
-      params: {
-        status_filter: options.status,
-        limit: options.limit ?? 100,
-        page_token: options.pageToken ?? options.cursor,
-      },
-    });
+    return this.client.request(() =>
+      PodJoinRequestsService.podJoinRequestList(
+        podId,
+        options.status,
+        options.limit ?? 100,
+        options.pageToken ?? options.cursor,
+      ),
+    );
   }
 
   approve(
     podId: string,
     joinRequestId: string,
-    payload: {
-      orgRole?: OrganizationRole;
-      podRole?: PodRole;
-    } = {},
+    payload: PodJoinRequestApproveRequest = {},
   ) {
-    return this.http.request<PodJoinRequest>(
-      "POST",
-      `/pods/${podId}/join-requests/${joinRequestId}/approve`,
-      {
-        body: {
-          org_role: payload.orgRole ?? "ORG_MEMBER",
-          pod_role: payload.podRole ?? "POD_USER",
-        },
-      },
+    return this.client.request(() =>
+      PodJoinRequestsService.podJoinRequestApprove(podId, joinRequestId, {
+        org_role: payload.org_role ?? OrganizationRole.ORG_MEMBER,
+        pod_role: payload.pod_role ?? PodRole.POD_USER,
+      }),
     );
   }
 }
