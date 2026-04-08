@@ -796,6 +796,7 @@ export function useAssistantController({
   });
 
   const {
+    conversationId: sessionConversationId,
     listConversations: sessionListConversations,
     loadMessages: sessionLoadMessages,
     sendMessage: sessionSendMessage,
@@ -817,6 +818,7 @@ export function useAssistantController({
     clear: clearRuntimeMessages,
   } = useAssistantRuntime({
     conversationId: activeConversationId,
+    sessionConversationId,
     sessionMessages,
   });
 

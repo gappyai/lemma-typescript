@@ -73,6 +73,7 @@ export interface EmptyStateSuggestion {
 export interface AssistantExperienceCustomizationProps {
   title?: ReactNode;
   subtitle?: ReactNode;
+  badge?: ReactNode | null;
   placeholder?: string;
   emptyState?: ReactNode;
   emptyStateSuggestions?: EmptyStateSuggestion[];

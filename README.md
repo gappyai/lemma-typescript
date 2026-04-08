@@ -85,6 +85,7 @@ Org/user-level namespaces:
 - `client.icons`
 - `client.pods`
 - `client.podMembers`
+- `client.podJoinRequests`
 - `client.organizations`
 - `client.podSurfaces`
 
@@ -136,6 +137,28 @@ const conversation = await client.conversations.createForAssistant("support_assi
 
 await client.conversations.messages.send(conversation.id, {
   content: "Summarize unresolved issues from today.",
+});
+```
+
+### Pod Join Requests
+
+```ts
+// Current user requests access to a pod
+await client.podJoinRequests.create("pod_123");
+
+// Current user's pending request (or null)
+const mine = await client.podJoinRequests.me("pod_123");
+
+// Admin view of requests for a pod
+const requests = await client.podJoinRequests.list("pod_123", {
+  status: "PENDING",
+  limit: 50,
+});
+
+// Admin approval (defaults: ORG_MEMBER + POD_USER)
+await client.podJoinRequests.approve("pod_123", "join_req_abc", {
+  org_role: "ORG_MEMBER",
+  pod_role: "POD_USER",
 });
 ```
 
@@ -247,6 +270,8 @@ import { AuthGuard } from "lemma-sdk/react";
 </AuthGuard>;
 ```
 
+When `client.podId` is set and the signed-in user is not a pod member, `AuthGuard` automatically renders a request-access state and can create/view pod join requests.
+
 ## Browser Bundle
 
 The package also ships a standalone browser bundle:
@@ -267,4 +292,3 @@ Example:
   });
 </script>
 ```
-

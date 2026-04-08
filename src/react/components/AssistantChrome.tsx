@@ -365,7 +365,7 @@ export function AssistantComposer({
   status,
   pendingFiles,
   children,
-  tone = "default",
+  tone = "subtle",
   className,
 }: AssistantComposerProps) {
   return (

@@ -1,31 +1,31 @@
 .lemma-assistant-theme {
   color-scheme: light;
-  --bg-canvas: #f6f2ea;
-  --bg-surface: #fffdf9;
-  --bg-subtle: #f1ebde;
-  --border-default: #ddd2bb;
-  --border-subtle: #ebe2d0;
-  --text-primary: #241f16;
-  --text-secondary: #5c5344;
-  --text-tertiary: #8a7f6f;
-  --text-inverse: #fffdf9;
-  --text-on-brand: #fffdf9;
-  --brand-primary: #202418;
-  --brand-secondary: #6e8c56;
-  --brand-accent: #c78a2c;
-  --brand-glow: #efe3c7;
-  --state-success: #3e7a3c;
-  --state-error: #b44d36;
-  --state-info: #2f6fb2;
-  --state-warning: #c78a2c;
-  --shadow-xs: 0 1px 2px rgba(36, 31, 22, 0.08);
-  --assistant-radius-shell: 20px;
-  --assistant-radius-item: 16px;
-  --assistant-radius-bubble: 16px;
-  --assistant-radius-inline: 12px;
-  --shadow-sm: 0 8px 24px rgba(36, 31, 22, 0.08);
-  --shadow-md: 0 18px 36px rgba(36, 31, 22, 0.1);
-  --shadow-lg: 0 24px 48px rgba(36, 31, 22, 0.14);
+  --bg-canvas: #f5f7fb;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f3f4f6;
+  --border-default: #d4dae5;
+  --border-subtle: #e6ebf2;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+  --text-inverse: #ffffff;
+  --text-on-brand: #ffffff;
+  --brand-primary: #1d4ed8;
+  --brand-secondary: #1e3a8a;
+  --brand-accent: #2563eb;
+  --brand-glow: #dbeafe;
+  --state-success: #15803d;
+  --state-error: #b91c1c;
+  --state-info: #1d4ed8;
+  --state-warning: #b45309;
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --assistant-radius-shell: 6px;
+  --assistant-radius-item: 4px;
+  --assistant-radius-bubble: 4px;
+  --assistant-radius-inline: 3px;
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
   color: var(--text-primary);
   font-family:
     "Inter",
@@ -35,6 +35,8 @@
     -apple-system,
     BlinkMacSystemFont,
     sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
 }
 
 .lemma-assistant-theme,
@@ -62,87 +64,87 @@
   .lemma-assistant-theme:not([data-lemma-theme="light"]):not([data-lemma-theme="dark"]),
   .lemma-assistant-theme[data-lemma-theme="auto"] {
     color-scheme: dark;
-    --bg-canvas: #12100d;
-    --bg-surface: #1b1814;
-    --bg-subtle: #272118;
-    --border-default: #3d3428;
-    --border-subtle: #2d261d;
-    --text-primary: #f5ede0;
-    --text-secondary: #d0c3b1;
-    --text-tertiary: #988d7d;
-    --text-inverse: #15120f;
-    --text-on-brand: #15120f;
-    --brand-primary: #ead9b3;
-    --brand-secondary: #8daa73;
-    --brand-accent: #d9a44b;
-    --brand-glow: #2d2418;
-    --state-success: #7cbc72;
-    --state-error: #ec8d74;
-    --state-info: #7eb8f5;
-    --state-warning: #e0b45d;
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.32);
-    --shadow-sm: 0 10px 26px rgba(0, 0, 0, 0.32);
-    --shadow-md: 0 20px 40px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 28px 56px rgba(0, 0, 0, 0.5);
+    --bg-canvas: #0f172a;
+    --bg-surface: #111827;
+    --bg-subtle: #1f2937;
+    --border-default: #334155;
+    --border-subtle: #273448;
+    --text-primary: #f8fafc;
+    --text-secondary: #d1d5db;
+    --text-tertiary: #94a3b8;
+    --text-inverse: #0f172a;
+    --text-on-brand: #ffffff;
+    --brand-primary: #2563eb;
+    --brand-secondary: #1d4ed8;
+    --brand-accent: #60a5fa;
+    --brand-glow: rgba(30, 64, 175, 0.24);
+    --state-success: #4ade80;
+    --state-error: #f87171;
+    --state-info: #60a5fa;
+    --state-warning: #fbbf24;
+    --shadow-xs: 0 1px 2px rgba(2, 6, 23, 0.35);
+    --shadow-sm: 0 2px 8px rgba(2, 6, 23, 0.35);
+    --shadow-md: 0 8px 20px rgba(2, 6, 23, 0.45);
+    --shadow-lg: 0 12px 28px rgba(2, 6, 23, 0.55);
   }
 }
 
 :where(.light, [data-theme="light"], [data-color-scheme="light"], [data-mode="light"]) .lemma-assistant-theme:not([data-lemma-theme="dark"]),
 .lemma-assistant-theme[data-lemma-theme="light"] {
   color-scheme: light;
-  --bg-canvas: #f6f2ea;
-  --bg-surface: #fffdf9;
-  --bg-subtle: #f1ebde;
-  --border-default: #ddd2bb;
-  --border-subtle: #ebe2d0;
-  --text-primary: #241f16;
-  --text-secondary: #5c5344;
-  --text-tertiary: #8a7f6f;
-  --text-inverse: #fffdf9;
-  --text-on-brand: #fffdf9;
-  --brand-primary: #202418;
-  --brand-secondary: #6e8c56;
-  --brand-accent: #c78a2c;
-  --brand-glow: #efe3c7;
-  --state-success: #3e7a3c;
-  --state-error: #b44d36;
-  --state-info: #2f6fb2;
-  --state-warning: #c78a2c;
-  --shadow-xs: 0 1px 2px rgba(36, 31, 22, 0.08);
-  --assistant-radius-shell: 20px;
-  --assistant-radius-item: 16px;
-  --assistant-radius-bubble: 16px;
-  --assistant-radius-inline: 12px;
-  --shadow-sm: 0 8px 24px rgba(36, 31, 22, 0.08);
-  --shadow-md: 0 18px 36px rgba(36, 31, 22, 0.1);
-  --shadow-lg: 0 24px 48px rgba(36, 31, 22, 0.14);
+  --bg-canvas: #f5f7fb;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f3f4f6;
+  --border-default: #d4dae5;
+  --border-subtle: #e6ebf2;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-tertiary: #6b7280;
+  --text-inverse: #ffffff;
+  --text-on-brand: #ffffff;
+  --brand-primary: #1d4ed8;
+  --brand-secondary: #1e3a8a;
+  --brand-accent: #2563eb;
+  --brand-glow: #dbeafe;
+  --state-success: #15803d;
+  --state-error: #b91c1c;
+  --state-info: #1d4ed8;
+  --state-warning: #b45309;
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.08);
+  --assistant-radius-shell: 6px;
+  --assistant-radius-item: 4px;
+  --assistant-radius-bubble: 4px;
+  --assistant-radius-inline: 3px;
+  --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
+  --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.1);
+  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
 }
 
 :where(.dark, [data-theme="dark"], [data-color-scheme="dark"], [data-mode="dark"]) .lemma-assistant-theme:not([data-lemma-theme="light"]),
 .lemma-assistant-theme[data-lemma-theme="dark"] {
   color-scheme: dark;
-  --bg-canvas: #12100d;
-  --bg-surface: #1b1814;
-  --bg-subtle: #272118;
-  --border-default: #3d3428;
-  --border-subtle: #2d261d;
-  --text-primary: #f5ede0;
-  --text-secondary: #d0c3b1;
-  --text-tertiary: #988d7d;
-  --text-inverse: #15120f;
-  --text-on-brand: #15120f;
-  --brand-primary: #ead9b3;
-  --brand-secondary: #8daa73;
-  --brand-accent: #d9a44b;
-  --brand-glow: #2d2418;
-  --state-success: #7cbc72;
-  --state-error: #ec8d74;
-  --state-info: #7eb8f5;
-  --state-warning: #e0b45d;
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.32);
-  --shadow-sm: 0 10px 26px rgba(0, 0, 0, 0.32);
-  --shadow-md: 0 20px 40px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 28px 56px rgba(0, 0, 0, 0.5);
+  --bg-canvas: #0f172a;
+  --bg-surface: #111827;
+  --bg-subtle: #1f2937;
+  --border-default: #334155;
+  --border-subtle: #273448;
+  --text-primary: #f8fafc;
+  --text-secondary: #d1d5db;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #0f172a;
+  --text-on-brand: #ffffff;
+  --brand-primary: #2563eb;
+  --brand-secondary: #1d4ed8;
+  --brand-accent: #60a5fa;
+  --brand-glow: rgba(30, 64, 175, 0.24);
+  --state-success: #4ade80;
+  --state-error: #f87171;
+  --state-info: #60a5fa;
+  --state-warning: #fbbf24;
+  --shadow-xs: 0 1px 2px rgba(2, 6, 23, 0.35);
+  --shadow-sm: 0 2px 8px rgba(2, 6, 23, 0.35);
+  --shadow-md: 0 8px 20px rgba(2, 6, 23, 0.45);
+  --shadow-lg: 0 12px 28px rgba(2, 6, 23, 0.55);
 }
 
 .lemma-assistant-embedded {
@@ -160,31 +162,31 @@
 }
 
 .lemma-assistant-experience[data-radius="sm"] {
-  --assistant-radius-shell: 14px;
-  --assistant-radius-item: 10px;
-  --assistant-radius-bubble: 10px;
-  --assistant-radius-inline: 8px;
+  --assistant-radius-shell: 6px;
+  --assistant-radius-item: 4px;
+  --assistant-radius-bubble: 4px;
+  --assistant-radius-inline: 3px;
 }
 
 .lemma-assistant-experience[data-radius="md"] {
-  --assistant-radius-shell: 20px;
-  --assistant-radius-item: 16px;
-  --assistant-radius-bubble: 16px;
-  --assistant-radius-inline: 12px;
+  --assistant-radius-shell: 10px;
+  --assistant-radius-item: 8px;
+  --assistant-radius-bubble: 8px;
+  --assistant-radius-inline: 6px;
 }
 
 .lemma-assistant-experience[data-radius="lg"] {
-  --assistant-radius-shell: 24px;
-  --assistant-radius-item: 18px;
-  --assistant-radius-bubble: 18px;
-  --assistant-radius-inline: 14px;
+  --assistant-radius-shell: 14px;
+  --assistant-radius-item: 12px;
+  --assistant-radius-bubble: 12px;
+  --assistant-radius-inline: 8px;
 }
 
 .lemma-assistant-experience[data-radius="xl"] {
-  --assistant-radius-shell: 30px;
-  --assistant-radius-item: 22px;
-  --assistant-radius-bubble: 22px;
-  --assistant-radius-inline: 16px;
+  --assistant-radius-shell: 18px;
+  --assistant-radius-item: 16px;
+  --assistant-radius-bubble: 16px;
+  --assistant-radius-inline: 10px;
 }
 
 .lemma-assistant-markdown {
@@ -295,7 +297,7 @@
   margin: 0 0.08rem;
   padding: 0.1rem 0.42rem;
   border: 1px solid color-mix(in srgb, var(--border-default) 82%, transparent);
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   background: color-mix(in srgb, var(--bg-subtle) 88%, transparent);
   color: var(--text-primary);
   font-size: 0.92em;
@@ -349,7 +351,7 @@
 
 .lemma-assistant-markdown img {
   max-width: 100%;
-  border-radius: 14px;
+  border-radius: var(--assistant-radius-inline);
 }
 
 .lemma-assistant-message-user-bubble .lemma-assistant-markdown,
@@ -480,13 +482,11 @@
 
 .lemma-assistant-conversation-list,
 .lemma-assistant-experience-sidebar,
-.lemma-assistant-experience-card,
-.lemma-assistant-composer,
-.lemma-assistant-experience-composer {
+.lemma-assistant-experience-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--assistant-radius-shell);
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .lemma-assistant-conversation-list-header,
@@ -527,8 +527,8 @@
 .lemma-assistant-experience-model-picker {
   appearance: none;
   min-width: 132px;
-  border-color: transparent;
-  background: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  border-color: color-mix(in srgb, var(--border-default) 86%, transparent);
+  background: var(--bg-surface);
 }
 
 .lemma-assistant-viewport,
@@ -546,22 +546,25 @@
 .lemma-assistant-composer,
 .lemma-assistant-experience-composer {
   position: relative;
-  padding: 8px;
-  box-shadow: var(--shadow-md);
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 
 .lemma-assistant-composer[data-tone="subtle"],
 .lemma-assistant-experience-composer[data-tone="subtle"] {
-  background: color-mix(in srgb, var(--bg-surface) 96%, transparent);
-  border-color: color-mix(in srgb, var(--border-default) 88%, transparent);
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .lemma-assistant-composer[data-tone="flat"],
 .lemma-assistant-experience-composer[data-tone="flat"] {
   background: transparent;
-  border-color: transparent;
+  border: 0;
   box-shadow: none;
   padding: 0;
 }
@@ -601,17 +604,17 @@
 .lemma-assistant-experience-new,
 .lemma-assistant-conversation-list-new,
 .lemma-assistant-experience-sidebar-new {
-  background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--bg-surface);
+  border: 1px solid color-mix(in srgb, var(--border-default) 88%, transparent);
 }
 
 .lemma-assistant-experience-new {
-  border: 0;
+  border: 1px solid color-mix(in srgb, var(--border-default) 88%, transparent);
 }
 
 .lemma-assistant-experience[data-chrome-style="subtle"] .lemma-assistant-experience-card,
 .lemma-assistant-experience[data-chrome-style="subtle"] .lemma-assistant-experience-sidebar {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .lemma-assistant-experience[data-chrome-style="flat"] .lemma-assistant-experience-card,
@@ -624,7 +627,7 @@
 .lemma-assistant-plan-strip {
   background: var(--bg-surface);
   border-color: color-mix(in srgb, var(--border-default) 88%, transparent);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   border-radius: var(--assistant-radius-shell);
 }
 
@@ -796,7 +799,7 @@
 }
 
 .lemma-assistant-experience-input-row {
-  align-items: flex-end;
+  align-items: center;
   gap: 8px;
 }
 
@@ -839,6 +842,35 @@
   gap: 12px;
 }
 
+.lemma-assistant-experience-live-region {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.lemma-assistant-scroll-to-bottom {
+  position: sticky;
+  bottom: 12px;
+  margin-left: auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid color-mix(in srgb, var(--border-default) 84%, transparent);
+  border-radius: var(--assistant-radius-inline);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  z-index: 10;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.lemma-assistant-scroll-to-bottom:hover {
+  border-color: color-mix(in srgb, var(--brand-primary) 52%, var(--border-default));
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-subtle) 90%, var(--bg-surface));
+}
+
 .lemma-assistant-header,
 .lemma-assistant-experience-header,
 .lemma-assistant-conversation-list-header,
@@ -852,7 +884,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
   box-shadow: var(--shadow-xs);
   flex: 0 0 auto;
@@ -861,7 +893,7 @@
 .lemma-assistant-header-title,
 .lemma-assistant-conversation-list-title,
 .lemma-assistant-experience-sidebar-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
   color: var(--text-primary);
@@ -871,7 +903,7 @@
 .lemma-assistant-conversation-list-meta,
 .lemma-assistant-experience-sidebar-meta {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 
@@ -914,7 +946,7 @@
 
 .lemma-assistant-conversation-list-item-title,
 .lemma-assistant-experience-sidebar-item-title {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -922,7 +954,7 @@
 .lemma-assistant-conversation-list-item-status,
 .lemma-assistant-experience-sidebar-item-status {
   margin-top: 4px;
-  font-size: 10px;
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-tertiary);
@@ -935,14 +967,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   border: 1px solid color-mix(in srgb, var(--border-default) 88%, transparent);
-  background: color-mix(in srgb, var(--bg-surface) 90%, transparent);
+  background: var(--bg-surface);
   padding: 6px 12px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
-  box-shadow: var(--shadow-xs);
+  box-shadow: none;
   transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
@@ -956,10 +988,10 @@
 .lemma-assistant-model-picker,
 .lemma-assistant-experience-model-picker {
   height: 32px;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   border: 1px solid color-mix(in srgb, var(--border-default) 80%, transparent);
   padding: 0 12px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
@@ -1105,7 +1137,7 @@
   padding: 4px 8px;
   background: var(--bg-subtle);
   color: var(--text-secondary);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .lemma-assistant-pending-file-chip-label {
@@ -1118,7 +1150,7 @@
   justify-content: center;
   width: 16px;
   height: 16px;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
 }
 
 .lemma-assistant-pending-file-chip-remove:hover {
@@ -1129,11 +1161,11 @@
   min-height: 30px;
   max-width: 100%;
   padding: 6px 12px;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   border: 1px solid color-mix(in srgb, var(--brand-primary) 24%, var(--border-default));
   background: color-mix(in srgb, var(--brand-glow) 28%, var(--bg-surface));
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, opacity 160ms ease;
 }
 
@@ -1236,7 +1268,7 @@
 .lemma-assistant-plan-strip-active {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   background: color-mix(in srgb, var(--brand-primary) 16%, transparent);
   padding: 2px 6px;
   font-size: 10px;
@@ -1351,7 +1383,15 @@
   flex: 0 0 auto;
 }
 
-.lemma-assistant-thinking-text,
+.lemma-assistant-thinking-dot {
+  animation: lemma-assistant-dot-pulse 1.25s ease-in-out infinite;
+}
+
+.lemma-assistant-thinking-text {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .lemma-assistant-reasoning-label-streaming {
   font-weight: 600;
   color: transparent;
@@ -1373,18 +1413,22 @@
   width: 40px;
   height: 40px;
   margin-bottom: 12px;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
   box-shadow: var(--shadow-xs);
 }
 
 .lemma-assistant-empty-state-badge-icon,
 .lemma-assistant-experience-header-badge-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
   color: var(--text-on-brand);
 }
 
 .lemma-assistant-empty-state-badge-icon {
-  font-size: 18px;
+  width: 20px;
+  height: 20px;
 }
 
 .lemma-assistant-empty-state-title {
@@ -1406,6 +1450,7 @@
   cursor: pointer;
   justify-content: flex-start;
   border: 1px solid var(--border-default);
+  border-left: 3px solid transparent;
   border-radius: calc(var(--assistant-radius-inline) + 2px);
   background: var(--bg-surface);
   padding: 10px 12px;
@@ -1417,6 +1462,7 @@
 
 .lemma-assistant-empty-state-suggestion:hover {
   border-color: color-mix(in srgb, var(--brand-accent) 52%, var(--border-subtle));
+  border-left-color: color-mix(in srgb, var(--brand-accent) 72%, var(--brand-primary));
   background: color-mix(in srgb, var(--brand-glow) 72%, var(--bg-surface));
   color: var(--text-primary);
 }
@@ -1486,12 +1532,27 @@
   color: var(--text-secondary);
 }
 
-.lemma-assistant-reasoning-body,
-.lemma-assistant-tool-rollup-details,
-.lemma-assistant-tool-details-panel {
+.lemma-assistant-reasoning-body {
   margin-top: 4px;
   padding-left: 16px;
   border-left: 1px solid var(--border-default);
+}
+
+.lemma-assistant-tool-rollup-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 4px;
+  padding-left: 12px;
+  border-left: 1px solid color-mix(in srgb, var(--border-default) 86%, transparent);
+}
+
+.lemma-assistant-tool-details-panel {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--border-default) 86%, transparent);
+  border-radius: var(--assistant-radius-inline);
+  background: color-mix(in srgb, var(--bg-surface) 96%, var(--bg-canvas));
 }
 
 .lemma-assistant-reasoning-text,
@@ -1510,65 +1571,142 @@
 
 .lemma-assistant-tool-details-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+  margin-bottom: 8px;
+}
+
+.lemma-assistant-tool-details-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .lemma-assistant-tool-details-title {
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.03em;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
   text-transform: none;
-  color: color-mix(in srgb, var(--text-tertiary) 92%, var(--text-secondary));
+  color: var(--text-primary);
+}
+
+.lemma-assistant-tool-details-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .lemma-assistant-tool-details-label,
 .lemma-assistant-tool-rollup-thinking-title {
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
   color: color-mix(in srgb, var(--text-tertiary) 88%, var(--text-secondary));
 }
 
 .lemma-assistant-tool-details-link {
-  border: 0;
-  background: transparent;
-  padding: 0;
-  font-size: 9px;
-  font-weight: 500;
-  color: color-mix(in srgb, var(--state-success) 78%, var(--text-tertiary));
+  border: 1px solid color-mix(in srgb, var(--border-default) 85%, transparent);
+  border-radius: var(--assistant-radius-inline);
+  background: var(--bg-surface);
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .lemma-assistant-tool-details-panel-custom {
   min-width: 0;
 }
 
-.lemma-assistant-tool-details-grid {
-  display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 8px;
-}
-
-@media (min-width: 640px) {
-  .lemma-assistant-tool-details-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.lemma-assistant-tool-details-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 .lemma-assistant-tool-details-section {
   min-width: 0;
+  padding: 8px 0;
+}
+
+.lemma-assistant-tool-details-section + .lemma-assistant-tool-details-section {
+  border-top: 1px solid color-mix(in srgb, var(--border-default) 82%, transparent);
+}
+
+.lemma-assistant-tool-details-list {
+  margin: 6px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lemma-assistant-tool-details-list-item {
+  display: grid;
+  grid-template-columns: minmax(96px, auto) minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.lemma-assistant-tool-details-key {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: none;
+}
+
+.lemma-assistant-tool-details-value {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.lemma-assistant-tool-details-empty {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.lemma-assistant-tool-details-more {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.lemma-assistant-tool-details-raw {
+  margin-top: 8px;
+}
+
+.lemma-assistant-tool-details-raw-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.lemma-assistant-tool-details-raw-summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--text-tertiary) 84%, var(--text-secondary));
+}
+
+.lemma-assistant-tool-details-raw-summary::-webkit-details-marker {
+  display: none;
 }
 
 .lemma-assistant-tool-details-code {
-  margin-top: 4px;
-  max-height: 96px;
+  margin-top: 6px;
+  max-height: 180px;
   overflow: auto;
   border-radius: var(--assistant-radius-inline);
   background: color-mix(in srgb, var(--bg-canvas) 70%, transparent);
-  padding: 8px;
-  font-size: 11px;
+  padding: 10px;
+  font-size: 12px;
 }
 
 .lemma-assistant-tool-details-code-text,
@@ -1579,16 +1717,16 @@
 .lemma-assistant-inline-tool-call {
   border: 0;
   background: transparent;
-  padding: 0;
+  padding: 4px 0;
   width: 100%;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 10px;
   text-align: left;
-  font-size: 10px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 1.5;
   color: var(--text-secondary);
-  transition: color 160ms ease;
+  transition: color 160ms ease, background-color 160ms ease;
 }
 
 .lemma-assistant-inline-tool-call:hover {
@@ -1607,50 +1745,172 @@
   color: var(--state-error);
 }
 
+.lemma-assistant-inline-tool-call-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 6px;
+}
+
+.lemma-assistant-inline-tool-call-node {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 80%, var(--text-tertiary));
+}
+
+.lemma-assistant-inline-tool-call-stem {
+  width: 1px;
+  flex: 1 1 auto;
+  min-height: 18px;
+  margin-top: 6px;
+  background: color-mix(in srgb, var(--border-default) 86%, transparent);
+}
+
+.lemma-assistant-inline-tool-call-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.lemma-assistant-inline-tool-call-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
 .lemma-assistant-inline-tool-call-name {
-  font-size: 9.5px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: normal;
+  color: var(--text-primary);
+  flex: 1 1 auto;
+}
+
+.lemma-assistant-inline-tool-call-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--assistant-radius-inline);
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 600;
   white-space: nowrap;
-  color: color-mix(in srgb, currentColor 78%, var(--text-tertiary));
+  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--bg-subtle) 82%, var(--bg-surface));
+}
+
+.lemma-assistant-inline-tool-call[data-state="executing"] .lemma-assistant-inline-tool-call-status {
+  color: var(--state-info);
+  background: color-mix(in srgb, var(--state-info) 14%, transparent);
+}
+
+.lemma-assistant-inline-tool-call[data-state="complete"] .lemma-assistant-inline-tool-call-status {
+  color: var(--state-success);
+  background: color-mix(in srgb, var(--state-success) 14%, transparent);
+}
+
+.lemma-assistant-inline-tool-call[data-state="failed"] .lemma-assistant-inline-tool-call-status {
+  color: var(--state-error);
+  background: color-mix(in srgb, var(--state-error) 14%, transparent);
+}
+
+.lemma-assistant-inline-tool-call-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .lemma-assistant-inline-tool-call-summary {
-  font-size: 9.5px;
-  color: color-mix(in srgb, currentColor 72%, var(--text-tertiary));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: var(--assistant-radius-inline);
+  padding: 3px 9px;
+  font-size: 12px;
+  color: color-mix(in srgb, currentColor 82%, var(--text-tertiary));
+  background: color-mix(in srgb, var(--bg-subtle) 78%, var(--bg-surface));
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .lemma-assistant-inline-tool-call-caret {
-  margin-left: auto;
+  color: var(--text-tertiary);
+  margin-top: 1px;
 }
 
 .lemma-assistant-inline-tool-call[data-selected="true"] .lemma-assistant-inline-tool-call-caret {
   transform: rotate(90deg);
 }
 
-.lemma-assistant-tool-rollup-toggle {
+.lemma-assistant-tool-rollup-banner {
   border: 0;
   background: transparent;
-  padding: 0;
-  gap: 6px;
-  font-size: 9.5px;
-  line-height: 1.45;
-  color: color-mix(in srgb, var(--text-tertiary) 92%, var(--text-secondary));
-  transition: color 160ms ease;
+  width: 100%;
+  padding: 4px 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  color: var(--text-tertiary);
 }
 
-.lemma-assistant-tool-rollup-toggle:hover {
-  color: color-mix(in srgb, var(--text-secondary) 92%, var(--text-primary));
+.lemma-assistant-tool-rollup-banner:hover {
+  color: var(--text-secondary);
 }
 
-.lemma-assistant-tool-rollup-toggle[data-expanded="true"] .lemma-assistant-tool-rollup-caret {
+.lemma-assistant-tool-rollup-banner:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--brand-primary) 64%, transparent);
+  outline-offset: 2px;
+  border-radius: var(--assistant-radius-inline);
+}
+
+.lemma-assistant-tool-rollup-banner-line {
+  flex: 1 1 auto;
+  min-width: 18px;
+  height: 1px;
+  background: color-mix(in srgb, var(--border-default) 84%, transparent);
+}
+
+.lemma-assistant-tool-rollup-banner-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.lemma-assistant-tool-rollup-banner-label {
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lemma-assistant-tool-rollup-banner-label-working {
+  color: color-mix(in srgb, var(--text-secondary) 82%, var(--text-primary));
+}
+
+.lemma-assistant-tool-rollup-banner-caret {
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 160ms ease;
+}
+
+.lemma-assistant-tool-rollup-banner-caret[data-expanded="true"] {
   transform: rotate(90deg);
 }
 
+.lemma-assistant-tool-rollup-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
 .lemma-assistant-tool-rollup-summary {
-  font-size: 9.5px;
+  font-size: 12px;
   color: color-mix(in srgb, var(--text-tertiary) 92%, var(--text-secondary));
 }
 
@@ -1661,15 +1921,24 @@
 
 .lemma-assistant-tool-rollup-thinking {
   border-radius: var(--assistant-radius-inline);
-  background: var(--bg-canvas);
-  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-default) 72%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--border-default) 86%, transparent);
+  background: color-mix(in srgb, var(--bg-subtle) 42%, transparent);
+  padding: 7px 10px;
 }
 
 .lemma-assistant-tool-rollup-thinking-text {
-  max-height: 10rem;
+  max-height: 7rem;
   overflow: auto;
+  font-size: 12px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--text-tertiary) 92%, var(--text-secondary));
+}
+
+.lemma-assistant-tool-rollup-thinking-title {
   font-size: 11px;
-  line-height: 1.45;
+  font-weight: 500;
+  color: color-mix(in srgb, var(--text-tertiary) 94%, var(--text-secondary));
 }
 
 .lemma-assistant-widget-card-header {
@@ -1687,7 +1956,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  border-radius: 6px;
+  border-radius: var(--assistant-radius-inline);
   padding: 2px 6px;
   font-size: 10px;
   font-weight: 500;
@@ -1732,6 +2001,20 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  position: relative;
+}
+
+.lemma-assistant-message-timestamp {
+  position: static;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.2;
+}
+
+.lemma-assistant-message-timestamp-user {
+  align-self: flex-end;
+  margin-right: 4px;
+  opacity: 0.78;
 }
 
 .lemma-assistant-message-assistant {
@@ -1740,6 +2023,7 @@
 
 .lemma-assistant-message-user {
   display: flex;
+  align-items: flex-end;
   justify-content: flex-end;
   max-width: none;
 }
@@ -1754,7 +2038,7 @@
 }
 
 .lemma-assistant-message-header {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-tertiary);
 }
 
@@ -1762,7 +2046,7 @@
   display: inline-block;
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   background: color-mix(in srgb, var(--brand-primary) 40%, transparent);
   flex: 0 0 auto;
 }
@@ -1774,7 +2058,7 @@
 }
 
 .lemma-assistant-message-text {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--text-secondary);
 }
@@ -1806,11 +2090,11 @@
 }
 
 .lemma-assistant-experience-new {
-  border: 0;
-  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--border-default) 88%, transparent);
+  background: var(--bg-surface);
   width: 32px;
   height: 32px;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   color: var(--text-tertiary);
 }
 
@@ -1900,6 +2184,16 @@
 
 .lemma-assistant-experience-input-row {
   position: relative;
+  padding: 6px 8px;
+  border: 1px solid color-mix(in srgb, var(--border-default) 88%, transparent);
+  border-radius: var(--assistant-radius-inline);
+  background: var(--bg-surface);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.lemma-assistant-experience-input-row:focus-within {
+  border-color: color-mix(in srgb, var(--brand-primary) 62%, var(--border-default));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--brand-primary) 22%, transparent);
 }
 
 .lemma-assistant-experience-file-input {
@@ -1908,18 +2202,19 @@
 
 .lemma-assistant-experience-upload,
 .lemma-assistant-experience-send {
-  border: 0;
+  border: 1px solid color-mix(in srgb, var(--border-default) 88%, transparent);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 999px;
+  border-radius: var(--assistant-radius-inline);
   transition: background-color 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
 }
 
 .lemma-assistant-experience-upload {
-  margin: 0 0 6px 4px;
+  align-self: center;
+  margin: 0;
   background: var(--bg-subtle);
   color: var(--text-secondary);
 }
@@ -1941,10 +2236,11 @@
   border: 0;
   background: transparent;
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
   color: var(--text-primary);
   outline: none;
+  transition: height 140ms ease;
 }
 
 .lemma-assistant-experience-textarea::placeholder {
@@ -1952,7 +2248,8 @@
 }
 
 .lemma-assistant-experience-send-wrap {
-  padding: 0 6px 6px 0;
+  align-self: center;
+  padding: 0;
 }
 
 .lemma-assistant-experience-send[data-state="busy"] {
@@ -1993,6 +2290,62 @@
   }
 }
 
+@media (prefers-color-scheme: dark) {
+  .lemma-assistant-theme:not([data-lemma-theme="light"]):not([data-lemma-theme="dark"]) .lemma-assistant-status-pill,
+  .lemma-assistant-theme[data-lemma-theme="auto"] .lemma-assistant-status-pill {
+    background: color-mix(in srgb, var(--brand-glow) 45%, var(--bg-surface));
+  }
+
+  .lemma-assistant-theme:not([data-lemma-theme="light"]):not([data-lemma-theme="dark"]) .lemma-assistant-experience-sidebar-item-active,
+  .lemma-assistant-theme[data-lemma-theme="auto"] .lemma-assistant-experience-sidebar-item-active,
+  .lemma-assistant-theme:not([data-lemma-theme="light"]):not([data-lemma-theme="dark"]) .lemma-assistant-conversation-list-item-active,
+  .lemma-assistant-theme[data-lemma-theme="auto"] .lemma-assistant-conversation-list-item-active {
+    background: var(--bg-surface);
+    border-color: color-mix(in srgb, var(--brand-primary) 52%, var(--border-default));
+  }
+
+  .lemma-assistant-theme:not([data-lemma-theme="light"]):not([data-lemma-theme="dark"]) .lemma-assistant-markdown pre,
+  .lemma-assistant-theme[data-lemma-theme="auto"] .lemma-assistant-markdown pre,
+  .lemma-assistant-theme:not([data-lemma-theme="light"]):not([data-lemma-theme="dark"]) .lemma-assistant-tool-details-code,
+  .lemma-assistant-theme[data-lemma-theme="auto"] .lemma-assistant-tool-details-code {
+    background: color-mix(in srgb, var(--bg-canvas) 88%, var(--bg-surface));
+  }
+
+  .lemma-assistant-theme:not([data-lemma-theme="light"]):not([data-lemma-theme="dark"]) .lemma-assistant-tool-rollup-thinking,
+  .lemma-assistant-theme[data-lemma-theme="auto"] .lemma-assistant-tool-rollup-thinking {
+    background: color-mix(in srgb, var(--bg-subtle) 34%, transparent);
+    border-color: color-mix(in srgb, var(--border-default) 74%, transparent);
+    border-left-color: color-mix(in srgb, var(--border-default) 88%, transparent);
+  }
+}
+
+:where(.dark, [data-theme="dark"], [data-color-scheme="dark"], [data-mode="dark"]) .lemma-assistant-theme:not([data-lemma-theme="light"]) .lemma-assistant-status-pill,
+.lemma-assistant-theme[data-lemma-theme="dark"] .lemma-assistant-status-pill {
+  background: color-mix(in srgb, var(--brand-glow) 45%, var(--bg-surface));
+}
+
+:where(.dark, [data-theme="dark"], [data-color-scheme="dark"], [data-mode="dark"]) .lemma-assistant-theme:not([data-lemma-theme="light"]) .lemma-assistant-experience-sidebar-item-active,
+.lemma-assistant-theme[data-lemma-theme="dark"] .lemma-assistant-experience-sidebar-item-active,
+:where(.dark, [data-theme="dark"], [data-color-scheme="dark"], [data-mode="dark"]) .lemma-assistant-theme:not([data-lemma-theme="light"]) .lemma-assistant-conversation-list-item-active,
+.lemma-assistant-theme[data-lemma-theme="dark"] .lemma-assistant-conversation-list-item-active {
+  background: var(--bg-surface);
+  border-color: color-mix(in srgb, var(--brand-primary) 52%, var(--border-default));
+}
+
+:where(.dark, [data-theme="dark"], [data-color-scheme="dark"], [data-mode="dark"]) .lemma-assistant-theme:not([data-lemma-theme="light"]) .lemma-assistant-markdown pre,
+.lemma-assistant-theme[data-lemma-theme="dark"] .lemma-assistant-markdown pre,
+:where(.dark, [data-theme="dark"], [data-color-scheme="dark"], [data-mode="dark"]) .lemma-assistant-theme:not([data-lemma-theme="light"]) .lemma-assistant-tool-details-code,
+.lemma-assistant-theme[data-lemma-theme="dark"] .lemma-assistant-tool-details-code {
+  background: color-mix(in srgb, var(--bg-canvas) 88%, var(--bg-surface));
+}
+
+:where(.dark, [data-theme="dark"], [data-color-scheme="dark"], [data-mode="dark"]) .lemma-assistant-theme:not([data-lemma-theme="light"]) .lemma-assistant-tool-rollup-thinking,
+.lemma-assistant-theme[data-lemma-theme="dark"] .lemma-assistant-tool-rollup-thinking {
+  background: color-mix(in srgb, var(--bg-subtle) 34%, transparent);
+  border-color: color-mix(in srgb, var(--border-default) 74%, transparent);
+  border-left-color: color-mix(in srgb, var(--border-default) 88%, transparent);
+}
+
 @keyframes lemma-assistant-fade-in {
   from {
     opacity: 0;
@@ -2010,6 +2363,23 @@
 
   100% {
     background-position: 250% 50%;
+  }
+}
+
+@keyframes lemma-assistant-dot-pulse {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.55;
+  }
+
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(0.9);
+    opacity: 0.55;
   }
 }
 

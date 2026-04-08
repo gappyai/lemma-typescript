@@ -96,6 +96,7 @@ export interface AssistantExperienceViewProps {
   controller: AssistantControllerView;
   title?: ReactNode;
   subtitle?: ReactNode;
+  badge?: ReactNode | null;
   placeholder?: string;
   emptyState?: ReactNode;
   emptyStateSuggestions?: EmptyStateSuggestion[];
@@ -143,6 +144,39 @@ function fileNameFromPath(path: string): string {
   const normalized = path.replace(/\\/g, "/");
   const parts = normalized.split("/").filter(Boolean);
   return parts[parts.length - 1] || normalized;
+}
+
+function formatMessageTimestamp(createdAt?: Date): { text: string; dateTime: string } | null {
+  if (!(createdAt instanceof Date) || Number.isNaN(createdAt.getTime())) return null;
+
+  return {
+    text: new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(createdAt),
+    dateTime: createdAt.toISOString(),
+  };
+}
+
+function thinkingLabelsFromSummary(summary?: string): string[] {
+  const normalized = summary?.toLowerCase() || "";
+
+  if (normalized.includes("search") || normalized.includes("find") || normalized.includes("query")) {
+    return ["Searching…", "Working on it…", "Checking results…"];
+  }
+  if (normalized.includes("plan") || normalized.includes("step")) {
+    return ["Planning next steps…", "Working on it…", "Organizing tasks…"];
+  }
+  if (normalized.includes("run") || normalized.includes("command") || normalized.includes("exec")) {
+    return ["Running checks…", "Working on it…", "Inspecting output…"];
+  }
+  if (normalized.includes("file") || normalized.includes("present")) {
+    return ["Preparing files…", "Working on it…", "Finalizing output…"];
+  }
+
+  return ["Working on it…", "Thinking…", "Preparing response…"];
 }
 
 function toolInvocationKey(tool: AssistantToolInvocation): string {
@@ -351,6 +385,16 @@ function formatCommandPreview(cmd: string): string {
   return truncateLabel(compact, 64);
 }
 
+function formatDurationCompact(durationMs: number): string {
+  const totalSeconds = Math.max(1, Math.round(durationMs / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if (minutes <= 0) return `${totalSeconds}s`;
+  if (seconds <= 0) return `${minutes}m`;
+  return `${minutes}m ${seconds}s`;
+}
+
 function primaryToolArgs(args: ToolCardArgs): ToolCardArgs {
   const request = asRecord(args.request);
   if (Object.keys(request).length > 0) return request;
@@ -378,11 +422,15 @@ function commentLabelFromArgs(args: ToolCardArgs): string | null {
   return comment ? truncateLabel(comment, 72) : null;
 }
 
+function toolCallPrimaryLabel(toolName: string, args: ToolCardArgs): string {
+  return commentLabelFromArgs(args) || formatToolDisplayName(toolName);
+}
+
 function formatActiveToolSummary(toolName: string, args: ToolCardArgs): string {
   const lowerName = toolName.toLowerCase();
+  const comment = commentLabelFromArgs(args);
 
   if (lowerName === "exec_command") {
-    const comment = commentLabelFromArgs(args);
     if (comment) return `Running ${comment}`;
     const cmd = asString(toolArg(args, "cmd"));
     return cmd ? `Running ${formatCommandPreview(cmd)}` : "Running command";
@@ -411,6 +459,8 @@ function formatActiveToolSummary(toolName: string, args: ToolCardArgs): string {
     const plan = asArray(toolArg(args, "plan"));
     return `Updating plan (${plan.length} step${plan.length === 1 ? "" : "s"})`;
   }
+
+  if (comment) return `Running ${comment}`;
 
   return `Running ${formatToolDisplayName(toolName)}`;
 }
@@ -795,22 +845,52 @@ export function PlanSummaryStrip({ plan, onHide }: { plan: PlanSummaryState; onH
   );
 }
 
-export function ThinkingIndicator() {
+export interface ThinkingIndicatorProps {
+  activeToolSummary?: string;
+  labels?: string[];
+}
+
+function resolvedThinkingLabels(labels?: string[], activeToolSummary?: string): string[] {
+  if (labels && labels.length > 0) return labels;
+  return thinkingLabelsFromSummary(activeToolSummary);
+}
+
+export function ThinkingIndicator({
+  activeToolSummary,
+  labels,
+}: ThinkingIndicatorProps = {}) {
   const [show, setShow] = useState(false);
+  const labelOptions = useMemo(
+    () => resolvedThinkingLabels(labels, activeToolSummary),
+    [labels, activeToolSummary],
+  );
+  const [labelIndex, setLabelIndex] = useState(0);
 
   useEffect(() => {
     const timer = setTimeout(() => setShow(true), 350);
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    setLabelIndex(0);
+  }, [labelOptions]);
+
+  useEffect(() => {
+    if (!show || labelOptions.length < 2) return;
+    const interval = window.setInterval(() => {
+      setLabelIndex((prev) => (prev + 1) % labelOptions.length);
+    }, 1600);
+    return () => clearInterval(interval);
+  }, [show, labelOptions]);
+
   if (!show) return null;
 
   return (
-    <div className="lemma-assistant-thinking">
+    <div className="lemma-assistant-thinking" role="status" aria-live="polite" aria-label="Generating response">
       <div className="lemma-assistant-thinking-label">
         <span className="lemma-assistant-thinking-dot" />
         <span className="lemma-assistant-thinking-text">
-          Thinking...
+          {labelOptions[labelIndex] || "Working on it…"}
         </span>
       </div>
     </div>
@@ -829,6 +909,33 @@ export const DEFAULT_EMPTY_STATE_SUGGESTIONS: EmptyStateSuggestion[] = [
   { text: "Brainstorm next steps", icon: "⋯" },
 ];
 
+function LemmaMarkIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M10 2.5 16.25 5v4.85c0 4.25-2.55 7.05-6.25 8.15-3.7-1.1-6.25-3.9-6.25-8.15V5L10 2.5Z"
+        fill="currentColor"
+        fillOpacity="0.18"
+        stroke="currentColor"
+        strokeWidth="1.2"
+      />
+      <path
+        d="m7.1 10.1 1.8 1.8 4-4.1"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function EmptyState({
   onSendMessage,
   suggestions = DEFAULT_EMPTY_STATE_SUGGESTIONS,
@@ -838,7 +945,7 @@ export function EmptyState({
     <div className="lemma-assistant-empty-state">
       <div className="lemma-assistant-empty-state-hero">
         <div className="lemma-assistant-empty-state-badge">
-          <span className="lemma-assistant-empty-state-badge-icon">✨</span>
+          <LemmaMarkIcon className="lemma-assistant-empty-state-badge-icon" />
         </div>
         <h4 className="lemma-assistant-empty-state-title">How can I help?</h4>
         <p className="lemma-assistant-empty-state-copy">
@@ -877,7 +984,7 @@ function ReasoningPartCard({
   return (
     <details className="lemma-assistant-reasoning" open={isStreaming}>
       <summary className="lemma-assistant-reasoning-summary">
-        <span className="lemma-assistant-reasoning-caret">›</span>
+        {/* <span className="lemma-assistant-reasoning-caret">›</span> */}
         <span className={cx(
           "lemma-assistant-reasoning-label",
           isStreaming && "lemma-assistant-reasoning-label-streaming",
@@ -929,6 +1036,99 @@ function PresentFilesCard({
   );
 }
 
+function formatToolDetailValue(value: unknown): string {
+  if (value === null) return "null";
+  if (typeof value === "undefined") return "undefined";
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed.length <= 160 ? trimmed : `${trimmed.slice(0, 157)}...`;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    const primitives = value.filter((entry) => (
+      typeof entry === "string"
+      || typeof entry === "number"
+      || typeof entry === "boolean"
+      || entry === null
+    ));
+
+    if (primitives.length === value.length) {
+      const preview = primitives
+        .slice(0, 4)
+        .map((entry) => (typeof entry === "string" ? `"${entry}"` : String(entry)))
+        .join(", ");
+      return `[${preview}${value.length > 4 ? ", ..." : ""}]`;
+    }
+
+    return `${value.length} item${value.length === 1 ? "" : "s"}`;
+  }
+
+  const record = asRecord(value);
+  const keys = Object.keys(record);
+  if (keys.length === 0) return "{}";
+  const preview = keys.slice(0, 4).join(", ");
+  return `{ ${preview}${keys.length > 4 ? ", ..." : ""} }`;
+}
+
+function humanizeKey(value: string): string {
+  return value
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function isToolPayloadValueMeaningful(value: unknown): boolean {
+  if (value === null || typeof value === "undefined") return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  if (Array.isArray(value)) return value.length > 0;
+  if (typeof value === "object") return Object.keys(asRecord(value)).length > 0;
+  return true;
+}
+
+function summarizeToolPayload(
+  payload: Record<string, unknown>,
+  options?: { excludeKeys?: string[] },
+): Array<{ key: string; value: string }> {
+  const excluded = new Set((options?.excludeKeys || []).map((key) => key.toLowerCase()));
+
+  return Object.entries(payload)
+    .filter(([key, value]) => !excluded.has(key.toLowerCase()) && isToolPayloadValueMeaningful(value))
+    .slice(0, 8)
+    .map(([key, value]) => ({
+      key,
+      value: formatToolDetailValue(value),
+    }));
+}
+
+function countSummarizablePayloadEntries(
+  payload: Record<string, unknown>,
+  options?: { excludeKeys?: string[] },
+): number {
+  const excluded = new Set((options?.excludeKeys || []).map((key) => key.toLowerCase()));
+  return Object.entries(payload)
+    .filter(([key, value]) => !excluded.has(key.toLowerCase()) && isToolPayloadValueMeaningful(value))
+    .length;
+}
+
+function pickPreferredEntries(
+  entries: Array<{ key: string; value: string }>,
+  preferredKeys: string[],
+  max: number,
+): Array<{ key: string; value: string }> {
+  const preferredSet = new Set(preferredKeys.map((key) => key.toLowerCase()));
+  const preferred = entries.filter((entry) => preferredSet.has(entry.key.toLowerCase()));
+  const rest = entries.filter((entry) => !preferredSet.has(entry.key.toLowerCase()));
+  return [...preferred, ...rest].slice(0, max);
+}
+
 function ToolDetailsPanel({
   toolName,
   args,
@@ -949,11 +1149,60 @@ function ToolDetailsPanel({
   activeConversationId: string | null;
 }) {
   const resultData = result || {};
+  const primaryLabel = toolCallPrimaryLabel(toolName, args);
+  const hasCommentLabel = !!commentLabelFromArgs(args);
+  const toolDisplayName = formatToolDisplayName(toolName);
   const canNavigate =
     state === "result"
     && resultData.success !== false
     && typeof resultData.resourceType === "string"
     && typeof resultData.resourceId === "string";
+  const summaryOptions = {
+    input: { excludeKeys: ["comment", "request", "wait_config"] },
+    output: { excludeKeys: ["success", "completed"] },
+  };
+  const inputEntries = summarizeToolPayload(args, summaryOptions.input);
+  const outputEntries = summarizeToolPayload(resultData, summaryOptions.output);
+  const inputHighlights = pickPreferredEntries(inputEntries, [
+    "cmd",
+    "query",
+    "path",
+    "filepath",
+    "filepaths",
+    "table",
+    "resource_type",
+    "resourceType",
+    "resource_id",
+    "resourceId",
+  ], 3);
+  const outputHighlights = pickPreferredEntries(outputEntries, [
+    "message",
+    "stdout",
+    "stderr",
+    "error",
+    "resource_type",
+    "resourceType",
+    "resource_id",
+    "resourceId",
+    "exit_code",
+    "session_id",
+  ], 3);
+  const detailRows = [
+    {
+      label: "Tool",
+      value: hasCommentLabel ? `${toolDisplayName} (${toolName})` : toolDisplayName,
+    },
+    ...inputHighlights.map((entry) => ({
+      label: humanizeKey(entry.key),
+      value: entry.value,
+    })),
+    ...outputHighlights.map((entry) => ({
+      label: humanizeKey(entry.key),
+      value: entry.value,
+    })),
+  ].slice(0, 8);
+  const hiddenInputCount = Math.max(0, countSummarizablePayloadEntries(args, summaryOptions.input) - inputEntries.length);
+  const hiddenOutputCount = Math.max(0, countSummarizablePayloadEntries(resultData, summaryOptions.output) - outputEntries.length);
 
   if (renderToolInvocation) {
     return (
@@ -976,30 +1225,55 @@ function ToolDetailsPanel({
   return (
     <div className="lemma-assistant-tool-details-panel">
       <div className="lemma-assistant-tool-details-header">
-        <div className="lemma-assistant-tool-details-title">{formatToolDisplayName(toolName)}</div>
+        <div className="lemma-assistant-tool-details-heading">
+          <div className="lemma-assistant-tool-details-title">{primaryLabel}</div>
+          {hasCommentLabel ? (
+            <div className="lemma-assistant-tool-details-meta">{toolDisplayName}</div>
+          ) : null}
+        </div>
         {canNavigate && onNavigateResource ? (
           <button
             type="button"
             onClick={() => onNavigateResource(resultData.resourceType as string, resultData.resourceId as string, resultData)}
             className="lemma-assistant-tool-details-link"
           >
-            Open ›
+            Open
           </button>
         ) : null}
       </div>
-      <div className="lemma-assistant-tool-details-grid">
+      <div className="lemma-assistant-tool-details-stack">
         <div className="lemma-assistant-tool-details-section">
-          <div className="lemma-assistant-tool-details-label">Input</div>
-          <div className="lemma-assistant-tool-details-code">
-            <pre className="lemma-assistant-tool-details-code-text">{JSON.stringify(args, null, 2)}</pre>
-          </div>
-        </div>
-        <div className="lemma-assistant-tool-details-section">
-          <div className="lemma-assistant-tool-details-label">Output</div>
-          <div className="lemma-assistant-tool-details-code">
-            <pre className="lemma-assistant-tool-details-code-text">
-              {Object.keys(resultData).length > 0 ? JSON.stringify(resultData, null, 2) : "No output yet"}
-            </pre>
+          <dl className="lemma-assistant-tool-details-list">
+            {detailRows.map((row, index) => (
+              <div key={`${row.label}-${index}`} className="lemma-assistant-tool-details-list-item">
+                <dt className="lemma-assistant-tool-details-key">{row.label}</dt>
+                <dd className="lemma-assistant-tool-details-value">{row.value}</dd>
+              </div>
+            ))}
+          </dl>
+          {hiddenInputCount > 0 ? (
+            <div className="lemma-assistant-tool-details-more">+{hiddenInputCount} more input field{hiddenInputCount === 1 ? "" : "s"}</div>
+          ) : null}
+          {hiddenOutputCount > 0 ? (
+            <div className="lemma-assistant-tool-details-more">+{hiddenOutputCount} more output field{hiddenOutputCount === 1 ? "" : "s"}</div>
+          ) : null}
+          <div className="lemma-assistant-tool-details-raw-row">
+            <details className="lemma-assistant-tool-details-raw">
+              <summary className="lemma-assistant-tool-details-raw-summary">Raw input JSON</summary>
+              <div className="lemma-assistant-tool-details-code">
+                <pre className="lemma-assistant-tool-details-code-text">{JSON.stringify(args, null, 2)}</pre>
+              </div>
+            </details>
+            {Object.keys(resultData).length > 0 ? (
+              <details className="lemma-assistant-tool-details-raw">
+                <summary className="lemma-assistant-tool-details-raw-summary">Raw output JSON</summary>
+                <div className="lemma-assistant-tool-details-code">
+                  <pre className="lemma-assistant-tool-details-code-text">
+                    {JSON.stringify(resultData, null, 2)}
+                  </pre>
+                </div>
+              </details>
+            ) : null}
           </div>
         </div>
       </div>
@@ -1020,8 +1294,11 @@ function InlineToolCall({
   const isExecuting = invocation.state !== "result";
   const isComplete = invocation.state === "result" && resultData.success !== false;
   const isFailed = invocation.state === "result" && resultData.success === false;
+  const primaryLabel = toolCallPrimaryLabel(invocation.toolName, invocation.args);
+  const statusLabel = isExecuting ? "Working" : isFailed ? "Failed" : "Done";
+  const toolMeta = isExecuting ? `${invocation.toolName} · running` : invocation.toolName;
   const summary = isExecuting
-    ? formatActiveToolSummary(invocation.toolName, invocation.args)
+    ? "Running"
     : isFailed
       ? (typeof resultData.error === "string" ? resultData.error : "Tool failed")
       : (formatToolResultSummary(invocation.toolName, invocation.args, resultData) || "Completed");
@@ -1034,9 +1311,19 @@ function InlineToolCall({
       data-state={isExecuting ? "executing" : isComplete ? "complete" : isFailed ? "failed" : "idle"}
       data-selected={isSelected ? "true" : "false"}
     >
-      <span className="lemma-assistant-inline-tool-call-name">{formatToolDisplayName(invocation.toolName)}</span>
-      <span className="lemma-assistant-inline-tool-call-summary">{summary}</span>
-      <span className="lemma-assistant-inline-tool-call-caret">{isSelected ? "⌄" : "›"}</span>
+      <span className="lemma-assistant-inline-tool-call-rail" aria-hidden="true">
+        <span className="lemma-assistant-inline-tool-call-node" />
+        <span className="lemma-assistant-inline-tool-call-stem" />
+      </span>
+      <span className="lemma-assistant-inline-tool-call-main">
+        <span className="lemma-assistant-inline-tool-call-head">
+          <span className="lemma-assistant-inline-tool-call-name">{primaryLabel}</span>
+          <span className="lemma-assistant-inline-tool-call-status">{statusLabel}</span>
+          <span className="lemma-assistant-inline-tool-call-caret">{isSelected ? "⌄" : "›"}</span>
+        </span>
+        <span className="lemma-assistant-inline-tool-call-meta">{toolMeta}</span>
+        <span className="lemma-assistant-inline-tool-call-summary">{summary}</span>
+      </span>
     </button>
   );
 }
@@ -1061,6 +1348,8 @@ function ToolActivityRollup({
   const [isExpanded, setIsExpanded] = useState(false);
   const toolParts = detailParts.filter((part): part is Extract<AssistantMessagePart, { type: "tool" }> => part.type === "tool");
   const reasoningParts = detailParts.filter((part): part is Extract<AssistantMessagePart, { type: "reasoning" }> => part.type === "reasoning");
+  const totalThoughtDurationMs = reasoningParts.reduce((total, part) => total + (part.durationMs ?? 0), 0);
+  const shouldCollapse = detailParts.length > 1;
 
   const activeInvocation = [...toolParts]
     .reverse()
@@ -1070,27 +1359,62 @@ function ToolActivityRollup({
     part.toolInvocation.state === "result" && part.toolInvocation.result?.success === false
   )).length;
   const isWorking = !!activeInvocation || reasoningParts.some((part) => part.state === "streaming");
+  const completionSummary = toolParts.length > 0
+    ? `Completed ${toolParts.length} tool${toolParts.length === 1 ? "" : "s"}`
+    : totalThoughtDurationMs > 0
+      ? `Thought for ${formatDurationCompact(totalThoughtDurationMs)}`
+      : "Completed";
   const summary = activeInvocation
     ? formatActiveToolSummary(activeInvocation.toolName, activeInvocation.args)
-    : `Worked across ${toolParts.length} tool${toolParts.length === 1 ? "" : "s"}${failedCount > 0 ? ` · ${failedCount} failed` : ""}`;
+    : isWorking
+      ? "Working on it…"
+      : `${completionSummary}${failedCount > 0 ? ` · ${failedCount} failed` : ""}`;
+  const collapsedSummary = isWorking
+    ? summary
+    : `${totalThoughtDurationMs > 0
+      ? `Worked for ${formatDurationCompact(totalThoughtDurationMs)}`
+      : `Worked through ${detailParts.length} step${detailParts.length === 1 ? "" : "s"}`}${failedCount > 0 ? ` · ${failedCount} failed` : ""}`;
 
   return (
     <div className="lemma-assistant-tool-rollup">
-      <button
-        type="button"
-        onClick={() => setIsExpanded((prev) => !prev)}
-        className="lemma-assistant-tool-rollup-toggle"
-        data-expanded={isExpanded ? "true" : "false"}
-      >
-        <span className="lemma-assistant-tool-rollup-caret">›</span>
-        {isWorking ? <span className="lemma-assistant-tool-rollup-dot" /> : null}
-        <span className={cx(
-          "lemma-assistant-tool-rollup-summary",
-          isWorking && "lemma-assistant-tool-rollup-summary-working",
-        )}>{summary}</span>
-      </button>
+      {shouldCollapse ? (
+        <button
+          type="button"
+          className="lemma-assistant-tool-rollup-banner"
+          onClick={() => setIsExpanded((prev) => !prev)}
+          aria-expanded={isExpanded}
+          aria-label={isExpanded ? "Hide tool activity details" : "Show tool activity details"}
+        >
+          <span className="lemma-assistant-tool-rollup-banner-line" aria-hidden="true" />
+          <span className="lemma-assistant-tool-rollup-banner-copy">
+            {isWorking ? <span className="lemma-assistant-tool-rollup-dot" aria-hidden="true" /> : null}
+            <span className={cx(
+              "lemma-assistant-tool-rollup-banner-label",
+              isWorking && "lemma-assistant-tool-rollup-banner-label-working",
+            )}>
+              {collapsedSummary}
+            </span>
+            <span
+              className="lemma-assistant-tool-rollup-banner-caret"
+              data-expanded={isExpanded ? "true" : "false"}
+              aria-hidden="true"
+            >
+              ›
+            </span>
+          </span>
+          <span className="lemma-assistant-tool-rollup-banner-line" aria-hidden="true" />
+        </button>
+      ) : (
+        <div className="lemma-assistant-tool-rollup-header">
+          {isWorking ? <span className="lemma-assistant-tool-rollup-dot" /> : null}
+          <span className={cx(
+            "lemma-assistant-tool-rollup-summary",
+            isWorking && "lemma-assistant-tool-rollup-summary-working",
+          )}>{summary}</span>
+        </div>
+      )}
 
-      {isExpanded ? (
+      {!shouldCollapse || isExpanded ? (
         <div className="lemma-assistant-tool-rollup-details">
           {detailParts.map((part) => {
             if (part.type === "reasoning") {
@@ -1100,7 +1424,9 @@ function ToolActivityRollup({
                   className="lemma-assistant-tool-rollup-thinking"
                 >
                   <div className="lemma-assistant-tool-rollup-thinking-title">
-                    {part.state === "streaming" ? "Thinking" : "Thought"}
+                    {part.state === "streaming"
+                      ? "Internal note"
+                      : `Internal note${part.durationMs ? ` · ${formatDurationCompact(part.durationMs)}` : ""}`}
                   </div>
                   <pre className="lemma-assistant-tool-rollup-thinking-text">
                     {part.text}
@@ -1320,6 +1646,7 @@ export function MessageGroup({
     .reverse()
     .find((part) => part.type === "text" && part.text.trim().length > 0)
     ?.id;
+  const messageTimestamp = formatMessageTimestamp(message.createdAt);
 
   if (message.role === "user") {
     return (
@@ -1334,6 +1661,14 @@ export function MessageGroup({
             },
           })}
         </div>
+        {messageTimestamp ? (
+          <time
+            className="lemma-assistant-message-timestamp lemma-assistant-message-timestamp-user"
+            dateTime={messageTimestamp.dateTime}
+          >
+            {messageTimestamp.text}
+          </time>
+        ) : null}
       </div>
     );
   }
@@ -1435,6 +1770,7 @@ export function AssistantExperienceView({
   controller,
   title = "Lemma Assistant",
   subtitle = "Ask across your workspace and organization.",
+  badge,
   placeholder = "Message Lemma Assistant",
   emptyState,
   emptyStateSuggestions,
@@ -1443,8 +1779,8 @@ export function AssistantExperienceView({
   showConversationList = false,
   chromeStyle = "subtle",
   statusPlacement = "inline",
-  radius = "md",
-  showModelPicker = true,
+  radius = "sm",
+  showModelPicker = false,
   showNewConversationButton = true,
   onNavigateResource,
   renderConversationLabel = defaultConversationLabel,
@@ -1462,6 +1798,8 @@ export function AssistantExperienceView({
     answers: string[][];
   } | null>(null);
   const [isUpdatingModel, setIsUpdatingModel] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [thinkingLabelIndex, setThinkingLabelIndex] = useState(0);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1493,7 +1831,7 @@ export function AssistantExperienceView({
     const minHeight = 48;
     const maxHeight = 220;
 
-    textarea.style.height = "0px";
+    textarea.style.height = "auto";
     const nextHeight = Math.min(maxHeight, Math.max(minHeight, textarea.scrollHeight));
     textarea.style.height = `${nextHeight}px`;
     textarea.style.overflowY = textarea.scrollHeight > maxHeight ? "auto" : "hidden";
@@ -1507,6 +1845,7 @@ export function AssistantExperienceView({
         behavior,
       });
       isPinnedToBottomRef.current = true;
+      setShowScrollToBottom(false);
       return;
     }
 
@@ -1517,13 +1856,16 @@ export function AssistantExperienceView({
       behavior,
     });
     isPinnedToBottomRef.current = true;
+    setShowScrollToBottom(false);
   }, []);
 
   const updatePinnedState = useCallback(() => {
     const el = messagesContainerRef.current;
     if (!el) return;
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    isPinnedToBottomRef.current = distanceFromBottom <= 112;
+    const isPinned = distanceFromBottom <= 112;
+    isPinnedToBottomRef.current = isPinned;
+    setShowScrollToBottom((prev) => (prev === !isPinned ? prev : !isPinned));
 
     if (el.scrollTop > 48) return;
     if (!controller.hasOlderMessages || controller.isLoadingMessages || controller.isLoadingOlderMessages || loadingOlderFromScrollRef.current) return;
@@ -1563,8 +1905,10 @@ export function AssistantExperienceView({
 
   useEffect(() => {
     isPinnedToBottomRef.current = true;
+    setShowScrollToBottom(false);
     requestAnimationFrame(() => {
       scrollToLatest("auto");
+      inputRef.current?.focus();
     });
   }, [controller.activeConversationId, scrollToLatest]);
 
@@ -1574,6 +1918,10 @@ export function AssistantExperienceView({
 
   const displayMessageRows = useMemo(() => buildDisplayMessageRows(controller.messages), [controller.messages]);
   const activeToolBanner = useMemo(() => getActiveToolBanner(controller.messages), [controller.messages]);
+  const thinkingLabels = useMemo(
+    () => thinkingLabelsFromSummary(activeToolBanner?.summary),
+    [activeToolBanner?.summary],
+  );
   const planSummary = useMemo(() => latestPlanSummary(controller.messages), [controller.messages]);
   const pendingAskUserInput = useMemo(() => {
     const pending = findPendingAskUserInput(controller.messages);
@@ -1601,6 +1949,20 @@ export function AssistantExperienceView({
     const hasTools = (lastMsg.toolInvocations?.length || 0) > 0 || (lastMsg.parts || []).some((part) => part.type === "tool");
     return hasText || hasTools;
   }, [controller.messages]);
+
+  useEffect(() => {
+    setThinkingLabelIndex(0);
+  }, [activeToolBanner?.summary, isConversationBusy]);
+
+  useEffect(() => {
+    if (!isConversationBusy || thinkingLabels.length < 2) return;
+
+    const interval = window.setInterval(() => {
+      setThinkingLabelIndex((prev) => (prev + 1) % thinkingLabels.length);
+    }, 1700);
+
+    return () => clearInterval(interval);
+  }, [isConversationBusy, thinkingLabels]);
 
   const dismissAskOverlay = useCallback((toolCallId: string) => {
     setDismissedAskToolCallIds((prev) => (prev.includes(toolCallId) ? prev : [...prev, toolCallId]));
@@ -1698,6 +2060,13 @@ export function AssistantExperienceView({
     await controller.sendMessage(message);
   }, [controller, isConversationBusy, scrollToLatest, setDraft]);
 
+  const handleSuggestionSend = useCallback(async (suggestion: string) => {
+    const message = suggestion.trim();
+    if (!message || isConversationBusy) return;
+    scrollToLatest("smooth");
+    await controller.sendMessage(message);
+  }, [controller, isConversationBusy, scrollToLatest]);
+
   const handleUploadSelection = useCallback(async (files: FileList | null) => {
     const selectedFiles = files ? Array.from(files) : [];
     if (selectedFiles.length === 0) return;
@@ -1740,11 +2109,14 @@ export function AssistantExperienceView({
     ? effectiveAskOverlayState.answers[effectiveAskOverlayState.currentQuestionIndex] || []
     : [];
   const canContinueAsk = activeAskAnswers.length > 0;
-  const liveStatusLabel = activeToolBanner?.summary || "Thinking through this...";
+  const liveStatusLabel = thinkingLabels[thinkingLabelIndex] || "Working on it…";
   const headerTone: AssistantSurfaceTone = chromeStyle === "elevated" ? "default" : chromeStyle === "flat" ? "flat" : "subtle";
   const composerTone: AssistantSurfaceTone = chromeStyle === "flat" ? "flat" : chromeStyle === "subtle" ? "subtle" : "default";
   const showInlineStatus = statusPlacement === "inline" && isConversationBusy;
   const showComposerStatus = statusPlacement === "composer" && isConversationBusy;
+  const resolvedHeaderBadge = badge === undefined
+    ? <LemmaMarkIcon className="lemma-assistant-experience-header-badge-icon" />
+    : badge;
 
   return (
     <div
@@ -1812,7 +2184,7 @@ export function AssistantExperienceView({
             tone={headerTone}
             title={title}
             subtitle={subtitle}
-            badge={<span className="lemma-assistant-experience-header-badge-icon">✨</span>}
+            badge={resolvedHeaderBadge}
             controls={showModelPicker || showNewConversationButton ? (
               <>
                 {showModelPicker ? (
@@ -1845,10 +2217,11 @@ export function AssistantExperienceView({
             ref={messagesContainerRef}
             onScroll={updatePinnedState}
           >
+            <div className="lemma-assistant-experience-live-region" aria-live="polite" aria-atomic="false">
             {controller.messages.length === 0 && !isConversationBusy ? (
               emptyState || (
                 <EmptyState
-                  onSendMessage={(message) => { void controller.sendMessage(message); }}
+                  onSendMessage={(message) => { void handleSuggestionSend(message); }}
                   suggestions={emptyStateSuggestions}
                 />
               )
@@ -1912,10 +2285,23 @@ export function AssistantExperienceView({
                 </div>
               </div>
             ) : null}
+
+            {showScrollToBottom ? (
+              <button
+                type="button"
+                onClick={() => scrollToLatest("smooth")}
+                className="lemma-assistant-scroll-to-bottom"
+                aria-label="Scroll to latest messages"
+                title="Scroll to latest messages"
+              >
+                ↓
+              </button>
+            ) : null}
             {(controller.messages.length > 0 || isConversationBusy || !!controller.error) ? (
               <div aria-hidden="true" className="lemma-assistant-experience-bottom-spacer" />
             ) : null}
             <div ref={bottomAnchorRef} aria-hidden="true" className="lemma-assistant-experience-bottom-anchor" />
+            </div>
           </AssistantMessageViewport>
         </div>
 
@@ -2007,6 +2393,7 @@ export function AssistantExperienceView({
                     disabled={!isConversationBusy && !draft.trim()}
                     className="lemma-assistant-experience-send"
                     data-state={isConversationBusy ? "busy" : draft.trim() ? "ready" : "idle"}
+                    aria-label={isConversationBusy ? "Stop generating" : "Send message"}
                     title={isConversationBusy ? "Stop generating" : "Send message"}
                   >
                     {isConversationBusy ? "■" : "→"}

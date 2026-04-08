@@ -5,6 +5,7 @@ type RuntimeConversationMessage = ConversationMessage & { conversation_id?: stri
 
 export interface UseAssistantRuntimeOptions {
   conversationId?: string | null;
+  sessionConversationId?: string | null;
   sessionMessages?: ConversationMessage[];
 }
 
@@ -120,6 +121,7 @@ function buildOptimisticId(): string {
 
 export function useAssistantRuntime({
   conversationId = null,
+  sessionConversationId = null,
   sessionMessages = [],
 }: UseAssistantRuntimeOptions): UseAssistantRuntimeResult {
   const [runtimeMessages, setRuntimeMessages] = useState<RuntimeConversationMessage[]>([]);
@@ -195,13 +197,18 @@ export function useAssistantRuntime({
   useEffect(() => {
     if (sessionMessages.length === 0) return;
 
+    // Session message state can lag one render behind active conversation
+    // updates. Prefer the session's own conversation id as fallback so we
+    // never relabel stale messages into the newly selected thread.
+    const fallbackConversationId = sessionConversationId ?? conversationId;
+
     const normalized = sessionMessages
-      .map((message) => toRuntimeMessage(message, conversationId))
+      .map((message) => toRuntimeMessage(message, fallbackConversationId))
       .filter((message) => !conversationId || message.conversation_id === conversationId);
 
     if (normalized.length === 0) return;
     mergeMessages(normalized);
-  }, [conversationId, mergeMessages, sessionMessages]);
+  }, [conversationId, mergeMessages, sessionConversationId, sessionMessages]);
 
   return {
     runtimeMessages,
