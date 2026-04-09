@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ConvertedFileResponse } from '../models/ConvertedFileResponse.js';
 import type { CreateFolderRequest } from '../models/CreateFolderRequest.js';
 import type { DatastoreFileUploadRequest } from '../models/DatastoreFileUploadRequest.js';
 import type { DatastoreMessageResponse } from '../models/DatastoreMessageResponse.js';
@@ -71,7 +72,7 @@ export class FilesService {
         });
     }
     /**
-     * Delete File Or Folder. Deleting a folder will cleanup whole subtreee
+     * Delete File Or Folder
      * @param podId
      * @param path
      * @returns DatastoreMessageResponse Successful Response
@@ -139,6 +140,84 @@ export class FilesService {
             },
             formData: formData,
             mediaType: 'multipart/form-data',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Converted File Metadata
+     * @param podId
+     * @param path
+     * @returns ConvertedFileResponse Successful Response
+     * @throws ApiError
+     */
+    public static fileConvertedGet(
+        podId: string,
+        path: string,
+    ): CancelablePromise<ConvertedFileResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/datastore/files/converted/by-path',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'path': path,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Download Converted File Artifact
+     * @param podId
+     * @param path
+     * @param artifact
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static fileConvertedDownload(
+        podId: string,
+        path: string,
+        artifact: string = 'document.md',
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/datastore/files/converted/download',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'path': path,
+                'artifact': artifact,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Render Converted File As HTML
+     * @param podId
+     * @param path
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static fileConvertedRender(
+        podId: string,
+        path: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/datastore/files/converted/render',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'path': path,
+            },
             errors: {
                 422: `Validation Error`,
             },

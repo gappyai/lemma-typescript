@@ -1,8 +1,8 @@
 /**
  * Shared Lemma client instance for the todo app.
  *
- * - apiUrl points to /api which Vite proxies to https://localhost (SSL skip)
- * - authUrl points to the auth frontend
+ * - apiUrl points to the hosted API by default
+ * - authUrl points to the hosted auth frontend by default
  * - podId is the todolist pod we created via CLI
  *
  * For testing, set
@@ -17,8 +17,8 @@ let _client: LemmaClient | null = null;
 export function getClient(): LemmaClient {
   if (!_client) {
     _client = new LemmaClient({
-      apiUrl: import.meta.env.VITE_LEMMA_API_URL ?? "/api",
-      authUrl: import.meta.env.VITE_LEMMA_AUTH_URL ?? "http://localhost:4173",
+      apiUrl: import.meta.env.VITE_LEMMA_API_URL ?? "https://api.asur.work",
+      authUrl: import.meta.env.VITE_LEMMA_AUTH_URL ?? "https://auth.asur.work",
       podId: import.meta.env.VITE_LEMMA_POD_ID ?? "019d28b7-8730-7221-83f7-66437cd4bb5a",
     });
   }

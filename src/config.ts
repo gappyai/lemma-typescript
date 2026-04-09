@@ -1,7 +1,7 @@
 export interface LemmaConfig {
-  /** API base URL, e.g. https://api.lemma.work */
+  /** API base URL, e.g. https://api.asur.work */
   apiUrl: string;
-  /** Auth service URL, e.g. https://auth.lemma.work */
+  /** Auth service URL, e.g. https://auth.asur.work */
   authUrl: string;
   /** Pod ID to scope all pod-level API calls */
   podId?: string;
@@ -56,13 +56,13 @@ export function resolveConfig(overrides: Partial<LemmaConfig> = {}): LemmaConfig
     overrides.apiUrl ??
     win.apiUrl ??
     fromEnv("API_URL") ??
-    "http://localhost:8000";
+    "https://api.asur.work";
 
   const authUrl =
     overrides.authUrl ??
     win.authUrl ??
     fromEnv("AUTH_URL") ??
-    "http://localhost:3000";
+    "https://auth.asur.work";
 
   const podId =
     overrides.podId ??

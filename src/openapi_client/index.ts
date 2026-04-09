@@ -48,6 +48,8 @@ export type { ConversationMessageListResponse } from './models/ConversationMessa
 export type { ConversationMessageResponse } from './models/ConversationMessageResponse.js';
 export type { ConversationResponse } from './models/ConversationResponse.js';
 export { ConversationStatus } from './models/ConversationStatus.js';
+export type { ConvertedArtifactResponse } from './models/ConvertedArtifactResponse.js';
+export type { ConvertedFileResponse } from './models/ConvertedFileResponse.js';
 export type { CreateAgentRequest } from './models/CreateAgentRequest.js';
 export type { CreateAssistantRequest } from './models/CreateAssistantRequest.js';
 export type { CreateConversationRequest } from './models/CreateConversationRequest.js';

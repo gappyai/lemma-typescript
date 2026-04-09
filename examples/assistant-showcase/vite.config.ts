@@ -16,9 +16,9 @@ export default defineConfig({
     port: 5174,
     proxy: {
       "/api": {
-        target: "https://localhost",
+        target: "https://api.asur.work",
         changeOrigin: true,
-        secure: false,
+        secure: true,
         rewrite: (incomingPath) => incomingPath.replace(/^\/api/, ""),
       },
     },

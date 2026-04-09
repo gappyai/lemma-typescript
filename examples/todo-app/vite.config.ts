@@ -14,11 +14,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      // Proxy all /api calls to the Lemma backend, bypass self-signed cert
+      // Optional proxy for local /api development.
       "/api": {
-        target: "https://localhost",
+        target: "https://api.asur.work",
         changeOrigin: true,
-        secure: false,
+        secure: true,
         rewrite: (p) => p.replace(/^\/api/, ""),
       },
     },

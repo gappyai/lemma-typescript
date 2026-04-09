@@ -10,8 +10,8 @@ export interface ShowcaseConfig {
 
 export function getShowcaseConfig(): ShowcaseConfig {
   return {
-    apiUrl: import.meta.env.VITE_LEMMA_API_URL ?? "/api",
-    authUrl: import.meta.env.VITE_LEMMA_AUTH_URL ?? "http://localhost:4173",
+    apiUrl: import.meta.env.VITE_LEMMA_API_URL ?? "https://api.asur.work",
+    authUrl: import.meta.env.VITE_LEMMA_AUTH_URL ?? "https://auth.asur.work",
     podId: import.meta.env.VITE_LEMMA_POD_ID ?? "",
     assistantName: import.meta.env.VITE_LEMMA_ASSISTANT_NAME ?? "",
     organizationId: import.meta.env.VITE_LEMMA_ORGANIZATION_ID ?? "",

@@ -23,6 +23,7 @@ export type FlowRunEntity = {
     trigger_type?: string;
     updated_at?: string;
     user_id: string;
+    waiting_function_run_id?: (string | null);
     waiting_task_id?: (string | null);
     waiting_trigger_id?: (string | null);
 };

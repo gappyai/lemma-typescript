@@ -1,16 +1,49 @@
-# Lemma TypeScript SDK (`lemma-sdk`)
+# Lemma TypeScript SDK
 
-Official TypeScript SDK for Lemma APIs with:
+`lemma-sdk` is the standalone TypeScript SDK for Lemma.
 
-- Pod-scoped namespaces (`tables`, `records`, `files`, `assistants`,`agents` , `workflows`, `tasks`, .)
-- Built-in auth/session handling
-- SSE streaming helpers
-- React hooks and assistant UI components
+It includes:
+
+- a typed `LemmaClient`
+- generated OpenAPI bindings in `src/openapi_client`
+- auth helpers and SSE utilities
+- React hooks and assistant UI components under `lemma-sdk/react`
+- a browser bundle export at `lemma-sdk/browser-bundle`
+
+## Defaults
+
+By default, the SDK targets the hosted services:
+
+- API base URL: `https://api.asur.work`
+- Auth URL: `https://auth.asur.work`
+
+You can override them with constructor config, `window.__LEMMA_CONFIG__`, or environment variables.
 
 ## Install
 
 ```bash
-npm i lemma-sdk
+npm install lemma-sdk
+```
+
+## Local Development
+
+From the root of this repository:
+
+```bash
+npm install
+npm run build
+```
+
+To test the package from a local checkout in another project:
+
+```bash
+npm install /absolute/path/to/lemma-typescript
+```
+
+To install directly from the repo:
+
+```bash
+npm install github:gappyai/lemma-typescript
 ```
 
 ## Quick Start
@@ -19,8 +52,6 @@ npm i lemma-sdk
 import { LemmaClient } from "lemma-sdk";
 
 const client = new LemmaClient({
-  apiUrl: "https://api.lemma.work",
-  authUrl: "https://auth.lemma.work/auth",
   podId: "<pod-id>",
 });
 
@@ -28,39 +59,56 @@ await client.initialize();
 
 const tables = await client.tables.list();
 const assistants = await client.assistants.list({ limit: 20 });
-const supportAssistant = await client.assistants.get("support_assistant");
 ```
+
+You only need to pass `apiUrl` or `authUrl` when you want to override the hosted defaults.
 
 ## Configuration
 
-`LemmaClient` config resolution order:
+Resolution order:
 
 1. Constructor overrides
 2. `window.__LEMMA_CONFIG__`
 3. Environment variables
-4. Defaults
+4. Hosted defaults
 
 Supported env keys:
 
-- `VITE_LEMMA_API_URL`, `REACT_APP_LEMMA_API_URL`, `LEMMA_API_URL`
-- `VITE_LEMMA_AUTH_URL`, `REACT_APP_LEMMA_AUTH_URL`, `LEMMA_AUTH_URL`
-- `VITE_LEMMA_POD_ID`, `REACT_APP_LEMMA_POD_ID`, `LEMMA_POD_ID`
+- `VITE_LEMMA_API_URL`
+- `REACT_APP_LEMMA_API_URL`
+- `LEMMA_API_URL`
+- `VITE_LEMMA_AUTH_URL`
+- `REACT_APP_LEMMA_AUTH_URL`
+- `LEMMA_AUTH_URL`
+- `VITE_LEMMA_POD_ID`
+- `REACT_APP_LEMMA_POD_ID`
+- `LEMMA_POD_ID`
 
-Defaults when unset:
+Hosted defaults:
 
-- `apiUrl`: `http://localhost:8000`
-- `authUrl`: `http://localhost:3000`
+- `apiUrl`: `https://api.asur.work`
+- `authUrl`: `https://auth.asur.work`
 
-## Pod Scoping
+Local override example:
 
-Most namespaces are pod-scoped. You can set pod scope in three ways:
+```ts
+const client = new LemmaClient({
+  apiUrl: "http://127.0.0.1:8000",
+  authUrl: "http://localhost:4173",
+  podId: "<pod-id>",
+});
+```
+
+## Common Usage
 
 ```ts
 client.setPodId("pod_a");
 
 const podBClient = client.withPod("pod_b");
 
-const conversations = await client.conversations.list({ pod_id: "pod_c" });
+const tables = await client.tables.list();
+const records = await client.records.list("todos");
+const files = await client.files.list({ directoryPath: "/" });
 ```
 
 ## Namespace Overview
@@ -95,48 +143,15 @@ Escape hatch for unmapped endpoints:
 const result = await client.request("GET", "/models");
 ```
 
-## CRUD Examples
-
-### Tables + Records
+Example assistant flow:
 
 ```ts
-await client.tables.create({ name: "todos" });
-
-await client.records.create("todos", {
-  title: "Ship docs rewrite",
-  status: "todo",
-});
-
-const page = await client.records.list("todos", {
-  limit: 20,
-  sort: [{ field: "created_at", direction: "desc" }],
-});
-```
-
-### Files (Datastore)
-
-```ts
-await client.files.folder.create("reports", { directoryPath: "/" });
-await client.files.upload(fileBlob, { directoryPath: "/reports", name: "q1.pdf" });
-
-const listing = await client.files.list({ directoryPath: "/reports" });
-const downloaded = await client.files.download("/reports/q1.pdf");
-```
-
-### Assistants + Conversations
-
-```ts
-await client.assistants.create({
-  name: "support_assistant",
-  instruction: "Help with support triage.",
-});
-
 const conversation = await client.conversations.createForAssistant("support_assistant", {
-  title: "Ticket review",
+  title: "Support thread",
 });
 
 await client.conversations.messages.send(conversation.id, {
-  content: "Summarize unresolved issues from today.",
+  content: "Summarize unresolved issues.",
 });
 ```
 
@@ -162,12 +177,10 @@ await client.podJoinRequests.approve("pod_123", "join_req_abc", {
 });
 ```
 
-## Streaming (SSE)
-
-Use `readSSE` + `parseSSEJson` for incremental events.
+## Streaming
 
 ```ts
-import { readSSE, parseSSEJson } from "lemma-sdk";
+import { parseSSEJson, readSSE } from "lemma-sdk";
 
 const stream = await client.conversations.sendMessageStream(conversationId, {
   content: "Analyze recent incidents",
@@ -180,20 +193,108 @@ for await (const event of readSSE(stream)) {
 }
 ```
 
-Task stream example:
+## Auth
+
+The SDK uses session/cookie auth by default.
+
+For local browser testing, token injection helpers are available:
 
 ```ts
-const task = await client.tasks.create({
-  agent_name: "triage_agent",
-  input_data: { ticketId: "TCK-1042" },
-});
+import { clearTestingToken, setTestingToken } from "lemma-sdk";
 
-const taskStream = await client.tasks.stream(task.id);
+setTestingToken("<access-token>");
+clearTestingToken();
 ```
 
-## Access Grants (`accessible_tables`)
+Useful helpers:
 
-When creating agents/functions/assistants, `accessible_tables` must use object entries:
+- `buildAuthUrl(...)`
+- `buildFederatedLogoutUrl(...)`
+- `resolveSafeRedirectUri(...)`
+- `client.auth.redirectToAuth(...)`
+- `client.auth.redirectToFederatedLogout(...)`
+
+## React Package
+
+React utilities are available from `lemma-sdk/react`.
+
+Install React in your app if needed:
+
+```bash
+npm install react react-dom
+```
+
+Import the stylesheet once:
+
+```tsx
+import "lemma-sdk/react/styles.css";
+```
+
+Minimal assistant embed:
+
+```tsx
+import { AssistantEmbedded } from "lemma-sdk/react";
+
+<AssistantEmbedded
+  client={client}
+  podId="<pod-id>"
+  assistantName="support_assistant"
+  title="Support Assistant"
+  placeholder="Message Support Assistant"
+  showConversationList
+/>;
+```
+
+## Browser Bundle
+
+The package also ships a browser bundle:
+
+- export path: `lemma-sdk/browser-bundle`
+- bundled file: `dist/browser/lemma-client.js`
+- global: `window.LemmaClient.LemmaClient`
+
+## Regenerate the OpenAPI Client
+
+Regenerate the typed client from the hosted API:
+
+```bash
+bash scripts/generate_openapi_client.sh
+```
+
+The generator defaults to:
+
+```text
+https://api.asur.work/openapi.json
+```
+
+For local backend generation, override the URL:
+
+```bash
+LEMMA_API_URL=http://127.0.0.1:8000 bash scripts/generate_openapi_client.sh
+```
+
+Or:
+
+```bash
+OPENAPI_URL=http://127.0.0.1:8000/openapi.json OPENAPI_INSECURE=1 bash scripts/generate_openapi_client.sh
+```
+
+Supported generator env vars:
+
+- `LEMMA_API_URL`
+- `OPENAPI_URL`
+- `OPENAPI_INSECURE`
+- `LEMMA_SSL_NO_VERIFY`
+
+## Build
+
+```bash
+npm run build
+```
+
+## Payload Note: `accessible_tables`
+
+When creating agents, assistants, or functions, `accessible_tables` must contain object entries:
 
 ```ts
 import { TableAccessMode } from "lemma-sdk";
@@ -204,6 +305,7 @@ accessible_tables: [
 ];
 ```
 
+<<<<<<< HEAD
 `["expenses"]` is not valid.
 
 ## Auth
@@ -292,3 +394,6 @@ Example:
   });
 </script>
 ```
+=======
+Plain string arrays like `["expenses"]` are not valid.
+>>>>>>> 78c8809 (update sdk)
