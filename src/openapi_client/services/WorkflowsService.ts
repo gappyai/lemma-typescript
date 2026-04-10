@@ -283,7 +283,7 @@ export class WorkflowsService {
     }
     /**
      * Install Workflow
-     * Install a workflow for runtime execution. Provide `account_id` when the workflow needs an integration account binding.
+     * Install a workflow for runtime execution. Provide `account_id` when the workflow needs an integration account binding, and provide `schedule` when installing a scheduled workflow.
      * @param podId
      * @param workflowName
      * @param requestBody

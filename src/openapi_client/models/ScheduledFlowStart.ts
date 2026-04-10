@@ -2,14 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { ScheduledFlowStartType } from './ScheduledFlowStartType.js';
 export type ScheduledFlowStart = {
     /**
-     * Cron expression controlling run schedule.
+     * Time trigger mode for this workflow definition. Concrete schedule values are provided during installation.
      */
-    cron_expression: string;
-    /**
-     * IANA timezone used when evaluating `cron_expression`.
-     */
-    timezone?: string;
+    schedule_type: ScheduledFlowStartType;
 };
 

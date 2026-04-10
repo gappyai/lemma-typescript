@@ -173,6 +173,7 @@ export type { RecordResponse } from './models/RecordResponse.js';
 export type { ResourceFileListResponse } from './models/ResourceFileListResponse.js';
 export { ResourceType } from './models/ResourceType.js';
 export type { ScheduledFlowStart } from './models/ScheduledFlowStart.js';
+export { ScheduledFlowStartType } from './models/ScheduledFlowStartType.js';
 export { SearchMethod } from './models/SearchMethod.js';
 export type { SearchResult } from './models/SearchResult.js';
 export type { SeatInfoResponse } from './models/SeatInfoResponse.js';
@@ -235,6 +236,7 @@ export { WorkflowInstallMode } from './models/WorkflowInstallMode.js';
 export type { WorkflowInstallRequest } from './models/WorkflowInstallRequest.js';
 export type { WorkflowListResponse } from './models/WorkflowListResponse.js';
 export type { WorkflowRunListResponse } from './models/WorkflowRunListResponse.js';
+export type { WorkflowTimeInstallConfig } from './models/WorkflowTimeInstallConfig.js';
 export type { WorkflowUpdateRequest } from './models/WorkflowUpdateRequest.js';
 
 export { AgentFilesService } from './services/AgentFilesService.js';

@@ -5,7 +5,9 @@
 import type { FileVisibility } from './FileVisibility.js';
 export type CreateFolderRequest = {
     description?: (string | null);
-    path: string;
+    name?: (string | null);
+    parent_id?: (string | null);
+    path?: (string | null);
     /**
      * Optional visibility override for the new folder.
      */
