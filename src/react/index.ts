@@ -15,6 +15,13 @@ export type {
 } from "./useConversationMessages.js";
 export { useAgentRun } from "./useAgentRun.js";
 export type { UseAgentRunOptions, UseAgentRunResult } from "./useAgentRun.js";
+export { useAgentRuns } from "./useAgentRuns.js";
+export type { UseAgentRunsOptions, UseAgentRunsResult } from "./useAgentRuns.js";
+export { useAgentInputSchema } from "./useAgentInputSchema.js";
+export type {
+  UseAgentInputSchemaOptions,
+  UseAgentInputSchemaResult,
+} from "./useAgentInputSchema.js";
 export { useAssistantSession } from "./useAssistantSession.js";
 export type {
   CreateConversationInput,
@@ -29,6 +36,19 @@ export type {
 } from "./useAssistantRuntime.js";
 export { useMembers } from "./useMembers.js";
 export type { UseMembersOptions, UseMembersResult } from "./useMembers.js";
+export { useOrganizationMembers } from "./useOrganizationMembers.js";
+export type {
+  UseOrganizationMembersOptions,
+  UseOrganizationMembersResult,
+} from "./useOrganizationMembers.js";
+export { useCurrentUser } from "./useCurrentUser.js";
+export type { UseCurrentUserOptions, UseCurrentUserResult } from "./useCurrentUser.js";
+export { usePodAccess } from "./usePodAccess.js";
+export type {
+  PodAccessStatus,
+  UsePodAccessOptions,
+  UsePodAccessResult,
+} from "./usePodAccess.js";
 export { useTables } from "./useTables.js";
 export type { UseTablesOptions, UseTablesResult } from "./useTables.js";
 export { useTable } from "./useTable.js";
@@ -96,6 +116,10 @@ export type {
   UseFunctionSessionOptions,
   UseFunctionSessionResult,
 } from "./useFunctionSession.js";
+export { useFunctionRun } from "./useFunctionRun.js";
+export type { UseFunctionRunOptions, UseFunctionRunResult } from "./useFunctionRun.js";
+export { useFunctionRuns } from "./useFunctionRuns.js";
+export type { UseFunctionRunsOptions, UseFunctionRunsResult } from "./useFunctionRuns.js";
 export { useFlowSession } from "./useFlowSession.js";
 export type {
   UseFlowSessionOptions,
@@ -106,6 +130,15 @@ export type {
   UseWorkflowStartOptions,
   UseWorkflowStartResult,
 } from "./useWorkflowStart.js";
+export { useWorkflowRun } from "./useWorkflowRun.js";
+export type { UseWorkflowRunOptions, UseWorkflowRunResult } from "./useWorkflowRun.js";
+export { useWorkflowRuns } from "./useWorkflowRuns.js";
+export type { UseWorkflowRunsOptions, UseWorkflowRunsResult } from "./useWorkflowRuns.js";
+export { useWorkflowResume } from "./useWorkflowResume.js";
+export type {
+  UseWorkflowResumeOptions,
+  UseWorkflowResumeResult,
+} from "./useWorkflowResume.js";
 export { useFlowRunHistory } from "./useFlowRunHistory.js";
 export type {
   UseFlowRunHistoryOptions,

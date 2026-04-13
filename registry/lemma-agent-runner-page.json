@@ -1,0 +1,36 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-agent-runner-page",
+  "type": "registry:block",
+  "title": "Lemma Agent Runner Page",
+  "description": "A complete agent runner page with agent selection, schema input, output, and messages.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card", "checkbox", "input", "label", "select", "textarea"],
+  "files": [
+    {
+      "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-schema-form.tsx"
+    },
+    {
+      "path": "registry/default/lemma-agent-output-card/components/lemma-agent-output-card.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-agent-output-card.tsx"
+    },
+    {
+      "path": "registry/default/lemma-agent-messages/components/lemma-agent-messages.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-agent-messages.tsx"
+    },
+    {
+      "path": "registry/default/lemma-agent-run-panel/components/lemma-agent-run-panel.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-agent-run-panel.tsx"
+    },
+    {
+      "path": "registry/default/lemma-agent-runner-page/components/lemma-agent-runner-page.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-agent-runner-page.tsx"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import type { LemmaClient } from "lemma-sdk"
+import type { FlowRun, LemmaClient } from "lemma-sdk"
 import { useWorkflowStart } from "lemma-sdk/react"
 import { Button } from "@/components/ui/button"
 import {
@@ -21,7 +21,7 @@ export interface LemmaWorkflowStartFormProps {
   description?: string
   submitLabel?: string
   initialValues?: Record<string, unknown>
-  onStarted?: (run: Record<string, unknown>) => void
+  onStarted?: (run: FlowRun) => void
 }
 
 export function LemmaWorkflowStartForm({
@@ -44,7 +44,7 @@ export function LemmaWorkflowStartForm({
 
   const handleStart = React.useCallback(async (data: Record<string, unknown>) => {
     const run = await workflow.start(data)
-    onStarted?.((run ?? {}) as Record<string, unknown>)
+    onStarted?.(run)
   }, [onStarted, workflow])
 
   if (!hasWorkflowName) {
@@ -86,7 +86,7 @@ export function LemmaWorkflowStartForm({
             disabled={workflow.isStarting}
             onClick={() => {
               void workflow.start(initialValues ?? {}).then((run) => {
-                onStarted?.((run ?? {}) as Record<string, unknown>)
+                onStarted?.(run)
               })
             }}
             type="button"

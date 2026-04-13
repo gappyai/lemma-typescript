@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-agent-messages",
+  "type": "registry:component",
+  "title": "Lemma Agent Messages",
+  "description": "A task message inspector powered by useAgentRun.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card"],
+  "files": [
+    {
+      "path": "registry/default/lemma-agent-messages/components/lemma-agent-messages.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-agent-messages.tsx"
+    }
+  ]
+}

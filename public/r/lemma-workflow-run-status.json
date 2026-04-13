@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-workflow-run-status",
+  "title": "Lemma Workflow Run Status",
+  "description": "A workflow run status card for current node and waiting state.",
+  "dependencies": [
+    "lemma-sdk"
+  ],
+  "registryDependencies": [
+    "card"
+  ],
+  "files": [
+    {
+      "path": "registry/default/lemma-workflow-run-status/components/lemma-workflow-run-status.tsx",
+      "content": "\"use client\"\n\nimport type { FlowRun } from \"lemma-sdk\"\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\"\n\nexport interface LemmaWorkflowRunStatusProps {\n  run?: FlowRun | null\n  title?: string\n  description?: string\n}\n\nexport function LemmaWorkflowRunStatus({\n  run,\n  title = \"Workflow Run Status\",\n  description = \"Current state for the selected workflow run.\",\n}: LemmaWorkflowRunStatusProps) {\n  const waitingOn = run?.waiting_task_id\n    ? `Task ${run.waiting_task_id}`\n    : run?.waiting_function_run_id\n      ? `Function run ${run.waiting_function_run_id}`\n      : run?.waiting_trigger_id\n        ? `Trigger ${run.waiting_trigger_id}`\n        : null\n\n  return (\n    <Card>\n      <CardHeader>\n        <CardTitle>{title}</CardTitle>\n        <CardDescription>{description}</CardDescription>\n      </CardHeader>\n      <CardContent className=\"grid gap-3 sm:grid-cols-2\">\n        <div className=\"rounded-md border border-border bg-muted/30 p-3 text-sm\">\n          <div className=\"text-muted-foreground\">Status</div>\n          <div className=\"font-medium\">{run?.status ?? \"idle\"}</div>\n        </div>\n        <div className=\"rounded-md border border-border bg-muted/30 p-3 text-sm\">\n          <div className=\"text-muted-foreground\">Run ID</div>\n          <div className=\"truncate font-medium\">{run?.id ?? \"none\"}</div>\n        </div>\n        <div className=\"rounded-md border border-border bg-muted/30 p-3 text-sm\">\n          <div className=\"text-muted-foreground\">Current node</div>\n          <div className=\"truncate font-medium\">{run?.current_node_id ?? \"none\"}</div>\n        </div>\n        <div className=\"rounded-md border border-border bg-muted/30 p-3 text-sm\">\n          <div className=\"text-muted-foreground\">Waiting on</div>\n          <div className=\"truncate font-medium\">{waitingOn ?? \"nothing\"}</div>\n        </div>\n      </CardContent>\n    </Card>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-workflow-run-status.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

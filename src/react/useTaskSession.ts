@@ -47,6 +47,11 @@ function resolvePodId(client: LemmaClient, podId?: string): string {
   return resolved;
 }
 
+function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
+  if (!podId || podId === client.podId) return client;
+  return client.withPod(podId);
+}
+
 function normalizeError(error: unknown, fallback: string): Error {
   if (error instanceof Error) return error;
   return new Error(fallback);
@@ -158,8 +163,8 @@ export function useTaskSession({
     if (!id) return null;
 
     try {
-      client.setPodId(resolvePodId(client, podId));
-      const nextTask = await client.tasks.get(id);
+      const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
+      const nextTask = await scopedClient.tasks.get(id);
       setTask(nextTask);
       setTaskStatus(nextTask.status);
       return nextTask;
@@ -176,8 +181,8 @@ export function useTaskSession({
     if (!id) return [];
 
     try {
-      client.setPodId(resolvePodId(client, podId));
-      const response = await client.tasks.messages.list(id, { limit: 100 });
+      const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
+      const response = await scopedClient.tasks.messages.list(id, { limit: 100 });
       const nextMessages = response.items ?? [];
       setMessages(nextMessages);
       return nextMessages;
@@ -212,8 +217,8 @@ export function useTaskSession({
         }
 
         try {
-          client.setPodId(resolvePodId(client, podId));
-          const stream = await client.tasks.stream(id, { signal: controller.signal });
+          const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
+          const stream = await scopedClient.tasks.stream(id, { signal: controller.signal });
           reconnectDelayMs = 1000;
 
           for await (const event of readSSE(stream)) {
@@ -282,8 +287,8 @@ export function useTaskSession({
   const start = useCallback(async (input: CreateTaskInput): Promise<Task> => {
     setError(null);
 
-    client.setPodId(resolvePodId(client, podId));
-    const created = await client.tasks.create({
+    const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
+    const created = await scopedClient.tasks.create({
       agent_name: input.agentName,
       input_data: input.inputData,
     });
@@ -306,8 +311,8 @@ export function useTaskSession({
     if (!id) return null;
 
     try {
-      client.setPodId(resolvePodId(client, podId));
-      const stopped = await client.tasks.stop(id);
+      const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
+      const stopped = await scopedClient.tasks.stop(id);
       setTask(stopped);
       setTaskStatus(stopped.status);
       return stopped;

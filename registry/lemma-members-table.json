@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-members-table",
+  "type": "registry:component",
+  "title": "Lemma Members Table",
+  "description": "A read-only pod members table powered by useMembers.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card"],
+  "files": [
+    {
+      "path": "registry/default/lemma-members-table/components/lemma-members-table.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-members-table.tsx"
+    }
+  ]
+}

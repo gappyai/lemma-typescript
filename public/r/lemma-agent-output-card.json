@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-agent-output-card",
+  "title": "Lemma Agent Output Card",
+  "description": "A compact agent task output card for status, task ID, and structured output.",
+  "dependencies": [
+    "lemma-sdk"
+  ],
+  "registryDependencies": [
+    "card"
+  ],
+  "files": [
+    {
+      "path": "registry/default/lemma-agent-output-card/components/lemma-agent-output-card.tsx",
+      "content": "\"use client\"\n\nimport type { Task } from \"lemma-sdk\"\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\"\n\nexport interface LemmaAgentOutputCardProps {\n  task?: Task | null\n  output?: unknown\n  finalOnly?: boolean\n  title?: string\n  description?: string\n  emptyText?: string\n}\n\nfunction formatJson(value: unknown): string {\n  if (value === null || typeof value === \"undefined\") return \"\"\n  if (typeof value === \"string\") return value\n  try {\n    return JSON.stringify(value, null, 2)\n  } catch {\n    return String(value)\n  }\n}\n\nexport function LemmaAgentOutputCard({\n  task,\n  output,\n  finalOnly = false,\n  title = \"Agent Output\",\n  description = \"Inspect the latest structured output from the selected task.\",\n  emptyText = \"Run an agent to inspect output here.\",\n}: LemmaAgentOutputCardProps) {\n  const isFinal = task?.status === \"COMPLETED\" || task?.status === \"FAILED\" || task?.status === \"CANCELLED\" || task?.status === \"STOPPED\"\n  const resolvedOutput = typeof output === \"undefined\" ? task?.output_data : output\n  const visibleOutput = finalOnly && !isFinal ? null : resolvedOutput\n\n  return (\n    <Card>\n      <CardHeader>\n        <CardTitle>{title}</CardTitle>\n        <CardDescription>{description}</CardDescription>\n      </CardHeader>\n      <CardContent className=\"grid gap-3\">\n        {task ? (\n          <div className=\"grid gap-2 rounded-md border border-border bg-muted/40 p-3 text-sm\">\n            <div className=\"font-medium\">Status: {task.status}</div>\n            <div className=\"truncate text-muted-foreground\">Task ID: {task.id}</div>\n          </div>\n        ) : null}\n        {visibleOutput ? (\n          <pre className=\"max-h-[420px] overflow-auto rounded-md border border-border bg-muted/40 p-3 text-sm leading-6\">\n            {formatJson(visibleOutput)}\n          </pre>\n        ) : (\n          <div className=\"rounded-md border border-dashed border-border bg-muted/30 px-3 py-6 text-sm text-muted-foreground\">\n            {emptyText}\n          </div>\n        )}\n      </CardContent>\n    </Card>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-agent-output-card.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

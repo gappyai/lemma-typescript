@@ -1,24 +1,8 @@
 # Lemma TypeScript SDK
 
-`lemma-sdk` is the standalone TypeScript SDK for Lemma.
+`lemma-sdk` is the headless TypeScript SDK for Lemma. Use `lemma-sdk` for the core client, `lemma-sdk/react` for hooks and auth primitives, and the Lemma shadcn registry for stock UI blocks.
 
-It includes:
-
-- a typed `LemmaClient`
-- generated OpenAPI bindings in `src/openapi_client`
-- auth helpers and SSE utilities
-- headless React hooks and auth primitives under `lemma-sdk/react`
-- shadcn-style registry sources in `registry/*`
-- a browser bundle export at `lemma-sdk/browser-bundle`
-
-## Defaults
-
-By default, the SDK targets the hosted services:
-
-- API base URL: `https://api.asur.work`
-- Auth URL: `https://auth.asur.work`
-
-You can override them with constructor config, `window.__LEMMA_CONFIG__`, or environment variables.
+`AuthGuard` intentionally stays in `lemma-sdk/react`. Stock assistant, table, workflow, agent, member, and function UI lives in the registry.
 
 ## Install
 
@@ -26,29 +10,25 @@ You can override them with constructor config, `window.__LEMMA_CONFIG__`, or env
 npm install lemma-sdk
 ```
 
-## Local Development
-
-From the root of this repository:
+If your app uses shadcn/ui, configure the Lemma registry with:
 
 ```bash
-npm install
-npm run build
-npm run registry:build
+npx lemma-sdk init-shadcn
 ```
 
-To test the package from a local checkout in another project:
+That adds this namespace to your app's `components.json`:
 
-```bash
-npm install /absolute/path/to/lemma-typescript
+```json
+{
+  "registries": {
+    "@lemma": "https://cdn.jsdelivr.net/gh/gappyai/lemma-typescript@main/public/r/{name}.json"
+  }
+}
 ```
 
-To install directly from the repo:
+If your app does not have `components.json` yet, run `npx shadcn@latest init` first or after the command above.
 
-```bash
-npm install github:gappyai/lemma-typescript
-```
-
-## Quick Start
+## Core Client
 
 ```ts
 import { LemmaClient } from "lemma-sdk";
@@ -60,418 +40,295 @@ const client = new LemmaClient({
 await client.initialize();
 
 const tables = await client.tables.list();
-const assistants = await client.assistants.list({ limit: 20 });
+const records = await client.records.list("tickets");
 ```
 
-You only need to pass `apiUrl` or `authUrl` when you want to override the hosted defaults.
+Pod-scoped namespaces include `tables`, `records`, `assistants`, `agents`, `tasks`, `workflows`, `functions`, `files`, `desks`, `integrations`, `resources`, and `datastore`.
 
-## Configuration
+Org and user surfaces include `users`, `organizations`, `pods`, `podMembers`, `podJoinRequests`, and `podSurfaces`.
 
-Resolution order:
+## React Package
 
-1. Constructor overrides
-2. `window.__LEMMA_CONFIG__`
-3. Environment variables
-4. Hosted defaults
+Install React if your app needs hooks:
 
-Supported env keys:
-
-- `VITE_LEMMA_API_URL`
-- `REACT_APP_LEMMA_API_URL`
-- `LEMMA_API_URL`
-- `VITE_LEMMA_AUTH_URL`
-- `REACT_APP_LEMMA_AUTH_URL`
-- `LEMMA_AUTH_URL`
-- `VITE_LEMMA_POD_ID`
-- `REACT_APP_LEMMA_POD_ID`
-- `LEMMA_POD_ID`
-
-Hosted defaults:
-
-- `apiUrl`: `https://api.asur.work`
-- `authUrl`: `https://auth.asur.work`
-
-Local override example:
-
-```ts
-const client = new LemmaClient({
-  apiUrl: "http://127.0.0.1:8000",
-  authUrl: "http://localhost:4173",
-  podId: "<pod-id>",
-});
+```bash
+npm install react react-dom
 ```
 
-## Common Usage
+`lemma-sdk/react` is headless-first. It exports hooks plus `AuthGuard`; it does not export stock UI components or CSS.
 
-```ts
-client.setPodId("pod_a");
-
-const podBClient = client.withPod("pod_b");
-
-const tables = await client.tables.list();
-const records = await client.records.list("todos");
-const files = await client.files.list({ directoryPath: "/" });
+```tsx
+import {
+  AuthGuard,
+  useAgentRun,
+  useConversationMessages,
+  useConversations,
+  useRecords,
+  useSchemaForm,
+  useWorkflowStart,
+} from "lemma-sdk/react";
 ```
 
-## Namespace Overview
+### Hook Matrix
 
-Common pod-scoped namespaces:
+| Area | Hooks | Stability | Use when |
+| --- | --- | --- | --- |
+| Auth | `AuthGuard`, `useAuth`, `useCurrentUser`, `usePodAccess` | Stable | Gate an app, read signed-in user state, or request pod access. |
+| Tables | `useTables`, `useTable`, `useRecords`, `useRecord`, `useJoinedRecords`, `useRelatedRecords`, `useReverseRelatedRecords` | Stable | Build custom table browsers, details views, related-record views, and relational reads. |
+| Record mutations | `useCreateRecord`, `useUpdateRecord`, `useDeleteRecord`, `useBulkRecords` | Stable | Create, update, delete, or bulk-delete rows from headless UI. |
+| Record forms | `useRecordSchema`, `useRecordForm`, `useForeignKeyOptions`, `useSchemaForm` | Stable | Render schema-driven forms, enum fields, and foreign-key selectors. |
+| Assistant | `useConversations`, `useConversation`, `useConversationMessages`, `useAssistantRun`, `useAssistantSession`, `useAssistantRuntime`, `useAssistantController` | Stable except controller/runtime | Build custom chat, conversation lists, streaming output, and final-output views. |
+| Agents | `useAgentRun`, `useAgentRuns`, `useAgentInputSchema`, `useTaskSession` | Stable except raw session | Start agent tasks, submit follow-up input, read task history, and inspect input/output schemas. |
+| Workflows | `useWorkflowStart`, `useWorkflowRun`, `useWorkflowRuns`, `useWorkflowResume` | Stable | Start, poll, resume, cancel, retry, and inspect workflow runs. |
+| Workflow compatibility | `useFlowSession`, `useFlowRunHistory` | Deprecated naming | Kept for existing callers; prefer workflow-named hooks for new code. |
+| Functions | `useFunctionRun`, `useFunctionRuns`, `useFunctionSession` | Stable except raw session | Run functions, poll function runs, and list function history. |
+| Members and org | `useMembers`, `useOrganizationMembers` | Stable | Read pod and organization member lists. `useMembers` is intentionally read-only. |
 
-- `client.tables`
-- `client.records`
-- `client.files`
-- `client.functions`
-- `client.agents`
-- `client.tasks`
-- `client.assistants`
-- `client.workflows`
-- `client.desks`
-- `client.integrations`
-- `client.resources`
+### Common Hook Shapes
 
-Org/user-level namespaces:
+List hooks generally expose:
 
-- `client.users`
-- `client.icons`
-- `client.pods`
-- `client.podMembers`
-- `client.podJoinRequests`
-- `client.organizations`
-- `client.podSurfaces`
+- `items` named for the resource, such as `records`, `runs`, or `members`
+- `isLoading`
+- `error`
+- `nextPageToken`
+- `refresh(...)`
+- `loadMore(...)` where pagination is useful
 
-Escape hatch for unmapped endpoints:
+Run hooks generally expose:
 
-```ts
-const result = await client.request("GET", "/models");
-```
+- `run` or `task`
+- `status`
+- `isPolling`, `isStreaming`, or `isRunning`
+- `output`
+- `finalOutput`
+- `start(...)`
+- `refresh(...)`
+- follow-up helpers such as `resume(...)`, `submitInput(...)`, `cancel(...)`, or `retry(...)`
 
-Example assistant flow:
+### Headless Examples
 
-```ts
-const conversation = await client.conversations.createForAssistant("support_assistant", {
-  title: "Support thread",
-});
+Records:
 
-await client.conversations.messages.send(conversation.id, {
-  content: "Summarize unresolved issues.",
-});
-```
+```tsx
+import { LemmaClient } from "lemma-sdk";
+import { useRecords } from "lemma-sdk/react";
 
-### Pod Join Requests
+const client = new LemmaClient({ podId: "<pod-id>" });
 
-```ts
-// Current user requests access to a pod
-await client.podJoinRequests.create("pod_123");
+function TicketList() {
+  const tickets = useRecords({
+    client,
+    tableName: "tickets",
+    limit: 25,
+    sortBy: "created_at",
+    order: "desc",
+  });
 
-// Current user's pending request (or null)
-const mine = await client.podJoinRequests.me("pod_123");
+  if (tickets.error) return <p>{tickets.error.message}</p>;
 
-// Admin view of requests for a pod
-const requests = await client.podJoinRequests.list("pod_123", {
-  status: "PENDING",
-  limit: 50,
-});
-
-// Admin approval (defaults: ORG_MEMBER + POD_USER)
-await client.podJoinRequests.approve("pod_123", "join_req_abc", {
-  org_role: "ORG_MEMBER",
-  pod_role: "POD_USER",
-});
-```
-
-## Streaming
-
-```ts
-import { parseSSEJson, readSSE } from "lemma-sdk";
-
-const stream = await client.conversations.sendMessageStream(conversationId, {
-  content: "Analyze recent incidents",
-});
-
-for await (const event of readSSE(stream)) {
-  const payload = parseSSEJson(event);
-  if (!payload) continue;
-  console.log(event.event, payload);
+  return (
+    <ul>
+      {tickets.records.map((ticket) => (
+        <li key={String(ticket.id)}>{String(ticket.title ?? ticket.id)}</li>
+      ))}
+    </ul>
+  );
 }
+```
+
+Assistant final output:
+
+```tsx
+import { useConversationMessages, useConversations } from "lemma-sdk/react";
+
+function SupportThread({ client }: { client: LemmaClient }) {
+  const conversations = useConversations({
+    client,
+    assistantName: "support_assistant",
+  });
+
+  const messages = useConversationMessages({
+    client,
+    conversationId: conversations.effectiveSelectedConversationId,
+    autoResume: true,
+  });
+
+  return <pre>{messages.finalOutputText || messages.outputText || "No output yet."}</pre>;
+}
+```
+
+Agent run:
+
+```tsx
+import { useAgentRun } from "lemma-sdk/react";
+
+function AgentButton({ client }: { client: LemmaClient }) {
+  const agent = useAgentRun({
+    client,
+    agentName: "triage_agent",
+  });
+
+  return (
+    <button
+      disabled={agent.isStreaming}
+      onClick={() => {
+        void agent.start({ ticket_id: "ticket_123" });
+      }}
+    >
+      {agent.status ?? "Run agent"}
+    </button>
+  );
+}
+```
+
+Workflow run:
+
+```tsx
+import { useWorkflowRun } from "lemma-sdk/react";
+
+function WorkflowButton({ client }: { client: LemmaClient }) {
+  const workflow = useWorkflowRun({
+    client,
+    workflowName: "approve_ticket",
+  });
+
+  return (
+    <button
+      disabled={workflow.isPolling}
+      onClick={() => {
+        void workflow.start({ ticket_id: "ticket_123" });
+      }}
+    >
+      {workflow.status ?? "Start workflow"}
+    </button>
+  );
+}
+```
+
+## Shadcn Registry
+
+Lemma UI lives in the registry, not in `lemma-sdk/react`.
+
+After running `npx lemma-sdk init-shadcn`, install blocks like:
+
+```bash
+npx shadcn@latest add @lemma/lemma-records-page
+npx shadcn@latest add @lemma/lemma-agent-runner-page
+npx shadcn@latest add @lemma/lemma-workflow-launcher-page
+npx shadcn@latest add @lemma/lemma-function-runner-page
+```
+
+Current registry items:
+
+| Area | Items |
+| --- | --- |
+| Assistant | `lemma-assistant-experience`, `lemma-assistant-embedded` |
+| Schema | `lemma-schema-form` |
+| Tables | `lemma-table-picker`, `lemma-record-picker`, `lemma-record-filters-bar`, `lemma-records-table`, `lemma-record-details-card`, `lemma-record-form`, `lemma-related-records-table`, `lemma-reverse-related-records-table`, `lemma-bulk-actions-bar`, `lemma-records-page` |
+| Agents | `lemma-agent-run-panel`, `lemma-agent-output-card`, `lemma-agent-messages`, `lemma-agent-runner-page` |
+| Workflows | `lemma-workflow-start-form`, `lemma-workflow-history`, `lemma-workflow-run-status`, `lemma-workflow-run-details`, `lemma-workflow-launcher-page` |
+| Members and access | `lemma-members-table`, `lemma-member-picker`, `lemma-org-member-picker`, `lemma-pod-access-card` |
+| Functions | `lemma-function-run-panel`, `lemma-function-run-history`, `lemma-function-runner-page` |
+
+The registry is currently served from jsDelivr against this public repo:
+
+- registry root: `https://cdn.jsdelivr.net/gh/gappyai/lemma-typescript@main/public/r/registry.json`
+- item shape: `https://cdn.jsdelivr.net/gh/gappyai/lemma-typescript@main/public/r/{name}.json`
+
+For more stable installs, pin the registry URL to a tag or commit SHA instead of `@main`.
+
+### Records Workspace Customization
+
+The records blocks are meant to be configured with props before you reach for a fork.
+
+`lemma-records-page` supports:
+
+- capability toggles such as `allowCreate`, `allowEdit`, `allowSelection`, `allowBulkDelete`, `allowSearch`, `allowFilters`, `allowSorting`, `allowPageSizeSelect`, and `allowColumnVisibility`
+- layout toggles such as `showTablePicker`, `showRecordPicker`, and `showRecordDetails`
+- column control through `columns`, `hiddenColumnNames`, `defaultHiddenColumnNames`, and `onHiddenColumnNamesChange`
+- non-`id` primary keys through `recordIdField` or `getRecordId`
+- record-form overrides through `recordFormHiddenFields`, `recordFormFieldOrder`, `recordFormFieldLabels`, `recordFormFieldDescriptions`, `createFormTitle`, `editFormTitle`, `createSubmitLabel`, and `editSubmitLabel`
+
+`lemma-records-table` supports richer column definitions:
+
+- `label`, `description`, `type`, `width`, `minWidth`, `align`
+- `searchable`, `hideable`, `hidden`
+- `renderCell(...)` for custom cell output
+- per-row buttons through `rowActions`
+
+```tsx
+import { LemmaRecordsPage } from "@/components/lemma/lemma-records-page";
+import type { LemmaRecordsTableColumn } from "@/components/lemma/lemma-records-table";
+
+const columns: LemmaRecordsTableColumn[] = [
+  { name: "item_id", label: "Item ID", hideable: false, width: 180 },
+  { name: "group_id", label: "Group", width: 160 },
+  { name: "name", label: "Name", minWidth: 320, searchable: true },
+  {
+    name: "sellable",
+    label: "Sellable",
+    type: "boolean",
+    width: 120,
+    align: "center",
+    renderCell: ({ value }) => (value ? "Yes" : "No"),
+  },
+];
+
+<LemmaRecordsPage
+  allowColumnVisibility
+  allowCreate
+  allowEdit
+  columns={columns}
+  createButtonLabel="New SKU"
+  defaultHiddenColumnNames={["group_id"]}
+  editSubmitLabel="Save SKU"
+  recordFormFieldLabels={{ item_id: "Item ID" }}
+  recordIdField="item_id"
+  tableName="catalog_items"
+/>;
 ```
 
 ## Auth
 
-The SDK uses session/cookie auth by default.
-
-For local browser testing, token injection helpers are available:
-
-```ts
-import { clearTestingToken, setTestingToken } from "lemma-sdk";
-
-setTestingToken("<access-token>");
-clearTestingToken();
-```
+The SDK uses cookie or session auth by default.
 
 Useful helpers:
 
 - `buildAuthUrl(...)`
 - `buildFederatedLogoutUrl(...)`
 - `resolveSafeRedirectUri(...)`
-- `client.auth.redirectToAuth(...)`
-- `client.auth.redirectToFederatedLogout(...)`
+- `setTestingToken(...)`
+- `clearTestingToken()`
 
-## React Package
+When `client.podId` is set and the signed-in user is not a pod member, `AuthGuard` can render the request-access flow and create or show pod join requests.
 
-React utilities are available from `lemma-sdk/react`.
+`usePodAccess` exposes the same membership/request-access state as a hook for custom UI.
 
-Install React in your app if needed:
+## Migration Notes
 
-```bash
-npm install react react-dom
-```
+From `0.2.30` onward:
 
-`lemma-sdk/react` is intentionally headless-first. It ships hooks plus auth primitives like `AuthGuard`, but not stock assistant UI components.
+- `lemma-sdk/react` should be treated as hooks plus auth primitives.
+- `AuthGuard` remains in `lemma-sdk/react`.
+- Stock UI should be installed from the shadcn registry.
+- Assistant UI source and CSS are no longer part of the React SDK internals.
+- `react-markdown` and `remark-gfm` are registry-block dependencies for assistant UI, not core SDK dependencies.
+- New workflow code should prefer `useWorkflowRun`, `useWorkflowRuns`, and `useWorkflowResume` over the older `flow`-named hooks.
 
-Use the registry blocks in this repo for prebuilt UI, or compose your own interface with hooks like these:
+## Local Development
 
-```tsx
-import {
-  AuthGuard,
-  useAssistantController,
-  useConversation,
-  useConversationMessages,
-  useConversations,
-  useAgentRun,
-  useForeignKeyOptions,
-  useJoinedRecords,
-  useMembers,
-  useRecordForm,
-  useRecordSchema,
-  useWorkflowStart,
-} from "lemma-sdk/react";
-
-const conversations = useConversations({
-  client,
-  podId: "<pod-id>",
-  assistantName: "support_assistant",
-});
-const thread = useConversationMessages({
-  client,
-  podId: "<pod-id>",
-  conversationId: conversations.effectiveSelectedConversationId,
-});
-const controller = useAssistantController({
-  client,
-  podId: "<pod-id>",
-  assistantName: "support_assistant",
-});
-const { members } = useMembers({ client, podId: "<pod-id>" });
-const { finalOutput, start: runAgent } = useAgentRun({
-  client,
-  podId: "<pod-id>",
-  agentName: "support_agent",
-});
-const { start: startWorkflow, inputSchema } = useWorkflowStart({
-  client,
-  podId: "<pod-id>",
-  workflowName: "intake_flow",
-});
-const { records } = useJoinedRecords({
-  client,
-  podId: "<pod-id>",
-  query: {
-    from: { table: "tickets", alias: "t" },
-    select: ["t.id", "t.title", { expression: "u.email", as: "assignee_email" }],
-    joins: [{ table: "users", alias: "u", type: "left", on: { left: "t.assignee_id", right: "u.id" } }],
-    orderBy: [{ field: "t.created_at", direction: "desc" }],
-    limit: 20,
-  },
-});
-const { options: assigneeOptions } = useForeignKeyOptions({
-  client,
-  podId: "<pod-id>",
-  tableName: "tickets",
-  columnName: "assignee_id",
-});
-const { editableFields } = useRecordSchema({
-  client,
-  podId: "<pod-id>",
-  tableName: "tickets",
-});
-const ticketForm = useRecordForm({
-  client,
-  podId: "<pod-id>",
-  tableName: "tickets",
-  initialValues: { status: "open" },
-});
-```
-
-`AuthGuard` stays in `lemma-sdk/react`:
-
-```tsx
-import { AuthGuard } from "lemma-sdk/react";
-
-<AuthGuard client={client}>
-  <App />
-</AuthGuard>;
-```
-
-When `client.podId` is set and the signed-in user is not a pod member, `AuthGuard` automatically renders a request-access state and can create/view pod join requests.
-
-For cross-table reads outside React, the core client now exposes a datastore query helper:
-
-```ts
-const result = await client.datastore.query(
-  "SELECT t.id, t.title, u.email AS assignee_email FROM tickets t LEFT JOIN users u ON t.assignee_id = u.id LIMIT 20",
-);
-```
-
-## Shadcn Registry
-
-This repo includes a shadcn registry source at `registry.json` and generated flat registry output under `public/r`.
-
-Build the hosted registry payload with:
+From the root of this repository:
 
 ```bash
+npm install
+npm run build
 npm run registry:build
 ```
 
-That produces:
+This repo includes:
 
-- `public/r/registry.json`
-- `public/r/<item-name>.json`
-
-Registry source files live under `registry/default/*` and are designed to stay close to stock shadcn/ui primitives while consuming `lemma-sdk/react`.
-
-Example direct install from a hosted registry:
-
-```bash
-npx shadcn@latest add https://your-domain.example/r/lemma-records-page.json
-```
-
-Example namespace configuration in `components.json`:
-
-```json
-{
-  "registries": {
-    "@lemma": "https://cdn.jsdelivr.net/gh/gappyai/lemma-typescript@main/public/r/{name}.json"
-  }
-}
-```
-
-For short-term testing, jsDelivr works well against the public GitHub repo. Its GitHub-backed URL shape is:
-
-```json
-{
-  "registries": {
-    "@lemma": "https://cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/public/r/{name}.json"
-  }
-}
-```
-
-Because jsDelivr serves files from the repository itself, the generated `public/r` files need to be committed on the branch, tag, or commit you reference.
-
-Then consumers can install blocks with:
-
-```bash
-npx shadcn@latest add @lemma/lemma-records-page
-```
-
-Current Lemma registry items include assistant and records building blocks such as:
-
-- `lemma-assistant-experience`
-- `lemma-assistant-embedded`
-- `lemma-records-page`
-- `lemma-record-form`
-- `lemma-records-table`
-- `lemma-workflow-start-form`
-
-For a stable test registry, prefer pinning jsDelivr to a tag or commit SHA instead of `@main`.
-
-If you later want a first-party hosted endpoint, GitHub Pages also works. A project-site URL usually looks like:
-
-```json
-{
-  "registries": {
-    "@lemma": "https://<owner>.github.io/<repo>/r/{name}.json"
-  }
-}
-```
-
-To get into the official shadcn open-source registry index, first deploy this flat `/r` output on a public HTTPS endpoint, then submit the registry to the shadcn index repo. Per the current shadcn docs, the hosted registry must stay flat at the root of the endpoint, with `registry.json` and item JSON files like `/<name>.json`.
-
-This repo also includes a GitHub Pages workflow at `.github/workflows/deploy-registry-pages.yml` that publishes the generated `public/r` output on pushes to `main` or `master`.
-If Pages has not been enabled for the repository yet, either enable GitHub Pages manually in the repo settings and choose GitHub Actions as the source, or add a `PAGES_ENABLEMENT_TOKEN` secret with the required Pages/admin permissions so the workflow can enable it automatically.
-
-For npm releases, `.github/workflows/publish-npm.yml` is set up for trusted publishing from GitHub Actions. You still need to configure the matching trusted publisher for this repository on npm before automated publishes will succeed, and the workflow filename must match exactly.
-
-## Browser Bundle
-
-The package also ships a browser bundle:
-
-- export path: `lemma-sdk/browser-bundle`
-- bundled file: `dist/browser/lemma-client.js`
-- global: `window.LemmaClient.LemmaClient`
-
-Example:
-
-```html
-<script src="https://unpkg.com/lemma-sdk@latest/dist/browser/lemma-client.js"></script>
-<script>
-  const client = new window.LemmaClient.LemmaClient({
-    apiUrl: "https://api.lemma.work",
-    authUrl: "https://auth.lemma.work/auth",
-    podId: "<pod-id>"
-  });
-</script>
-```
-
-## Regenerate the OpenAPI Client
-
-Regenerate the typed client from the hosted API:
-
-```bash
-bash scripts/generate_openapi_client.sh
-```
-
-The generator defaults to:
-
-```text
-https://api.asur.work/openapi.json
-```
-
-For local backend generation, override the URL:
-
-```bash
-LEMMA_API_URL=http://127.0.0.1:8000 bash scripts/generate_openapi_client.sh
-```
-
-Or:
-
-```bash
-OPENAPI_URL=http://127.0.0.1:8000/openapi.json OPENAPI_INSECURE=1 bash scripts/generate_openapi_client.sh
-```
-
-Supported generator env vars:
-
-- `LEMMA_API_URL`
-- `OPENAPI_URL`
-- `OPENAPI_INSECURE`
-- `LEMMA_SSL_NO_VERIFY`
-
-## Build
-
-```bash
-npm run build
-```
-
-## Payload Note: `accessible_tables`
-
-When creating agents, assistants, or functions, `accessible_tables` must contain object entries:
-
-```ts
-import { TableAccessMode } from "lemma-sdk";
-
-accessible_tables: [
-  { table_name: "expenses", mode: TableAccessMode.READ },
-  { table_name: "expense_notes", mode: TableAccessMode.WRITE },
-];
-```
-
-`["expenses"]` is not valid.
+- `registry.json` for registry source definitions
+- `public/r` for the generated flat registry output
+- `.github/workflows/deploy-registry-pages.yml` for GitHub Pages deployment
+- `.github/workflows/publish-npm.yml` for npm publishing

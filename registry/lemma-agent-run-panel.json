@@ -1,0 +1,31 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-agent-run-panel",
+  "type": "registry:block",
+  "title": "Lemma Agent Run Panel",
+  "description": "A schema-aware agent runner with output and message inspection.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card", "checkbox", "input", "label", "select", "textarea"],
+  "files": [
+    {
+      "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-schema-form.tsx"
+    },
+    {
+      "path": "registry/default/lemma-agent-output-card/components/lemma-agent-output-card.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-agent-output-card.tsx"
+    },
+    {
+      "path": "registry/default/lemma-agent-messages/components/lemma-agent-messages.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-agent-messages.tsx"
+    },
+    {
+      "path": "registry/default/lemma-agent-run-panel/components/lemma-agent-run-panel.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-agent-run-panel.tsx"
+    }
+  ]
+}

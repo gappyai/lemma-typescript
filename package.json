@@ -1,10 +1,13 @@
 {
   "name": "lemma-sdk",
-  "version": "0.2.29",
+  "version": "0.2.30",
   "description": "Official TypeScript SDK for Lemma pod-scoped APIs",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "lemma-sdk": "./bin/lemma-sdk.js"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/gappyai/lemma-typescript"
@@ -33,7 +36,8 @@
   },
   "unpkg": "dist/browser/lemma-client.js",
   "files": [
-    "dist"
+    "dist",
+    "bin"
   ],
   "scripts": {
     "generate:client": "./scripts/generate_openapi_client.sh",
@@ -53,8 +57,6 @@
     }
   },
   "dependencies": {
-    "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1",
     "supertokens-web-js": "^0.16.0"
   },
   "devDependencies": {

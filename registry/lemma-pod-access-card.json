@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-pod-access-card",
+  "type": "registry:component",
+  "title": "Lemma Pod Access Card",
+  "description": "A pod access status and request card powered by usePodAccess.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card"],
+  "files": [
+    {
+      "path": "registry/default/lemma-pod-access-card/components/lemma-pod-access-card.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-pod-access-card.tsx"
+    }
+  ]
+}

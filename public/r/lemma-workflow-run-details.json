@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-workflow-run-details",
+  "title": "Lemma Workflow Run Details",
+  "description": "A workflow run details inspector for execution context and step history.",
+  "dependencies": [
+    "lemma-sdk"
+  ],
+  "registryDependencies": [
+    "card"
+  ],
+  "files": [
+    {
+      "path": "registry/default/lemma-workflow-run-details/components/lemma-workflow-run-details.tsx",
+      "content": "\"use client\"\n\nimport type { FlowRun } from \"lemma-sdk\"\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\"\n\nexport interface LemmaWorkflowRunDetailsProps {\n  run?: FlowRun | null\n  title?: string\n  description?: string\n}\n\nfunction formatJson(value: unknown): string {\n  if (value === null || typeof value === \"undefined\") return \"\"\n  try {\n    return JSON.stringify(value, null, 2)\n  } catch {\n    return String(value)\n  }\n}\n\nexport function LemmaWorkflowRunDetails({\n  run,\n  title = \"Workflow Run Details\",\n  description = \"Inspect execution context, stack, and step history.\",\n}: LemmaWorkflowRunDetailsProps) {\n  return (\n    <Card>\n      <CardHeader>\n        <CardTitle>{title}</CardTitle>\n        <CardDescription>{description}</CardDescription>\n      </CardHeader>\n      <CardContent className=\"grid gap-4\">\n        {!run ? (\n          <div className=\"rounded-md border border-dashed border-border bg-muted/30 px-3 py-6 text-sm text-muted-foreground\">\n            Select a workflow run to inspect details.\n          </div>\n        ) : (\n          <>\n            <pre className=\"max-h-[320px] overflow-auto rounded-md border border-border bg-muted/40 p-3 text-sm leading-6\">\n              {formatJson(run.execution_context ?? {})}\n            </pre>\n            <pre className=\"max-h-[320px] overflow-auto rounded-md border border-border bg-muted/40 p-3 text-sm leading-6\">\n              {formatJson({\n                execution_stack: run.execution_stack ?? [],\n                step_history: run.step_history ?? [],\n              })}\n            </pre>\n          </>\n        )}\n      </CardContent>\n    </Card>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-workflow-run-details.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-workflow-run-status",
+  "type": "registry:component",
+  "title": "Lemma Workflow Run Status",
+  "description": "A workflow run status card for current node and waiting state.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["card"],
+  "files": [
+    {
+      "path": "registry/default/lemma-workflow-run-status/components/lemma-workflow-run-status.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-workflow-run-status.tsx"
+    }
+  ]
+}

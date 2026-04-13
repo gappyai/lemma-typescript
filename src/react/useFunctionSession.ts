@@ -50,6 +50,11 @@ function resolveFunctionName(base?: string, override?: string): string {
   return resolved;
 }
 
+function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
+  if (!podId || podId === client.podId) return client;
+  return client.withPod(podId);
+}
+
 function normalizeError(error: unknown, fallback: string): Error {
   if (error instanceof Error) return error;
   return new Error(fallback);
@@ -92,9 +97,9 @@ export function useFunctionSession({
     if (!id) return null;
 
     try {
-      client.setPodId(resolvePodId(client, podId));
+      const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
       const name = resolveFunctionName(functionName);
-      const nextRun = await client.functions.runs.get(name, id);
+      const nextRun = await scopedClient.functions.runs.get(name, id);
 
       setRun(nextRun);
       const nextStatus = normalizeRunStatus(nextRun.status);
@@ -116,9 +121,9 @@ export function useFunctionSession({
     pageToken?: string;
   } = {}): Promise<FunctionRun[]> => {
     try {
-      client.setPodId(resolvePodId(client, podId));
+      const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
       const name = resolveFunctionName(functionName, options.functionName);
-      const response = await client.functions.runs.list(name, {
+      const response = await scopedClient.functions.runs.list(name, {
         limit: options.limit,
         pageToken: options.pageToken,
       });
@@ -139,10 +144,10 @@ export function useFunctionSession({
   } = {}): Promise<FunctionRun> => {
     setError(null);
 
-    client.setPodId(resolvePodId(client, podId));
+    const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
     const name = resolveFunctionName(functionName, options.functionName);
 
-    const created = await client.functions.runs.create(name, {
+    const created = await scopedClient.functions.runs.create(name, {
       input: options.input,
     });
 

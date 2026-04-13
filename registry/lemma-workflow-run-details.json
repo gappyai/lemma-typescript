@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-workflow-run-details",
+  "type": "registry:component",
+  "title": "Lemma Workflow Run Details",
+  "description": "A workflow run details inspector for execution context and step history.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["card"],
+  "files": [
+    {
+      "path": "registry/default/lemma-workflow-run-details/components/lemma-workflow-run-details.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-workflow-run-details.tsx"
+    }
+  ]
+}

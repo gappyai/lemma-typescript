@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-member-picker",
+  "type": "registry:component",
+  "title": "Lemma Member Picker",
+  "description": "A pod member picker powered by useMembers.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["card", "select"],
+  "files": [
+    {
+      "path": "registry/default/lemma-member-picker/components/lemma-member-picker.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-member-picker.tsx"
+    }
+  ]
+}

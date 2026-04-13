@@ -65,6 +65,11 @@ function resolveRunId(base?: string | null, override?: string | null): string {
   return resolved;
 }
 
+function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
+  if (!podId || podId === client.podId) return client;
+  return client.withPod(podId);
+}
+
 function normalizeError(error: unknown, fallback: string): Error {
   if (error instanceof Error) return error;
   return new Error(fallback);
@@ -122,9 +127,9 @@ export function useFlowSession({
     pageToken?: string;
   } = {}): Promise<FlowRun[]> => {
     try {
-      client.setPodId(resolvePodId(client, podId));
+      const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
       const name = resolveFlowName(flowName, options.flowName);
-      const response = await client.workflows.runs.list(name, {
+      const response = await scopedClient.workflows.runs.list(name, {
         limit: options.limit,
         pageToken: options.pageToken,
       });
@@ -145,10 +150,10 @@ export function useFlowSession({
   } = {}): Promise<FlowRun> => {
     setError(null);
 
-    client.setPodId(resolvePodId(client, podId));
+    const scopedClient = resolvePodClient(client, resolvePodId(client, podId));
     const name = resolveFlowName(flowName, options.flowName);
 
-    const created = await client.workflows.runs.start(name, options.inputs);
+    const created = await scopedClient.workflows.runs.start(name, options.inputs);
 
     setRun(created);
     setRunIdState(created.id ?? null);

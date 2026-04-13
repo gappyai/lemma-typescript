@@ -11,6 +11,8 @@ import {
 } from "lemma-sdk/react"
 import { LemmaRecordsPage } from "@/components/lemma/lemma-records-page"
 import { LemmaSchemaForm } from "@/components/lemma/lemma-schema-form"
+import { LemmaMembersTable } from "@/components/lemma/lemma-members-table"
+import { LemmaWorkflowHistory } from "@/components/lemma/lemma-workflow-history"
 import { LemmaWorkflowStartForm } from "@/components/lemma/lemma-workflow-start-form"
 import { getClient, getShowcaseConfig } from "./lib/client.ts"
 import { cn } from "@/lib/utils"
@@ -956,31 +958,13 @@ export function ResourcePlayground() {
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader className="gap-2">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[color:var(--resource-subtle)]">
-                  Members Snapshot
-                </p>
-                <CardTitle>Pod collaborators</CardTitle>
-                <CardDescription>The first few members stay visible while you work through tables and forms.</CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-2">
-                {members.error ? (
-                  <div className="resource-playground-error">{members.error.message}</div>
-                ) : members.isLoading ? (
-                  <LoadingHint text="Loading members…" />
-                ) : memberPreview.length === 0 ? (
-                  <LoadingHint text="No members found for this pod." />
-                ) : (
-                  memberPreview.map((member) => (
-                    <div key={member.user_id} className="resource-playground-member-card">
-                      <div className="font-medium text-[color:var(--resource-text)]">{member.user_name || member.user_email}</div>
-                      <div className="text-xs text-[color:var(--resource-muted)]">{member.role}</div>
-                    </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
+            <LemmaMembersTable
+              client={client}
+              description="The pod roster stays visible while you work through tables and forms."
+              members={memberPreview}
+              podId={activePodId || undefined}
+              title="Pod Collaborators"
+            />
           </div>
         </aside>
 
@@ -1108,6 +1092,15 @@ export function ResourcePlayground() {
                     )}
                   </CardContent>
                 </Card>
+
+                {selectedWorkflowName ? (
+                  <LemmaWorkflowHistory
+                    client={client}
+                    description="Recent workflow runs loaded through the workflow history registry component."
+                    podId={activePodId}
+                    workflowName={selectedWorkflowName}
+                  />
+                ) : null}
 
                 {selectedAgent && agentInputSchema ? (
                   <LemmaSchemaForm
