@@ -1,6 +1,6 @@
 {
   "name": "lemma-sdk",
-  "version": "0.2.28",
+  "version": "0.2.29",
   "description": "Official TypeScript SDK for Lemma pod-scoped APIs",
   "type": "module",
   "main": "dist/index.js",

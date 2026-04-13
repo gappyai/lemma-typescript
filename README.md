@@ -350,20 +350,22 @@ Example namespace configuration in `components.json`:
 ```json
 {
   "registries": {
-    "@lemma": "https://your-domain.example/r/{name}.json"
+    "@lemma": "https://cdn.jsdelivr.net/gh/gappyai/lemma-typescript@main/public/r/{name}.json"
   }
 }
 ```
 
-For a GitHub Pages project site, that URL usually looks like:
+For short-term testing, jsDelivr works well against the public GitHub repo. Its GitHub-backed URL shape is:
 
 ```json
 {
   "registries": {
-    "@lemma": "https://<owner>.github.io/<repo>/r/{name}.json"
+    "@lemma": "https://cdn.jsdelivr.net/gh/<owner>/<repo>@<ref>/public/r/{name}.json"
   }
 }
 ```
+
+Because jsDelivr serves files from the repository itself, the generated `public/r` files need to be committed on the branch, tag, or commit you reference.
 
 Then consumers can install blocks with:
 
@@ -380,9 +382,22 @@ Current Lemma registry items include assistant and records building blocks such 
 - `lemma-records-table`
 - `lemma-workflow-start-form`
 
+For a stable test registry, prefer pinning jsDelivr to a tag or commit SHA instead of `@main`.
+
+If you later want a first-party hosted endpoint, GitHub Pages also works. A project-site URL usually looks like:
+
+```json
+{
+  "registries": {
+    "@lemma": "https://<owner>.github.io/<repo>/r/{name}.json"
+  }
+}
+```
+
 To get into the official shadcn open-source registry index, first deploy this flat `/r` output on a public HTTPS endpoint, then submit the registry to the shadcn index repo. Per the current shadcn docs, the hosted registry must stay flat at the root of the endpoint, with `registry.json` and item JSON files like `/<name>.json`.
 
 This repo also includes a GitHub Pages workflow at `.github/workflows/deploy-registry-pages.yml` that publishes the generated `public/r` output on pushes to `main` or `master`.
+If Pages has not been enabled for the repository yet, either enable GitHub Pages manually in the repo settings and choose GitHub Actions as the source, or add a `PAGES_ENABLEMENT_TOKEN` secret with the required Pages/admin permissions so the workflow can enable it automatically.
 
 For npm releases, `.github/workflows/publish-npm.yml` is set up for trusted publishing from GitHub Actions. You still need to configure the matching trusted publisher for this repository on npm before automated publishes will succeed, and the workflow filename must match exactly.
 
