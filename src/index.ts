@@ -37,9 +37,52 @@ export { parseTaskStreamEvent, upsertTaskMessage } from "./task-events.js";
 export type { ParsedTaskStreamEvent } from "./task-events.js";
 export { parseAssistantStreamEvent, upsertConversationMessage } from "./assistant-events.js";
 export type { ParsedAssistantStreamEvent } from "./assistant-events.js";
+export {
+  buildRecordFormValues,
+  buildRecordPayload,
+  buildRecordSchemaFields,
+  formatRecordValueForForm,
+  getEditableRecordFields,
+  getRecordFieldKind,
+} from "./record-form.js";
+export type {
+  BuildRecordPayloadOptions,
+  BuildRecordPayloadResult,
+  RecordSchemaField,
+  RecordSchemaFieldKind,
+} from "./record-form.js";
+export {
+  buildSchemaFormFields,
+  buildSchemaFormPayload,
+  buildSchemaFormValues,
+  formatSchemaFieldValueForForm,
+} from "./schema-form.js";
+export type {
+  BuildSchemaFormPayloadResult,
+  JsonSchemaLike,
+  JsonSchemaPrimitiveType,
+  SchemaFormField,
+  SchemaFormFieldKind,
+} from "./schema-form.js";
+export {
+  buildJoinedRecordsQuery,
+  parseForeignKeyReference,
+} from "./datastore-query.js";
+export type {
+  ForeignKeyReference,
+  JoinedRecordsColumnRef,
+  JoinedRecordsFilter,
+  JoinedRecordsJoin,
+  JoinedRecordsJoinCondition,
+  JoinedRecordsOrderBy,
+  JoinedRecordsQueryDefinition,
+  JoinedRecordsSelectField,
+  JoinedRecordsSource,
+} from "./datastore-query.js";
 
 // Namespace types (for advanced usage)
 export type { AgentsNamespace } from "./namespaces/agents.js";
+export type { DatastoreNamespace } from "./namespaces/datastore.js";
 export type { AssistantsNamespace, ConversationsNamespace } from "./namespaces/assistants.js";
 export type { DesksNamespace } from "./namespaces/desks.js";
 export type { FilesNamespace } from "./namespaces/files.js";

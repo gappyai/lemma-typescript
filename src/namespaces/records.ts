@@ -143,7 +143,7 @@ export class RecordsNamespace {
       return this.client.request(() => RecordsService.recordBulkUpdate(this.podId(), table, payload));
     },
 
-    delete: (table: string, recordIds: string[]) => {
+    delete: (table: string, recordIds: Array<string | number>) => {
       const payload: BulkDeleteRecordsRequest = { record_ids: recordIds };
       return this.client.request(() => RecordsService.recordBulkDelete(this.podId(), table, payload));
     },

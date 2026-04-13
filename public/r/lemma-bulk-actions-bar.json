@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-bulk-actions-bar",
+  "title": "Lemma Bulk Actions Bar",
+  "description": "A stock bulk-actions bar for selected records, including bulk delete status.",
+  "dependencies": [
+    "lemma-sdk"
+  ],
+  "registryDependencies": [
+    "button"
+  ],
+  "files": [
+    {
+      "path": "registry/default/lemma-bulk-actions-bar/components/lemma-bulk-actions-bar.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport { Button } from \"@/components/ui/button\"\n\nexport interface LemmaBulkActionsBarProps {\n  selectedCount: number\n  title?: string\n  description?: string\n  isDeleting?: boolean\n  deleteLabel?: string\n  clearLabel?: string\n  onDeleteSelected?: () => void\n  onClearSelection?: () => void\n  error?: Error | null\n  message?: string | null\n}\n\nexport function LemmaBulkActionsBar({\n  selectedCount,\n  title = \"Bulk actions\",\n  description = \"Select multiple rows to run a single action across them.\",\n  isDeleting = false,\n  deleteLabel = \"Delete selected\",\n  clearLabel = \"Clear selection\",\n  onDeleteSelected,\n  onClearSelection,\n  error,\n  message,\n}: LemmaBulkActionsBarProps) {\n  if (selectedCount <= 0 && !error && !message) return null\n\n  return (\n    <div className=\"grid gap-3 rounded-[var(--resource-radius-md)] border border-[color:var(--resource-border)] bg-[var(--resource-surface)] p-4 shadow-sm\">\n      <div className=\"flex flex-col gap-3 md:flex-row md:items-center md:justify-between\">\n        <div className=\"grid gap-1\">\n          <div className=\"text-sm font-medium text-[color:var(--resource-text)]\">{title}</div>\n          <div className=\"text-sm text-[color:var(--resource-muted)]\">\n            {selectedCount > 0\n              ? `${selectedCount} record${selectedCount === 1 ? \"\" : \"s\"} selected. ${description}`\n              : description}\n          </div>\n        </div>\n        {selectedCount > 0 ? (\n          <div className=\"flex items-center gap-2\">\n            {onClearSelection ? (\n              <Button onClick={onClearSelection} variant=\"ghost\">\n                {clearLabel}\n              </Button>\n            ) : null}\n            {onDeleteSelected ? (\n              <Button disabled={isDeleting} onClick={onDeleteSelected}>\n                {isDeleting ? \"Deleting…\" : deleteLabel}\n              </Button>\n            ) : null}\n          </div>\n        ) : null}\n      </div>\n\n      {error ? (\n        <div className=\"rounded-md border border-[color:var(--resource-danger-border)] bg-[var(--resource-danger-soft)] px-3 py-2 text-sm text-[color:var(--resource-danger)]\">\n          {error.message}\n        </div>\n      ) : null}\n\n      {message ? (\n        <div className=\"rounded-md border border-[color:var(--resource-border-strong)] bg-[var(--resource-surface-alt)] px-3 py-2 text-sm text-[color:var(--resource-text)]\">\n          {message}\n        </div>\n      ) : null}\n    </div>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-bulk-actions-bar.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

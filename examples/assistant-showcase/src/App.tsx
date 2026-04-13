@@ -1,6 +1,9 @@
 import { useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { AvailableModels, type ConversationModel } from "lemma-sdk";
-import type { AssistantRadiusScale } from "lemma-sdk/react";
+import {
+  AuthGuard,
+  useAssistantController,
+} from "lemma-sdk/react";
 import {
   AssistantComposer,
   AssistantConversationList,
@@ -10,19 +13,19 @@ import {
   AssistantMessageViewport,
   AssistantModelPicker,
   AssistantPendingFileChip,
+  AssistantRadiusScale,
   AssistantShellLayout,
   AssistantStatusPill,
   AssistantThemeScope,
-  AuthGuard,
   MessageGroup,
   PlanSummaryStrip,
   ThinkingIndicator,
   buildDisplayMessageRows,
   getActiveToolBanner,
   latestPlanSummary,
-  useAssistantController,
-} from "lemma-sdk/react";
+} from "./components/lemma/assistant/index.ts";
 import { getClient, getShowcaseConfig } from "./lib/client.ts";
+import { ResourcePlayground } from "./ResourcePlayground.tsx";
 
 type PreviewMode = "assistant" | "embedded" | "chrome";
 type ThemeMode = "light" | "dark";
@@ -503,11 +506,13 @@ function ShowcaseChrome({
   assistantName,
   organizationId,
   config,
+  themeMode,
 }: {
   podId: string;
   assistantName: string;
   organizationId?: string;
   config: PreviewConfig;
+  themeMode: ThemeMode;
 }) {
   const controller = useAssistantController({
     client: getClient(),
@@ -890,6 +895,7 @@ function ShowcaseBody() {
           assistantName={SHOWCASE_CONFIG.assistantName}
           organizationId={SHOWCASE_CONFIG.organizationId}
           config={previewConfig}
+          themeMode={themeMode}
         />
       ) : null}
     </main>
@@ -897,9 +903,72 @@ function ShowcaseBody() {
 }
 
 export default function App() {
+  const [playgroundMode, setPlaygroundMode] = useState<"assistant" | "resources">("assistant");
+
   return (
     <AuthGuard client={getClient()} loadingFallback={<LoadingScreen />}>
-      <ShowcaseBody />
+      <div>
+        <div
+          style={{
+            position: "sticky",
+            top: 0,
+            zIndex: 20,
+            borderBottom: "1px solid #e3d9c6",
+            background: "rgba(247, 244, 237, 0.9)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <div
+            style={{
+              margin: "0 auto",
+              maxWidth: 1120,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 16,
+              padding: "16px 20px",
+            }}
+          >
+            <div>
+              <p style={{ margin: 0, fontSize: 12, letterSpacing: "0.18em", textTransform: "uppercase", color: "#7c725f" }}>
+                Lemma SDK
+              </p>
+              <h1 style={{ margin: "4px 0 0", fontSize: 20, color: "#241f16" }}>Showcase + Resource Playground</h1>
+            </div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setPlaygroundMode("assistant")}
+                style={{
+                  border: "1px solid #d9cfbb",
+                  borderRadius: 999,
+                  padding: "8px 14px",
+                  background: playgroundMode === "assistant" ? "#202418" : "#fffdf9",
+                  color: playgroundMode === "assistant" ? "#f6f2ea" : "#241f16",
+                  cursor: "pointer",
+                }}
+              >
+                Assistant UI
+              </button>
+              <button
+                onClick={() => setPlaygroundMode("resources")}
+                style={{
+                  border: "1px solid #d9cfbb",
+                  borderRadius: 999,
+                  padding: "8px 14px",
+                  background: playgroundMode === "resources" ? "#202418" : "#fffdf9",
+                  color: playgroundMode === "resources" ? "#f6f2ea" : "#241f16",
+                  cursor: "pointer",
+                }}
+              >
+                Resources
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {playgroundMode === "assistant" ? <ShowcaseBody /> : <ResourcePlayground />}
+      </div>
     </AuthGuard>
   );
 }

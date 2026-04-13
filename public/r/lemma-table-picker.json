@@ -1,0 +1,23 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-table-picker",
+  "title": "Lemma Table Picker",
+  "description": "A table selector powered by useTables.",
+  "dependencies": [
+    "lemma-sdk"
+  ],
+  "registryDependencies": [
+    "button",
+    "card",
+    "select"
+  ],
+  "files": [
+    {
+      "path": "registry/default/lemma-table-picker/components/lemma-table-picker.tsx",
+      "content": "\"use client\"\n\nimport * as React from \"react\"\nimport type { LemmaClient, Table } from \"lemma-sdk\"\nimport { useTables } from \"lemma-sdk/react\"\nimport { Button } from \"@/components/ui/button\"\nimport {\n  Card,\n  CardContent,\n  CardDescription,\n  CardHeader,\n  CardTitle,\n} from \"@/components/ui/card\"\nimport {\n  Select,\n  SelectContent,\n  SelectItem,\n  SelectTrigger,\n  SelectValue,\n} from \"@/components/ui/select\"\n\nexport interface LemmaTablePickerProps {\n  client: LemmaClient\n  podId?: string\n  value?: string\n  onValueChange?: (value: string) => void\n  title?: string\n  description?: string\n  placeholder?: string\n  limit?: number\n  tables?: Table[]\n  isLoading?: boolean\n  error?: Error | null\n  onRefresh?: () => void\n}\n\nexport function LemmaTablePicker({\n  client,\n  podId,\n  value,\n  onValueChange,\n  title = \"Table Picker\",\n  description = \"Choose a datastore table.\",\n  placeholder = \"Select a table\",\n  limit = 100,\n  tables,\n  isLoading,\n  error,\n  onRefresh,\n}: LemmaTablePickerProps) {\n  const tablesState = useTables({\n    client,\n    podId,\n    enabled: !tables,\n    limit,\n  })\n\n  const effectiveTables = tables ?? tablesState.tables\n  const effectiveIsLoading = isLoading ?? tablesState.isLoading\n  const effectiveError = error ?? tablesState.error\n\n  return (\n    <Card>\n      <CardHeader>\n        <div className=\"flex items-start justify-between gap-3\">\n          <div className=\"grid gap-1\">\n            <CardTitle>{title}</CardTitle>\n            <CardDescription>{description}</CardDescription>\n          </div>\n          <Button\n            disabled={effectiveIsLoading}\n            onClick={() => {\n              if (onRefresh) {\n                onRefresh()\n                return\n              }\n              void tablesState.refresh()\n            }}\n            variant=\"outline\"\n          >\n            {effectiveIsLoading ? \"Refreshing…\" : \"Refresh\"}\n          </Button>\n        </div>\n      </CardHeader>\n      <CardContent className=\"grid gap-3\">\n        {effectiveError ? (\n          <div className=\"rounded-md border border-[color:var(--resource-danger-border)] bg-[var(--resource-danger-soft)] px-3 py-2 text-sm text-[color:var(--resource-danger)]\">\n            {effectiveError.message}\n          </div>\n        ) : null}\n\n        <Select value={value ?? \"\"} onValueChange={onValueChange}>\n          <SelectTrigger id=\"lemma-table-picker\">\n            <SelectValue placeholder={placeholder} />\n          </SelectTrigger>\n          <SelectContent>\n            {effectiveTables.map((table) => (\n              <SelectItem key={table.name} value={table.name}>\n                {table.name}\n              </SelectItem>\n            ))}\n          </SelectContent>\n        </Select>\n\n        <p className=\"text-xs text-[color:var(--resource-muted)]\">\n          {effectiveIsLoading ? \"Loading tables…\" : `${effectiveTables.length} table${effectiveTables.length === 1 ? \"\" : \"s\"} available`}\n        </p>\n      </CardContent>\n    </Card>\n  )\n}\n",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-table-picker.tsx"
+    }
+  ],
+  "type": "registry:component"
+}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LemmaClient } from 'lemma-sdk'
-import { AssistantEmbedded } from 'lemma-sdk/react'
-import 'lemma-sdk/react/styles.css'
+import { AssistantEmbedded } from './components/assistant/assistant-embedded'
+import './styles/lemma-assistant.css'
 import './index.css'
 
 interface Todo {

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-record-form",
+  "type": "registry:block",
+  "title": "Lemma Record Form",
+  "description": "A schema-aware record form for Lemma datastore tables, including enum and foreign-key fields.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card", "checkbox", "input", "label", "select", "textarea"],
+  "files": [
+    {
+      "path": "registry/default/lemma-record-form/components/lemma-foreign-key-select.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-foreign-key-select.tsx"
+    },
+    {
+      "path": "registry/default/lemma-record-form/components/lemma-record-form.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-record-form.tsx"
+    }
+  ]
+}

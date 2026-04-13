@@ -1,6 +1,7 @@
 import type { LemmaClient } from "../client.js";
 import type { SseRawEvent } from "../streams.js";
-import { useAssistantSession } from "./useAssistantSession.js";
+import type { ConversationMessage } from "../types.js";
+import { useConversationMessages } from "./useConversationMessages.js";
 
 export interface UseAssistantRunOptions {
   client: LemmaClient;
@@ -13,6 +14,14 @@ export interface UseAssistantRunOptions {
 export interface UseAssistantRunResult {
   isStreaming: boolean;
   error: Error | null;
+  status?: string;
+  messages: ConversationMessage[];
+  output: ConversationMessage["content"] | null;
+  outputText: string;
+  finalOutput: ConversationMessage["content"] | null;
+  finalOutputText: string;
+  latestAssistantMessage: ConversationMessage | null;
+  refresh: () => Promise<ConversationMessage[]>;
   sendMessage: (content: string) => Promise<void>;
   resume: () => Promise<void>;
   stop: () => Promise<void>;
@@ -33,35 +42,45 @@ export function useAssistantRun({
   onEvent,
   onError,
 }: UseAssistantRunOptions): UseAssistantRunResult {
-  const session = useAssistantSession({
+  const messages = useConversationMessages({
     client,
     podId,
     conversationId,
+    autoLoad: true,
+    autoResume: false,
     onEvent,
     onError,
   });
 
   const sendMessage = async (content: string) => {
-    await session.sendMessage(content, {
-      conversationId: requireConversationId(conversationId ?? session.conversationId),
+    await messages.sendMessage(content, {
+      conversationId: requireConversationId(conversationId ?? messages.conversationId),
       createIfMissing: false,
     });
   };
 
   const resume = async () => {
-    await session.resume(requireConversationId(conversationId ?? session.conversationId));
+    await messages.resume(requireConversationId(conversationId ?? messages.conversationId));
   };
 
   const stop = async () => {
-    await session.stop(requireConversationId(conversationId ?? session.conversationId));
+    await messages.stop(requireConversationId(conversationId ?? messages.conversationId));
   };
 
   return {
-    isStreaming: session.isStreaming,
-    error: session.error,
+    isStreaming: messages.isStreaming,
+    error: messages.error,
+    status: messages.status,
+    messages: messages.messages,
+    output: messages.output,
+    outputText: messages.outputText,
+    finalOutput: messages.finalOutput,
+    finalOutputText: messages.finalOutputText,
+    latestAssistantMessage: messages.latestAssistantMessage,
+    refresh: () => messages.refresh(),
     sendMessage,
     resume,
     stop,
-    cancel: session.cancel,
+    cancel: messages.cancel,
   };
 }

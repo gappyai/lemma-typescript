@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-record-picker",
+  "type": "registry:component",
+  "title": "Lemma Record Picker",
+  "description": "A searchable record selector powered by useRecords.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card", "input", "select"],
+  "files": [
+    {
+      "path": "registry/default/lemma-record-picker/components/lemma-record-picker.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-record-picker.tsx"
+    }
+  ]
+}

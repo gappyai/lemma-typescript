@@ -4,6 +4,17 @@ export { useAuth } from "./useAuth.js";
 export type { UseAuthResult } from "./useAuth.js";
 export { useAssistantRun } from "./useAssistantRun.js";
 export type { UseAssistantRunOptions, UseAssistantRunResult } from "./useAssistantRun.js";
+export { useConversations } from "./useConversations.js";
+export type { UseConversationsOptions, UseConversationsResult } from "./useConversations.js";
+export { useConversation } from "./useConversation.js";
+export type { UseConversationOptions, UseConversationResult } from "./useConversation.js";
+export { useConversationMessages } from "./useConversationMessages.js";
+export type {
+  UseConversationMessagesOptions,
+  UseConversationMessagesResult,
+} from "./useConversationMessages.js";
+export { useAgentRun } from "./useAgentRun.js";
+export type { UseAgentRunOptions, UseAgentRunResult } from "./useAgentRun.js";
 export { useAssistantSession } from "./useAssistantSession.js";
 export type {
   CreateConversationInput,
@@ -16,6 +27,54 @@ export type {
   UseAssistantRuntimeOptions,
   UseAssistantRuntimeResult,
 } from "./useAssistantRuntime.js";
+export { useMembers } from "./useMembers.js";
+export type { UseMembersOptions, UseMembersResult } from "./useMembers.js";
+export { useTables } from "./useTables.js";
+export type { UseTablesOptions, UseTablesResult } from "./useTables.js";
+export { useTable } from "./useTable.js";
+export type { UseTableOptions, UseTableResult } from "./useTable.js";
+export { useRecords } from "./useRecords.js";
+export type { UseRecordsOptions, UseRecordsResult } from "./useRecords.js";
+export { useRecord } from "./useRecord.js";
+export type { UseRecordOptions, UseRecordResult } from "./useRecord.js";
+export { useCreateRecord } from "./useCreateRecord.js";
+export type { UseCreateRecordOptions, UseCreateRecordResult } from "./useCreateRecord.js";
+export { useUpdateRecord } from "./useUpdateRecord.js";
+export type { UseUpdateRecordOptions, UseUpdateRecordResult } from "./useUpdateRecord.js";
+export { useDeleteRecord } from "./useDeleteRecord.js";
+export type { UseDeleteRecordOptions, UseDeleteRecordResult } from "./useDeleteRecord.js";
+export { useBulkRecords } from "./useBulkRecords.js";
+export type { UseBulkRecordsOptions, UseBulkRecordsResult } from "./useBulkRecords.js";
+export { useJoinedRecords } from "./useJoinedRecords.js";
+export type { UseJoinedRecordsOptions, UseJoinedRecordsResult } from "./useJoinedRecords.js";
+export { useRelatedRecords } from "./useRelatedRecords.js";
+export type {
+  RelatedRecordsColumn,
+  RelatedRecordsInclude,
+  RelatedRecordsResolvedInclude,
+  UseRelatedRecordsOptions,
+  UseRelatedRecordsResult,
+} from "./useRelatedRecords.js";
+export { useReverseRelatedRecords } from "./useReverseRelatedRecords.js";
+export type {
+  ReverseRelatedRecordsColumn,
+  ReverseRelatedRelation,
+  ReverseRelationSelector,
+  UseReverseRelatedRecordsOptions,
+  UseReverseRelatedRecordsResult,
+} from "./useReverseRelatedRecords.js";
+export { useForeignKeyOptions } from "./useForeignKeyOptions.js";
+export type {
+  ForeignKeyOption,
+  UseForeignKeyOptionsOptions,
+  UseForeignKeyOptionsResult,
+} from "./useForeignKeyOptions.js";
+export { useRecordSchema } from "./useRecordSchema.js";
+export type { UseRecordSchemaOptions, UseRecordSchemaResult } from "./useRecordSchema.js";
+export { useRecordForm } from "./useRecordForm.js";
+export type { UseRecordFormOptions, UseRecordFormResult } from "./useRecordForm.js";
+export { useSchemaForm } from "./useSchemaForm.js";
+export type { UseSchemaFormOptions, UseSchemaFormResult } from "./useSchemaForm.js";
 export { useAssistantController } from "./useAssistantController.js";
 export type {
   AssistantAction,
@@ -26,72 +85,6 @@ export type {
   UseAssistantControllerOptions,
   UseAssistantControllerResult,
 } from "./useAssistantController.js";
-export type {
-  AssistantConversationRenderArgs,
-  AssistantControllerView,
-  AssistantExperienceCustomizationProps,
-  AssistantMessageRenderArgs,
-  EmptyStateSuggestion,
-  AssistantPendingFileRenderArgs,
-  AssistantPresentedFileRenderArgs,
-  AssistantToolRenderArgs,
-} from "./components/assistant-types.js";
-export {
-  AssistantAskOverlay,
-  AssistantComposer,
-  AssistantConversationList,
-  AssistantHeader,
-  AssistantMessageViewport,
-  AssistantModelPicker,
-  AssistantPendingFileChip,
-  AssistantShellLayout,
-  AssistantStatusPill,
-  AssistantThemeScope,
-} from "./components/AssistantChrome.js";
-export type {
-  AssistantAskOverlayProps,
-  AssistantComposerProps,
-  AssistantConversationListProps,
-  AssistantHeaderProps,
-  AssistantMessageViewportProps,
-  AssistantModelPickerProps,
-  AssistantPendingFileChipProps,
-  AssistantShellLayoutProps,
-  AssistantStatusPillProps,
-  AssistantSurfaceTone,
-  AssistantThemeMode,
-  AssistantThemeScopeProps,
-} from "./components/AssistantChrome.js";
-export { AssistantExperienceView } from "./components/AssistantExperience.js";
-export type {
-  ActiveToolBanner,
-  AskUserInputQuestion,
-  AssistantChromeStyle,
-  AssistantExperienceViewProps,
-  AssistantRadiusScale,
-  AssistantStatusPlacement,
-  DisplayMessageRow,
-  EmptyStateProps,
-  PendingAskUserInput,
-  PlanStepState,
-  PlanSummaryState,
-} from "./components/AssistantExperience.js";
-export { AssistantEmbedded } from "./components/AssistantEmbedded.js";
-export type { AssistantEmbeddedProps } from "./components/AssistantEmbedded.js";
-export {
-  buildDisplayMessageRows,
-  DEFAULT_EMPTY_STATE_SUGGESTIONS,
-  dedupToolInvocations,
-  EmptyState,
-  findPendingAskUserInput,
-  formatAskUserInputAnswers,
-  getActiveToolBanner,
-  extractPresentFilePathsFromInvocation,
-  latestPlanSummary,
-  MessageGroup,
-  PlanSummaryStrip,
-  ThinkingIndicator,
-} from "./components/AssistantExperience.js";
 export { useTaskSession } from "./useTaskSession.js";
 export type {
   CreateTaskInput,
@@ -108,6 +101,11 @@ export type {
   UseFlowSessionOptions,
   UseFlowSessionResult,
 } from "./useFlowSession.js";
+export { useWorkflowStart } from "./useWorkflowStart.js";
+export type {
+  UseWorkflowStartOptions,
+  UseWorkflowStartResult,
+} from "./useWorkflowStart.js";
 export { useFlowRunHistory } from "./useFlowRunHistory.js";
 export type {
   UseFlowRunHistoryOptions,

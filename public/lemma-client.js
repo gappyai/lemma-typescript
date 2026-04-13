@@ -55,6 +55,7 @@ const tables_js_1 = require("./namespaces/tables.js");
 const tasks_js_1 = require("./namespaces/tasks.js");
 const users_js_1 = require("./namespaces/users.js");
 const workflows_js_1 = require("./namespaces/workflows.js");
+const datastore_js_1 = require("./namespaces/datastore.js");
 class LemmaClient {
     constructor(overrides = {}, internalOptions = {}) {
         this._config = (0, config_js_1.resolveConfig)(overrides);
@@ -81,6 +82,7 @@ class LemmaClient {
         this.desks = new desks_js_1.DesksNamespace(this._generated, this._http, podIdFn);
         this.integrations = new integrations_js_1.IntegrationsNamespace(this._generated);
         this.resources = new resources_js_1.ResourcesNamespace(this._http);
+        this.datastore = new datastore_js_1.DatastoreNamespace(this._generated, podIdFn);
         this.users = new users_js_1.UsersNamespace(this._generated);
         this.icons = new icons_js_1.IconsNamespace(this._generated);
         this.pods = new pods_js_1.PodsNamespace(this._generated, this._http);
@@ -4997,7 +4999,7 @@ class WorkflowsService {
     }
     /**
      * Install Workflow
-     * Install a workflow for runtime execution. Provide `account_id` when the workflow needs an integration account binding.
+     * Install a workflow for runtime execution. Provide `account_id` when the workflow needs an integration account binding, and provide `schedule` when installing a scheduled workflow.
      * @param podId
      * @param workflowName
      * @param requestBody
@@ -5089,6 +5091,57 @@ class WorkflowsService {
     }
 }
 exports.WorkflowsService = WorkflowsService;
+
+},
+"./namespaces/datastore.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DatastoreNamespace = void 0;
+const QueryService_js_1 = require("./openapi_client/services/QueryService.js");
+class DatastoreNamespace {
+    constructor(client, podId) {
+        this.client = client;
+        this.podId = podId;
+    }
+    query(request) {
+        const payload = typeof request === "string" ? { query: request } : request;
+        return this.client.request(() => QueryService_js_1.QueryService.queryExecute(this.podId(), payload));
+    }
+}
+exports.DatastoreNamespace = DatastoreNamespace;
+
+},
+"./openapi_client/services/QueryService.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.QueryService = void 0;
+const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
+const request_js_1 = require("./openapi_client/core/request.js");
+class QueryService {
+    /**
+     * Execute Query
+     * Execute a read-only SQL query inside the datastore schema. Joins, aggregates, subqueries, and cross-table reads are allowed as long as the statement is read only.
+     * @param podId
+     * @param requestBody
+     * @returns DatastoreQueryResponse Successful Response
+     * @throws ApiError
+     */
+    static queryExecute(podId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/datastore/query',
+            path: {
+                'pod_id': podId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+}
+exports.QueryService = QueryService;
 
 }
   };

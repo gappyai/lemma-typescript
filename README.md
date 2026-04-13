@@ -7,7 +7,8 @@ It includes:
 - a typed `LemmaClient`
 - generated OpenAPI bindings in `src/openapi_client`
 - auth helpers and SSE utilities
-- React hooks and assistant UI components under `lemma-sdk/react`
+- headless React hooks and auth primitives under `lemma-sdk/react`
+- shadcn-style registry sources in `registry/*`
 - a browser bundle export at `lemma-sdk/browser-bundle`
 
 ## Defaults
@@ -32,6 +33,7 @@ From the root of this repository:
 ```bash
 npm install
 npm run build
+npm run registry:build
 ```
 
 To test the package from a local checkout in another project:
@@ -224,26 +226,165 @@ Install React in your app if needed:
 npm install react react-dom
 ```
 
-Import the stylesheet once:
+`lemma-sdk/react` is intentionally headless-first. It ships hooks plus auth primitives like `AuthGuard`, but not stock assistant UI components.
+
+Use the registry blocks in this repo for prebuilt UI, or compose your own interface with hooks like these:
 
 ```tsx
-import "lemma-sdk/react/styles.css";
+import {
+  AuthGuard,
+  useAssistantController,
+  useConversation,
+  useConversationMessages,
+  useConversations,
+  useAgentRun,
+  useForeignKeyOptions,
+  useJoinedRecords,
+  useMembers,
+  useRecordForm,
+  useRecordSchema,
+  useWorkflowStart,
+} from "lemma-sdk/react";
+
+const conversations = useConversations({
+  client,
+  podId: "<pod-id>",
+  assistantName: "support_assistant",
+});
+const thread = useConversationMessages({
+  client,
+  podId: "<pod-id>",
+  conversationId: conversations.effectiveSelectedConversationId,
+});
+const controller = useAssistantController({
+  client,
+  podId: "<pod-id>",
+  assistantName: "support_assistant",
+});
+const { members } = useMembers({ client, podId: "<pod-id>" });
+const { finalOutput, start: runAgent } = useAgentRun({
+  client,
+  podId: "<pod-id>",
+  agentName: "support_agent",
+});
+const { start: startWorkflow, inputSchema } = useWorkflowStart({
+  client,
+  podId: "<pod-id>",
+  workflowName: "intake_flow",
+});
+const { records } = useJoinedRecords({
+  client,
+  podId: "<pod-id>",
+  query: {
+    from: { table: "tickets", alias: "t" },
+    select: ["t.id", "t.title", { expression: "u.email", as: "assignee_email" }],
+    joins: [{ table: "users", alias: "u", type: "left", on: { left: "t.assignee_id", right: "u.id" } }],
+    orderBy: [{ field: "t.created_at", direction: "desc" }],
+    limit: 20,
+  },
+});
+const { options: assigneeOptions } = useForeignKeyOptions({
+  client,
+  podId: "<pod-id>",
+  tableName: "tickets",
+  columnName: "assignee_id",
+});
+const { editableFields } = useRecordSchema({
+  client,
+  podId: "<pod-id>",
+  tableName: "tickets",
+});
+const ticketForm = useRecordForm({
+  client,
+  podId: "<pod-id>",
+  tableName: "tickets",
+  initialValues: { status: "open" },
+});
 ```
 
-Minimal assistant embed:
+`AuthGuard` stays in `lemma-sdk/react`:
 
 ```tsx
-import { AssistantEmbedded } from "lemma-sdk/react";
+import { AuthGuard } from "lemma-sdk/react";
 
-<AssistantEmbedded
-  client={client}
-  podId="<pod-id>"
-  assistantName="support_assistant"
-  title="Support Assistant"
-  placeholder="Message Support Assistant"
-  showConversationList
-/>;
+<AuthGuard client={client}>
+  <App />
+</AuthGuard>;
 ```
+
+When `client.podId` is set and the signed-in user is not a pod member, `AuthGuard` automatically renders a request-access state and can create/view pod join requests.
+
+For cross-table reads outside React, the core client now exposes a datastore query helper:
+
+```ts
+const result = await client.datastore.query(
+  "SELECT t.id, t.title, u.email AS assignee_email FROM tickets t LEFT JOIN users u ON t.assignee_id = u.id LIMIT 20",
+);
+```
+
+## Shadcn Registry
+
+This repo includes a shadcn registry source at `registry.json` and generated flat registry output under `public/r`.
+
+Build the hosted registry payload with:
+
+```bash
+npm run registry:build
+```
+
+That produces:
+
+- `public/r/registry.json`
+- `public/r/<item-name>.json`
+
+Registry source files live under `registry/default/*` and are designed to stay close to stock shadcn/ui primitives while consuming `lemma-sdk/react`.
+
+Example direct install from a hosted registry:
+
+```bash
+npx shadcn@latest add https://your-domain.example/r/lemma-records-page.json
+```
+
+Example namespace configuration in `components.json`:
+
+```json
+{
+  "registries": {
+    "@lemma": "https://your-domain.example/r/{name}.json"
+  }
+}
+```
+
+For a GitHub Pages project site, that URL usually looks like:
+
+```json
+{
+  "registries": {
+    "@lemma": "https://<owner>.github.io/<repo>/r/{name}.json"
+  }
+}
+```
+
+Then consumers can install blocks with:
+
+```bash
+npx shadcn@latest add @lemma/lemma-records-page
+```
+
+Current Lemma registry items include assistant and records building blocks such as:
+
+- `lemma-assistant-experience`
+- `lemma-assistant-embedded`
+- `lemma-records-page`
+- `lemma-record-form`
+- `lemma-records-table`
+- `lemma-workflow-start-form`
+
+To get into the official shadcn open-source registry index, first deploy this flat `/r` output on a public HTTPS endpoint, then submit the registry to the shadcn index repo. Per the current shadcn docs, the hosted registry must stay flat at the root of the endpoint, with `registry.json` and item JSON files like `/<name>.json`.
+
+This repo also includes a GitHub Pages workflow at `.github/workflows/deploy-registry-pages.yml` that publishes the generated `public/r` output on pushes to `main` or `master`.
+
+For npm releases, `.github/workflows/publish-npm.yml` is set up for trusted publishing from GitHub Actions. You still need to configure the matching trusted publisher for this repository on npm before automated publishes will succeed, and the workflow filename must match exactly.
 
 ## Browser Bundle
 
@@ -252,6 +393,19 @@ The package also ships a browser bundle:
 - export path: `lemma-sdk/browser-bundle`
 - bundled file: `dist/browser/lemma-client.js`
 - global: `window.LemmaClient.LemmaClient`
+
+Example:
+
+```html
+<script src="https://unpkg.com/lemma-sdk@latest/dist/browser/lemma-client.js"></script>
+<script>
+  const client = new window.LemmaClient.LemmaClient({
+    apiUrl: "https://api.lemma.work",
+    authUrl: "https://auth.lemma.work/auth",
+    podId: "<pod-id>"
+  });
+</script>
+```
 
 ## Regenerate the OpenAPI Client
 
@@ -305,95 +459,4 @@ accessible_tables: [
 ];
 ```
 
-<<<<<<< HEAD
 `["expenses"]` is not valid.
-
-## Auth
-
-Default mode is cookie/session auth (`credentials: "include"`).
-
-For local browser testing, token injection is supported via local storage key `lemma_token`:
-
-```ts
-import { setTestingToken, clearTestingToken } from "lemma-sdk";
-
-setTestingToken("<access-token>");
-clearTestingToken();
-```
-
-Auth helpers:
-
-- `buildAuthUrl(...)`
-- `buildFederatedLogoutUrl(...)`
-- `resolveSafeRedirectUri(...)`
-- `client.auth.redirectToAuth(...)`
-- `client.auth.redirectToFederatedLogout(...)`
-
-## React Package (`lemma-sdk/react`)
-
-Includes auth helpers, run hooks, and assistant UI primitives.
-
-Install React peer dependency in your app if not already installed:
-
-```bash
-npm i react react-dom
-```
-
-Import stylesheet once:
-
-```tsx
-import "lemma-sdk/react/styles.css";
-```
-
-Fastest assistant integration:
-
-```tsx
-import { AssistantEmbedded } from "lemma-sdk/react";
-
-<div style={{ height: 720, minHeight: 0 }}>
-  <AssistantEmbedded
-    client={client}
-    podId="<pod-id>"
-    assistantName="support_assistant"
-    title="Support Assistant"
-    placeholder="Message Support Assistant"
-    showConversationList
-  />
-</div>;
-```
-
-Auth guard example:
-
-```tsx
-import { AuthGuard } from "lemma-sdk/react";
-
-<AuthGuard client={client}>
-  <App />
-</AuthGuard>;
-```
-
-When `client.podId` is set and the signed-in user is not a pod member, `AuthGuard` automatically renders a request-access state and can create/view pod join requests.
-
-## Browser Bundle
-
-The package also ships a standalone browser bundle:
-
-- npm artifact path: `dist/browser/lemma-client.js`
-- export path: `lemma-sdk/browser-bundle`
-- global: `window.LemmaClient.LemmaClient`
-
-Example:
-
-```html
-<script src="https://unpkg.com/lemma-sdk@latest/dist/browser/lemma-client.js"></script>
-<script>
-  const client = new window.LemmaClient.LemmaClient({
-    apiUrl: "https://api.lemma.work",
-    authUrl: "https://auth.lemma.work/auth",
-    podId: "<pod-id>"
-  });
-</script>
-```
-=======
-Plain string arrays like `["expenses"]` are not valid.
->>>>>>> 78c8809 (update sdk)

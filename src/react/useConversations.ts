@@ -1,0 +1,271 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { LemmaClient } from "../client.js";
+import type { Conversation } from "../types.js";
+import {
+  useAssistantSession,
+  type CreateConversationInput,
+} from "./useAssistantSession.js";
+
+export interface UseConversationsOptions {
+  client: LemmaClient;
+  podId?: string;
+  assistantName?: string;
+  /**
+   * @deprecated Use assistantName instead.
+   */
+  assistantId?: string;
+  organizationId?: string;
+  enabled?: boolean;
+  autoLoad?: boolean;
+  autoSelectFirst?: boolean;
+  limit?: number;
+  pageToken?: string;
+  initialConversationId?: string | null;
+}
+
+export interface UseConversationsResult {
+  conversations: Conversation[];
+  total: number;
+  nextPageToken: string | null;
+  /**
+   * @deprecated Use selectedConversationId instead.
+   */
+  activeConversationId: string | null;
+  /**
+   * @deprecated Use selectedConversation instead.
+   */
+  activeConversation: Conversation | null;
+  selectedConversationId: string | null;
+  effectiveSelectedConversationId: string | null;
+  selectedConversation: Conversation | null;
+  isLoading: boolean;
+  error: Error | null;
+  selectConversation: (conversationId: string | null) => void;
+  clearSelection: () => void;
+  selectLatestConversation: () => string | null;
+  refresh: (overrides?: { limit?: number; pageToken?: string }) => Promise<Conversation[]>;
+  createConversation: (input?: CreateConversationInput) => Promise<Conversation>;
+  createAndSelectConversation: (input?: Omit<CreateConversationInput, "setActive">) => Promise<Conversation>;
+  ensureConversation: (input?: Omit<CreateConversationInput, "setActive">) => Promise<Conversation>;
+}
+
+function sortConversationsByUpdatedAt(conversations: Conversation[]): Conversation[] {
+  return [...conversations].sort((a, b) => {
+    const aTime = new Date(a.updated_at || a.created_at).getTime();
+    const bTime = new Date(b.updated_at || b.created_at).getTime();
+    return bTime - aTime;
+  });
+}
+
+export function useConversations({
+  client,
+  podId,
+  assistantName,
+  assistantId,
+  organizationId,
+  enabled = true,
+  autoLoad = true,
+  autoSelectFirst = true,
+  limit = 20,
+  pageToken,
+  initialConversationId = null,
+}: UseConversationsOptions): UseConversationsResult {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [total, setTotal] = useState(0);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(initialConversationId);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const scopeKey = useMemo(() => JSON.stringify({
+    podId: podId ?? null,
+    assistantName: assistantName ?? assistantId ?? null,
+    assistantId: assistantId ?? null,
+    organizationId: organizationId ?? null,
+  }), [assistantId, assistantName, organizationId, podId]);
+
+  const {
+    error,
+    listConversations,
+    createConversation: sessionCreateConversation,
+  } = useAssistantSession({
+    client,
+    podId,
+    assistantName,
+    assistantId,
+    organizationId,
+    autoLoad: false,
+  });
+
+  const refresh = useCallback(async (
+    overrides: { limit?: number; pageToken?: string } = {},
+  ): Promise<Conversation[]> => {
+    if (!enabled) {
+      setConversations([]);
+      setTotal(0);
+      setNextPageToken(null);
+      setIsLoading(false);
+      return [];
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await listConversations({
+        limit: overrides.limit ?? limit,
+        pageToken: overrides.pageToken ?? pageToken,
+      });
+      const nextConversations = sortConversationsByUpdatedAt(response.items ?? []);
+      setConversations(nextConversations);
+      setTotal(nextConversations.length);
+      setNextPageToken(response.next_page_token ?? null);
+      setSelectedConversationId((current) => {
+        if (current) return current;
+        if (initialConversationId) return initialConversationId;
+        if (!autoSelectFirst) return null;
+        return nextConversations[0]?.id ?? null;
+      });
+      return nextConversations;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [autoSelectFirst, enabled, initialConversationId, limit, listConversations, pageToken]);
+
+  const createConversation = useCallback(async (input: CreateConversationInput = {}): Promise<Conversation> => {
+    const createdConversation = await sessionCreateConversation({
+      ...input,
+      podId: input.podId ?? podId ?? undefined,
+      assistantName: input.assistantName ?? assistantName ?? assistantId ?? undefined,
+      organizationId: input.organizationId ?? organizationId ?? undefined,
+      setActive: input.setActive ?? true,
+    });
+
+    setConversations((previous) => {
+      const nextConversations = sortConversationsByUpdatedAt([
+        createdConversation,
+        ...previous.filter((conversation) => conversation.id !== createdConversation.id),
+      ]);
+      setTotal(nextConversations.length);
+      return nextConversations;
+    });
+
+    if (input.setActive !== false) {
+      setSelectedConversationId(createdConversation.id);
+    }
+
+    return createdConversation;
+  }, [assistantId, assistantName, organizationId, podId, sessionCreateConversation]);
+
+  const createAndSelectConversation = useCallback(async (
+    input: Omit<CreateConversationInput, "setActive"> = {},
+  ): Promise<Conversation> => {
+    return createConversation({
+      ...input,
+      setActive: true,
+    });
+  }, [createConversation]);
+
+  const selectConversation = useCallback((conversationId: string | null) => {
+    setSelectedConversationId(conversationId);
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedConversationId(null);
+  }, []);
+
+  const selectLatestConversation = useCallback((): string | null => {
+    const latestConversationId = conversations[0]?.id ?? null;
+    setSelectedConversationId(latestConversationId);
+    return latestConversationId;
+  }, []);
+
+  useEffect(() => {
+    setSelectedConversationId(initialConversationId);
+  }, [initialConversationId]);
+
+  useEffect(() => {
+    if (!enabled) {
+      setConversations([]);
+      setTotal(0);
+      setNextPageToken(null);
+      setSelectedConversationId(initialConversationId);
+      setIsLoading(false);
+      return;
+    }
+
+    setConversations([]);
+    setTotal(0);
+    setNextPageToken(null);
+    setSelectedConversationId(initialConversationId);
+
+    if (!autoLoad) return;
+    void refresh();
+  }, [autoLoad, enabled, initialConversationId, refresh, scopeKey]);
+
+  const effectiveSelectedConversationId = useMemo(() => {
+    if (selectedConversationId) return selectedConversationId;
+    if (!autoSelectFirst) return null;
+    return conversations[0]?.id ?? null;
+  }, [autoSelectFirst, conversations, selectedConversationId]);
+
+  const selectedConversation = useMemo(
+    () => conversations.find((conversation) => conversation.id === effectiveSelectedConversationId) ?? null,
+    [conversations, effectiveSelectedConversationId],
+  );
+
+  const ensureConversation = useCallback(async (
+    input: Omit<CreateConversationInput, "setActive"> = {},
+  ): Promise<Conversation> => {
+    const existingConversation = selectedConversation
+      ?? conversations.find((conversation) => conversation.id === effectiveSelectedConversationId)
+      ?? null;
+    if (existingConversation) {
+      if (selectedConversationId !== existingConversation.id) {
+        setSelectedConversationId(existingConversation.id);
+      }
+      return existingConversation;
+    }
+
+    return createAndSelectConversation(input);
+  }, [
+    conversations,
+    createAndSelectConversation,
+    effectiveSelectedConversationId,
+    selectedConversation,
+    selectedConversationId,
+  ]);
+
+  return useMemo(() => ({
+    conversations,
+    total,
+    nextPageToken,
+    activeConversationId: selectedConversationId,
+    activeConversation: selectedConversation,
+    selectedConversationId,
+    effectiveSelectedConversationId,
+    selectedConversation,
+    isLoading,
+    error,
+    selectConversation,
+    clearSelection,
+    selectLatestConversation,
+    refresh,
+    createConversation,
+    createAndSelectConversation,
+    ensureConversation,
+  }), [
+    clearSelection,
+    conversations,
+    createAndSelectConversation,
+    createConversation,
+    effectiveSelectedConversationId,
+    isLoading,
+    nextPageToken,
+    refresh,
+    ensureConversation,
+    selectConversation,
+    selectLatestConversation,
+    selectedConversation,
+    selectedConversationId,
+    error,
+    total,
+  ]);
+}

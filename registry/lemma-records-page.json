@@ -1,0 +1,66 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-records-page",
+  "type": "registry:block",
+  "title": "Lemma Records Page",
+  "description": "A practical records workspace with table picker, filters, bulk actions, record picker, records table, details, form, and forward plus reverse relations.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card", "input", "select", "textarea", "checkbox", "label"],
+  "files": [
+    {
+      "path": "registry/default/lemma-bulk-actions-bar/components/lemma-bulk-actions-bar.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-bulk-actions-bar.tsx"
+    },
+    {
+      "path": "registry/default/lemma-record-details-card/components/lemma-record-details-card.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-record-details-card.tsx"
+    },
+    {
+      "path": "registry/default/lemma-record-filters-bar/components/lemma-record-filters-bar.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-record-filters-bar.tsx"
+    },
+    {
+      "path": "registry/default/lemma-record-form/components/lemma-foreign-key-select.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-foreign-key-select.tsx"
+    },
+    {
+      "path": "registry/default/lemma-record-form/components/lemma-record-form.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-record-form.tsx"
+    },
+    {
+      "path": "registry/default/lemma-record-picker/components/lemma-record-picker.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-record-picker.tsx"
+    },
+    {
+      "path": "registry/default/lemma-records-table/components/lemma-records-table.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-records-table.tsx"
+    },
+    {
+      "path": "registry/default/lemma-records-page/components/lemma-records-page.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-records-page.tsx"
+    },
+    {
+      "path": "registry/default/lemma-related-records-table/components/lemma-related-records-table.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-related-records-table.tsx"
+    },
+    {
+      "path": "registry/default/lemma-reverse-related-records-table/components/lemma-reverse-related-records-table.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-reverse-related-records-table.tsx"
+    },
+    {
+      "path": "registry/default/lemma-table-picker/components/lemma-table-picker.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-table-picker.tsx"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-record-details-card",
+  "type": "registry:component",
+  "title": "Lemma Record Details Card",
+  "description": "A selected-record details card powered by useRecord.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card"],
+  "files": [
+    {
+      "path": "registry/default/lemma-record-details-card/components/lemma-record-details-card.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-record-details-card.tsx"
+    }
+  ]
+}

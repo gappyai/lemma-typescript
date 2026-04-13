@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      "lemma-sdk/react/styles.css": path.resolve(__dirname, "../../src/react/styles.css"),
+      "@": path.resolve(__dirname, "./src"),
       "lemma-sdk/react": path.resolve(__dirname, "../../src/react/index.ts"),
       "lemma-sdk": path.resolve(__dirname, "../../src/index.ts"),
     },

@@ -2,12 +2,15 @@ import type {
   AgentResponse,
   AssistantResponse,
   AvailableModels,
+  ColumnSchema,
   ConversationMessageResponse,
   ConversationResponse,
   CreateAgentRequest,
   CreateAssistantRequest,
   CreateTaskRequest,
+  DatastoreQueryResponse,
   FlowRunEntity,
+  FlowResponse,
   FunctionRunResponse,
   IconUploadResponse,
   OrganizationInvitationResponse,
@@ -17,6 +20,7 @@ import type {
   PodJoinRequestCreateResponse,
   PodMemberResponse,
   PodResponse,
+  TableResponse,
   TaskMessageResponse,
   TaskResponse,
   UpdateAgentRequest,
@@ -88,6 +92,10 @@ export type Task = TaskResponse;
 export type TaskMessage = TaskMessageResponse;
 export type FunctionRun = FunctionRunResponse;
 export type FlowRun = FlowRunEntity;
+export type Workflow = FlowResponse;
+export type Table = TableResponse;
+export type TableColumn = ColumnSchema;
+export type DatastoreQueryResult = DatastoreQueryResponse;
 
 export type Pod = PodResponse;
 export type PodConfig = PodConfigResponse;

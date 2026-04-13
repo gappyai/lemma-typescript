@@ -8,6 +8,10 @@ import type {
   CursorPage,
 } from "../types.js";
 import { parseAssistantStreamEvent, upsertConversationMessage } from "../assistant-events.js";
+import {
+  extractConversationMessageText,
+  getLatestAssistantMessage,
+} from "./assistant-output.js";
 
 interface ConversationScope {
   podId?: string | null;
@@ -72,6 +76,11 @@ export interface UseAssistantSessionResult {
   conversation: Conversation | null;
   status?: string;
   messages: ConversationMessage[];
+  latestAssistantMessage: ConversationMessage | null;
+  output: ConversationMessage["content"] | null;
+  outputText: string;
+  finalOutput: ConversationMessage["content"] | null;
+  finalOutputText: string;
   streamingText: string;
   isStreaming: boolean;
   error: Error | null;
@@ -282,6 +291,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     pageToken?: string;
     scope?: ConversationScope;
   } = {}): Promise<CursorPage<Conversation>> => {
+    setError(null);
     try {
       const scope = normalizeScope(client, defaultScope, input.scope);
       applyPodScope(client, scope.podId);
@@ -312,34 +322,42 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   }, [client, defaultScope]);
 
   const createConversation = useCallback(async (input: CreateConversationInput = {}): Promise<Conversation> => {
-    applyPodScope(client, input.podId ?? defaultPodId ?? null);
+    setError(null);
+    try {
+      applyPodScope(client, input.podId ?? defaultPodId ?? null);
 
-    const payload = {
-      title: input.title ?? undefined,
-      pod_id: input.podId ?? defaultPodId ?? client.podId ?? undefined,
-      assistant_name: input.assistantName
-        ?? input.assistantId
-        ?? defaultAssistantName
-        ?? defaultAssistantId
-        ?? undefined,
-      organization_id: input.organizationId ?? defaultOrganizationId ?? undefined,
-      model: typeof input.model === "undefined"
-        ? undefined
-        : (input.model as unknown as never),
-    };
+      const payload = {
+        title: input.title ?? undefined,
+        pod_id: input.podId ?? defaultPodId ?? client.podId ?? undefined,
+        assistant_name: input.assistantName
+          ?? input.assistantId
+          ?? defaultAssistantName
+          ?? defaultAssistantId
+          ?? undefined,
+        organization_id: input.organizationId ?? defaultOrganizationId ?? undefined,
+        model: typeof input.model === "undefined"
+          ? undefined
+          : (input.model as unknown as never),
+      };
 
-    const created = await client.conversations.create(payload);
+      const created = await client.conversations.create(payload);
 
-    if (input.setActive !== false) {
-      setConversationIdState(created.id);
-      setConversation(created);
-      setConversationStatus(created.status);
-      setMessages([]);
-      clearStreamingText();
-      autoResumedKeyRef.current = null;
+      if (input.setActive !== false) {
+        setConversationIdState(created.id);
+        setConversation(created);
+        setConversationStatus(created.status);
+        setMessages([]);
+        clearStreamingText();
+        autoResumedKeyRef.current = null;
+      }
+
+      return created;
+    } catch (createError) {
+      const normalized = normalizeError(createError, "Failed to create conversation.");
+      setError(normalized);
+      onErrorRef.current?.(createError);
+      throw normalized;
     }
-
-    return created;
   }, [
     clearStreamingText,
     client,
@@ -354,6 +372,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     const id = explicitConversationId ?? conversationId;
     if (!id) return null;
 
+    setError(null);
     try {
       const scope = normalizeScope(client, defaultScope);
       applyPodScope(client, scope.podId);
@@ -387,6 +406,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       return { items: [], limit: input.limit ?? 20, next_page_token: null };
     }
 
+    setError(null);
     try {
       const response = await client.conversations.messages.list(id, {
         limit: input.limit,
@@ -537,62 +557,78 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     content: string,
     input: SendAssistantMessageOptions = {},
   ): Promise<Conversation> => {
-    const resolvedConversation = await ensureConversation(input.conversationId, input);
-    const resolvedConversationId = requireConversationId(resolvedConversation.id);
+    setError(null);
+    try {
+      const resolvedConversation = await ensureConversation(input.conversationId, input);
+      const resolvedConversationId = requireConversationId(resolvedConversation.id);
 
-    cancel();
-    const controller = new AbortController();
-    abortRef.current = controller;
+      cancel();
+      const controller = new AbortController();
+      abortRef.current = controller;
 
-    const scope = normalizeScope(client, defaultScope, input.createConversation);
-    applyPodScope(client, scope.podId);
+      const scope = normalizeScope(client, defaultScope, input.createConversation);
+      applyPodScope(client, scope.podId);
 
-    const stream = await client.conversations.sendMessageStream(
-      resolvedConversationId,
-      { content },
-      {
-        pod_id: scope.podId ?? undefined,
-        signal: controller.signal,
-      },
-    );
+      const stream = await client.conversations.sendMessageStream(
+        resolvedConversationId,
+        { content },
+        {
+          pod_id: scope.podId ?? undefined,
+          signal: controller.signal,
+        },
+      );
 
-    setConversationStatus("RUNNING");
-    await consume({
-      stream,
-      controller,
-      streamConversationId: resolvedConversationId,
-      syncAfterStream: input.syncOnTurnEnd,
-    });
-    return resolvedConversation;
+      setConversationStatus("RUNNING");
+      await consume({
+        stream,
+        controller,
+        streamConversationId: resolvedConversationId,
+        syncAfterStream: input.syncOnTurnEnd,
+      });
+      return resolvedConversation;
+    } catch (sendError) {
+      const normalized = normalizeError(sendError, "Failed to send assistant message.");
+      setError(normalized);
+      onErrorRef.current?.(sendError);
+      throw normalized;
+    }
   }, [cancel, client, consume, defaultScope, ensureConversation, setConversationStatus]);
 
   const resume = useCallback(async (input?: string | null | ResumeAssistantOptions): Promise<void> => {
-    const resumeInput = resolveResumeInput(input);
-    const id = requireConversationId(resumeInput.conversationId ?? conversationId);
+    setError(null);
+    try {
+      const resumeInput = resolveResumeInput(input);
+      const id = requireConversationId(resumeInput.conversationId ?? conversationId);
 
-    if (resumeInput.onlyIfRunning && !isConversationRunningStatus(statusRef.current)) {
-      return;
+      if (resumeInput.onlyIfRunning && !isConversationRunningStatus(statusRef.current)) {
+        return;
+      }
+
+      cancel();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      const scope = normalizeScope(client, defaultScope);
+      applyPodScope(client, scope.podId);
+
+      const stream = await client.conversations.resumeStream(id, {
+        pod_id: scope.podId ?? undefined,
+        signal: controller.signal,
+      });
+
+      setConversationStatus("RUNNING");
+      await consume({
+        stream,
+        controller,
+        streamConversationId: id,
+        syncAfterStream: resumeInput.syncOnTurnEnd,
+      });
+    } catch (resumeError) {
+      const normalized = normalizeError(resumeError, "Failed to resume assistant run.");
+      setError(normalized);
+      onErrorRef.current?.(resumeError);
+      throw normalized;
     }
-
-    cancel();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    const scope = normalizeScope(client, defaultScope);
-    applyPodScope(client, scope.podId);
-
-    const stream = await client.conversations.resumeStream(id, {
-      pod_id: scope.podId ?? undefined,
-      signal: controller.signal,
-    });
-
-    setConversationStatus("RUNNING");
-    await consume({
-      stream,
-      controller,
-      streamConversationId: id,
-      syncAfterStream: resumeInput.syncOnTurnEnd,
-    });
   }, [cancel, client, consume, conversationId, defaultScope, setConversationStatus]);
 
   const resumeIfRunning = useCallback(async (explicitConversationId?: string | null): Promise<boolean> => {
@@ -631,16 +667,24 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   }, [conversationId, isStreaming, refreshConversation, resume]);
 
   const stop = useCallback(async (explicitConversationId?: string | null): Promise<void> => {
-    const id = requireConversationId(explicitConversationId ?? conversationId);
+    setError(null);
+    try {
+      const id = requireConversationId(explicitConversationId ?? conversationId);
 
-    const scope = normalizeScope(client, defaultScope);
-    applyPodScope(client, scope.podId);
+      const scope = normalizeScope(client, defaultScope);
+      applyPodScope(client, scope.podId);
 
-    await client.conversations.stopRun(id, {
-      pod_id: scope.podId ?? undefined,
-    });
-    setConversationStatus("WAITING");
-    clearStreamingText();
+      await client.conversations.stopRun(id, {
+        pod_id: scope.podId ?? undefined,
+      });
+      setConversationStatus("WAITING");
+      clearStreamingText();
+    } catch (stopError) {
+      const normalized = normalizeError(stopError, "Failed to stop assistant run.");
+      setError(normalized);
+      onErrorRef.current?.(stopError);
+      throw normalized;
+    }
   }, [client, conversationId, defaultScope]);
 
   const clearMessages = useCallback(() => {
@@ -683,11 +727,28 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     };
   }, [autoLoad, autoResume, conversationId, loadMessages, refreshConversation, resumeIfRunning]);
 
+  const latestAssistantMessage = useMemo(
+    () => getLatestAssistantMessage(messages),
+    [messages],
+  );
+  const output = latestAssistantMessage?.content ?? null;
+  const latestAssistantText = latestAssistantMessage
+    ? extractConversationMessageText(latestAssistantMessage.content)
+    : "";
+  const outputText = streamingText.trim() || latestAssistantText;
+  const finalOutput = !isStreaming && !isConversationRunningStatus(status) ? output : null;
+  const finalOutputText = !isStreaming && !isConversationRunningStatus(status) ? latestAssistantText : "";
+
   return {
     conversationId,
     conversation,
     status,
     messages,
+    latestAssistantMessage,
+    output,
+    outputText,
+    finalOutput,
+    finalOutputText,
     streamingText,
     isStreaming,
     error,

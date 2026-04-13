@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-bulk-actions-bar",
+  "type": "registry:component",
+  "title": "Lemma Bulk Actions Bar",
+  "description": "A stock bulk-actions bar for selected records, including bulk delete status.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button"],
+  "files": [
+    {
+      "path": "registry/default/lemma-bulk-actions-bar/components/lemma-bulk-actions-bar.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-bulk-actions-bar.tsx"
+    }
+  ]
+}

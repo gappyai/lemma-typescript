@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-related-records-table",
+  "type": "registry:component",
+  "title": "Lemma Related Records Table",
+  "description": "A relation-first joined records table powered by useRelatedRecords.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card"],
+  "files": [
+    {
+      "path": "registry/default/lemma-related-records-table/components/lemma-related-records-table.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-related-records-table.tsx"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-assistant-embedded",
+  "type": "registry:block",
+  "title": "Lemma Assistant Embedded",
+  "description": "A ready-made embedded assistant UI powered by useAssistantController from lemma-sdk/react.",
+  "dependencies": ["lemma-sdk", "react-markdown", "remark-gfm"],
+  "files": [
+    {
+      "path": "registry/default/lemma-assistant-embedded/components/assistant-types.ts",
+      "type": "registry:component",
+      "target": "components/lemma/assistant/assistant-types.ts"
+    },
+    {
+      "path": "registry/default/lemma-assistant-embedded/components/assistant-chrome.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/assistant/assistant-chrome.tsx"
+    },
+    {
+      "path": "registry/default/lemma-assistant-embedded/components/assistant-experience.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/assistant/assistant-experience.tsx"
+    },
+    {
+      "path": "registry/default/lemma-assistant-embedded/components/assistant-embedded.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/assistant/assistant-embedded.tsx"
+    },
+    {
+      "path": "registry/default/lemma-assistant-embedded/styles/lemma-assistant.css",
+      "type": "registry:file",
+      "target": "styles/lemma-assistant.css"
+    }
+  ]
+}

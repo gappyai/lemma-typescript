@@ -1,0 +1,93 @@
+"use client"
+
+import * as React from "react"
+import type { LemmaClient } from "lemma-sdk"
+import { useForeignKeyOptions } from "lemma-sdk/react"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+const EMPTY_VALUE = "__lemma_empty__"
+
+export interface LemmaForeignKeySelectProps {
+  client: LemmaClient
+  podId?: string
+  tableName: string
+  columnName: string
+  value?: string | null
+  onValueChange?: (value: string) => void
+  placeholder?: string
+  disabled?: boolean
+  allowEmpty?: boolean
+  emptyLabel?: string
+  labelField?: string
+  labelFields?: string[]
+  limit?: number
+  search?: string
+}
+
+export function LemmaForeignKeySelect({
+  client,
+  podId,
+  tableName,
+  columnName,
+  value,
+  onValueChange,
+  placeholder = "Select an option",
+  disabled,
+  allowEmpty = true,
+  emptyLabel = "None",
+  labelField,
+  labelFields,
+  limit,
+  search,
+}: LemmaForeignKeySelectProps) {
+  const { options, isLoading, error } = useForeignKeyOptions({
+    client,
+    podId,
+    tableName,
+    columnName,
+    labelField,
+    labelFields,
+    limit,
+    search,
+  })
+
+  const resolvedValue = value && value.length > 0 ? value : EMPTY_VALUE
+  const isDisabled = disabled || isLoading || !!error
+
+  return (
+    <Select
+      disabled={isDisabled}
+      value={resolvedValue}
+      onValueChange={(nextValue) => onValueChange?.(nextValue === EMPTY_VALUE ? "" : nextValue)}
+    >
+      <SelectTrigger>
+        <SelectValue
+          placeholder={
+            error
+              ? "Failed to load options"
+              : isLoading
+                ? "Loading options..."
+                : placeholder
+          }
+        />
+      </SelectTrigger>
+      <SelectContent>
+        {allowEmpty ? <SelectItem value={EMPTY_VALUE}>{emptyLabel}</SelectItem> : null}
+        {options.map((option) => {
+          const optionValue = String(option.value)
+          return (
+            <SelectItem key={optionValue} value={optionValue}>
+              {option.label}
+            </SelectItem>
+          )
+        })}
+      </SelectContent>
+    </Select>
+  )
+}

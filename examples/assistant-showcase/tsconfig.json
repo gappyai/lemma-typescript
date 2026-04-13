@@ -17,9 +17,10 @@
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
     "paths": {
+      "@/*": ["./src/*"],
       "lemma-sdk": ["../../src/index.ts"],
       "lemma-sdk/react": ["../../src/react/index.ts"]
     }
   },
-  "include": ["src", "../../src"]
+  "include": ["src", "../../src", "../../registry"]
 }

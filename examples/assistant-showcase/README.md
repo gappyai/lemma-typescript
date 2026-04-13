@@ -1,12 +1,13 @@
 # Assistant Showcase Example
 
-Minimal test app for comparing the SDK assistant surfaces without adding app-specific CSS.
+Test app for comparing the SDK assistant surfaces and exercising the new hook/registry playground without adding app-specific CSS.
 
 ## What it shows
 
-- `AssistantExperienceView`
-- `AssistantEmbedded`
+- local registry-style assistant components copied from `registry/default/lemma-assistant-embedded`
+- headless assistant hooks from `lemma-sdk/react`
 - A custom shell composed from the exported chrome primitives
+- A resource playground for tables, agents, workflows, record forms, and joined-record previews
 
 ## Run it
 
@@ -18,7 +19,7 @@ cp .env.example .env
 Fill in:
 
 - `VITE_LEMMA_POD_ID`
-- `VITE_LEMMA_ASSISTANT_ID`
+- `VITE_LEMMA_ASSISTANT_NAME`
 
 Optional:
 
@@ -39,6 +40,11 @@ Open the printed local URL and sign in normally, or set a testing token in the b
 localStorage.setItem("lemma_token", "<access-token>");
 window.location.reload();
 ```
+
+Use the top navigation in the app to switch between:
+
+- `Assistant UI`
+- `Resources`
 
 ## npm safety
 

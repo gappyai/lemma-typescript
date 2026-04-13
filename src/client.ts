@@ -20,6 +20,7 @@ import { TablesNamespace } from "./namespaces/tables.js";
 import { TasksNamespace } from "./namespaces/tasks.js";
 import { UsersNamespace } from "./namespaces/users.js";
 import { WorkflowsNamespace } from "./namespaces/workflows.js";
+import { DatastoreNamespace } from "./namespaces/datastore.js";
 
 export type { LemmaConfig };
 export { AuthManager };
@@ -53,6 +54,7 @@ export class LemmaClient {
   readonly desks: DesksNamespace;
   readonly integrations: IntegrationsNamespace;
   readonly resources: ResourcesNamespace;
+  readonly datastore: DatastoreNamespace;
 
   readonly users: UsersNamespace;
   readonly icons: IconsNamespace;
@@ -95,6 +97,7 @@ export class LemmaClient {
     this.desks = new DesksNamespace(this._generated, this._http, podIdFn);
     this.integrations = new IntegrationsNamespace(this._generated);
     this.resources = new ResourcesNamespace(this._http);
+    this.datastore = new DatastoreNamespace(this._generated, podIdFn);
 
     this.users = new UsersNamespace(this._generated);
     this.icons = new IconsNamespace(this._generated);

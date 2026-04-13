@@ -1,0 +1,16 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+  "name": "lemma-records-table",
+  "type": "registry:component",
+  "title": "Lemma Records Table",
+  "description": "A lightweight records preview table powered by useRecords and useTable.",
+  "dependencies": ["lemma-sdk"],
+  "registryDependencies": ["button", "card", "checkbox"],
+  "files": [
+    {
+      "path": "registry/default/lemma-records-table/components/lemma-records-table.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/lemma-records-table.tsx"
+    }
+  ]
+}
