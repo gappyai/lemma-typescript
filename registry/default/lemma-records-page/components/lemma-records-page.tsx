@@ -37,12 +37,6 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import {
-  DATA_INPUT_CLASS_NAME,
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_SECTION_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
   DataWorkspaceHeader,
   dataWorkspaceMetaBadgeClassName,
 } from "@/components/lemma/registry-data-workspace"
@@ -516,22 +510,22 @@ export const LemmaRecordsPage = React.forwardRef<HTMLDivElement, LemmaRecordsPag
 
   return (
     <div ref={ref} className={cn("grid min-w-0 gap-6", className)} {...props}>
-      <Card className={DATA_PANEL_CARD_CLASS_NAME}>
-        <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <Card>
+        <CardHeader>
           <DataWorkspaceHeader
             description={description}
             eyebrow="Records Workspace"
             meta={(
               <>
                 {selectedTable ? (
-                  <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
+                  <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
                     {selectedTable.name}
                   </Badge>
                 ) : null}
-                <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                   {recordsState.total} total row{recordsState.total === 1 ? "" : "s"}
                 </Badge>
-                <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                   {recordSchema.editableFields.length} editable field{recordSchema.editableFields.length === 1 ? "" : "s"}
                 </Badge>
               </>
@@ -539,7 +533,7 @@ export const LemmaRecordsPage = React.forwardRef<HTMLDivElement, LemmaRecordsPag
             title={title}
           />
         </CardHeader>
-        <CardContent className={cn("grid gap-4", DATA_PANEL_CONTENT_CLASS_NAME)}>
+        <CardContent className="grid gap-4">
           {showTablePicker ? (
             <LemmaTablePicker
               client={client}
@@ -624,11 +618,10 @@ export const LemmaRecordsPage = React.forwardRef<HTMLDivElement, LemmaRecordsPag
               ) : null}
 
               {showEditAction ? (
-                <div className={cn("grid gap-3 p-4", DATA_PANEL_SECTION_CLASS_NAME)}>
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Actions</div>
+                <div className="rounded-lg border bg-muted/50 p-4">
+                  <div className="text-sm font-medium text-muted-foreground">Actions</div>
                   <div className="grid gap-2">
                     <Button
-                      className={DATA_SUBTLE_ACTION_CLASS_NAME}
                       disabled={!selectedRecordId}
                       onClick={() => {
                         if (!selectedRecordId) return
@@ -825,17 +818,17 @@ export const LemmaRecordsPage = React.forwardRef<HTMLDivElement, LemmaRecordsPag
       {showRelatedRecords ? (
         <div className="grid gap-4">
           {relationFields.length > 1 ? (
-            <Card className={DATA_PANEL_CARD_CLASS_NAME}>
-              <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+            <Card>
+              <CardHeader>
                 <DataWorkspaceHeader
                   description="Choose which foreign-key relationship to preview from the active table."
                   eyebrow="Relations"
                   title="Forward Relation Picker"
                 />
               </CardHeader>
-              <CardContent className={DATA_PANEL_CONTENT_CLASS_NAME}>
+              <CardContent>
                 <Select value={selectedRelationFieldName} onValueChange={setSelectedRelationFieldName}>
-                  <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-records-page-relation">
+                  <SelectTrigger id="lemma-records-page-relation">
                     <SelectValue placeholder="Select a relation" />
                   </SelectTrigger>
                   <SelectContent>

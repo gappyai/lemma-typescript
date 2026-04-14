@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import type { LemmaClient } from "lemma-sdk"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -12,10 +13,6 @@ import {
 import { LemmaFunctionRunHistory } from "@/components/lemma/lemma-function-run-history"
 import { LemmaFunctionRunPanel } from "@/components/lemma/lemma-function-run-panel"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_INPUT_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -68,7 +65,7 @@ export const LemmaFunctionRunnerPage = React.forwardRef<HTMLDivElement, LemmaFun
 
   const selectorActions = (
     <Select value={selectedFunctionName} onValueChange={setSelectedFunctionName}>
-      <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "min-w-[240px]")}>
+      <SelectTrigger className="min-w-[240px]">
         <SelectValue placeholder="Select a function" />
       </SelectTrigger>
       <SelectContent>
@@ -83,11 +80,11 @@ export const LemmaFunctionRunnerPage = React.forwardRef<HTMLDivElement, LemmaFun
 
   return (
     <div ref={ref} className={cn("grid gap-4", className)} {...props}>
-      <div className={DATA_PANEL_CARD_CLASS_NAME}>
-        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <Card>
+        <CardHeader className="p-6">
           <DataWorkspaceHeader actions={selectorActions} description={description} title={title} />
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
       {selectedFunctionName ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
@@ -105,14 +102,14 @@ export const LemmaFunctionRunnerPage = React.forwardRef<HTMLDivElement, LemmaFun
           />
         </div>
       ) : (
-        <div className={DATA_PANEL_CARD_CLASS_NAME}>
-          <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <Card>
+          <CardHeader className="p-6">
             <DataWorkspaceHeader description="Pass functions or a functionName to render the runner." title="No Function Selected" />
-          </div>
-          <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+          </CardHeader>
+          <CardContent className="p-6 pt-0">
             <DataWorkspaceState description="Select a function from the list above to get started." />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

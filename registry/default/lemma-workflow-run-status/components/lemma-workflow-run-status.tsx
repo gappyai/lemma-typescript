@@ -2,11 +2,8 @@
 
 import * as React from "react"
 import type { FlowRun } from "lemma-sdk"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_SECTION_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -39,11 +36,11 @@ export const LemmaWorkflowRunStatus = React.forwardRef<HTMLDivElement, LemmaWork
         : null
 
   return (
-    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+    <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+      <CardHeader className="p-6">
         <DataWorkspaceHeader description={description} title={title} />
-      </div>
-      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+      </CardHeader>
+      <CardContent className="p-6 pt-0">
         <div className="grid gap-4 sm:grid-cols-2">
           {error ? (
             <div className="col-span-full">
@@ -56,26 +53,26 @@ export const LemmaWorkflowRunStatus = React.forwardRef<HTMLDivElement, LemmaWork
             </div>
           ) : (
           <>
-          <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+          <div className="rounded-lg border bg-muted/50 p-4 text-sm">
             <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Status</div>
             <div className="font-medium">{run?.status ?? "idle"}</div>
           </div>
-          <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+          <div className="rounded-lg border bg-muted/50 p-4 text-sm">
             <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Run ID</div>
             <div className="truncate font-medium">{run?.id ?? "none"}</div>
           </div>
-          <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+          <div className="rounded-lg border bg-muted/50 p-4 text-sm">
             <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Current node</div>
             <div className="truncate font-medium">{run?.current_node_id ?? "none"}</div>
           </div>
-          <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+          <div className="rounded-lg border bg-muted/50 p-4 text-sm">
             <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Waiting on</div>
             <div className="truncate font-medium">{waitingOn ?? "nothing"}</div>
           </div>
           </>
           )}
         </div>
-      </div>
+      </CardContent>
     </div>
   )
 })

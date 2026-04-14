@@ -20,10 +20,6 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import {
-  DATA_INPUT_CLASS_NAME,
-  DATA_PANEL_SECTION_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
-  DATA_TOOLBAR_CARD_CLASS_NAME,
   DataWorkspaceState,
   dataWorkspaceMetaBadgeClassName,
 } from "@/components/lemma/registry-data-workspace"
@@ -219,12 +215,11 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
 
   return (
     <div ref={ref} className={cn("", className)} {...props}>
-    <div className={cn("flex min-w-0 flex-col gap-4", DATA_TOOLBAR_CARD_CLASS_NAME)}>
+    <div className="flex min-w-0 flex-col gap-4">
       <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center">
       {allowSearch ? (
         <div className="min-w-[240px] flex-1">
           <Input
-            className={DATA_INPUT_CLASS_NAME}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={searchPlaceholder}
             value={search}
@@ -233,7 +228,6 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
       ) : null}
       {allowFilters && onFiltersChange && availableFilterFields.length > 0 ? (
         <Button
-          className={DATA_SUBTLE_ACTION_CLASS_NAME}
           onClick={() => {
             setDraftFilters(filters.length > 0 ? filters : [createEmptyFilter(firstFilterField)])
             setIsFilterEditorOpen(true)
@@ -250,7 +244,7 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
             value={sortBy || DEFAULT_SORT_VALUE}
             onValueChange={(value) => onSortByChange(value === DEFAULT_SORT_VALUE ? "" : value)}
           >
-            <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-record-filters-sort-by">
+            <SelectTrigger id="lemma-record-filters-sort-by">
               <SelectValue placeholder="Sort field" />
             </SelectTrigger>
             <SelectContent>
@@ -267,7 +261,7 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
       {allowSorting && onSortOrderChange ? (
         <div className="grid gap-2 md:min-w-[140px]">
           <Select value={sortOrder} onValueChange={(value) => onSortOrderChange(value as "asc" | "desc")}>
-            <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-record-filters-sort-order">
+            <SelectTrigger id="lemma-record-filters-sort-order">
               <SelectValue placeholder="Sort order" />
             </SelectTrigger>
             <SelectContent>
@@ -280,7 +274,7 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
       {allowPageSizeSelect && typeof pageSize === "number" && onPageSizeChange ? (
         <div className="grid gap-2 md:min-w-[130px]">
           <Select value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
-            <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-record-filters-page-size">
+            <SelectTrigger id="lemma-record-filters-page-size">
               <SelectValue placeholder="Page size" />
             </SelectTrigger>
             <SelectContent>
@@ -295,12 +289,12 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
       ) : null}
       <div className="flex flex-wrap items-center gap-3 xl:ml-auto">
         {typeof resultCount === "number" ? (
-          <p className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium", dataWorkspaceMetaBadgeClassName("default"))}>
+          <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))}>
             {resultCount} result{resultCount === 1 ? "" : "s"}
-          </p>
+          </span>
         ) : null}
         {onRefresh ? (
-          <Button className={DATA_SUBTLE_ACTION_CLASS_NAME} disabled={isRefreshing} onClick={onRefresh} type="button" variant="ghost">
+          <Button disabled={isRefreshing} onClick={onRefresh} type="button" variant="ghost">
             {isRefreshing ? "Refreshing…" : "Refresh"}
           </Button>
         ) : null}
@@ -318,7 +312,7 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
               const operator = availableOperators(field?.type).find((option) => option.value === filter.op)
               return (
                 <div
-                  className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs", dataWorkspaceMetaBadgeClassName("default"))}
+                  className={cn("inline-flex items-center gap-2 rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))}
                   key={filter.id}
                 >
                   <span className="font-medium text-foreground">{field?.label ?? filter.field}</span>
@@ -352,7 +346,7 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
               const showValueInput = operatorNeedsValue(filter.op)
               const fieldType = field?.type ?? "text"
               return (
-                <div className={cn("grid gap-3 p-4 md:grid-cols-[minmax(0,1.3fr)_minmax(180px,0.9fr)_minmax(0,1.6fr)_auto]", DATA_PANEL_SECTION_CLASS_NAME)} key={filter.id}>
+                <div className="grid gap-3 rounded-lg border bg-muted/50 p-4 md:grid-cols-[minmax(0,1.3fr)_minmax(180px,0.9fr)_minmax(0,1.6fr)_auto]" key={filter.id}>
                   <Select
                     value={filter.field}
                     onValueChange={(value) => {
@@ -369,7 +363,7 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
                       )))
                     }}
                   >
-                    <SelectTrigger className={DATA_INPUT_CLASS_NAME}>
+                    <SelectTrigger>
                       <SelectValue placeholder="Field" />
                     </SelectTrigger>
                     <SelectContent>
@@ -395,7 +389,7 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
                       )))
                     }}
                   >
-                    <SelectTrigger className={DATA_INPUT_CLASS_NAME}>
+                    <SelectTrigger>
                       <SelectValue placeholder="Condition" />
                     </SelectTrigger>
                     <SelectContent>
@@ -416,7 +410,7 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
                           )))
                         }}
                       >
-                        <SelectTrigger className={DATA_INPUT_CLASS_NAME}>
+                        <SelectTrigger>
                           <SelectValue placeholder="Value" />
                         </SelectTrigger>
                         <SelectContent>
@@ -433,7 +427,7 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
                           )))
                         }}
                       >
-                        <SelectTrigger className={DATA_INPUT_CLASS_NAME}>
+                        <SelectTrigger>
                           <SelectValue placeholder="Value" />
                         </SelectTrigger>
                         <SelectContent>
@@ -446,7 +440,6 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
                       </Select>
                     ) : (
                       <Input
-                        className={DATA_INPUT_CLASS_NAME}
                         onChange={(event) => {
                           const value = event.target.value
                           setDraftFilters((current) => current.map((entry) => (
@@ -459,12 +452,11 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
                       />
                     )
                   ) : (
-                    <div className="flex items-center rounded-xl border border-dashed border-border/70 bg-muted/[0.18] px-4 py-3 text-sm text-muted-foreground">
+                    <div className="flex items-center rounded-lg border border-dashed bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
                       No value needed
                     </div>
                   )}
                   <Button
-                    className={DATA_SUBTLE_ACTION_CLASS_NAME}
                     onClick={() => {
                       setDraftFilters((current) => current.filter((entry) => entry.id !== filter.id))
                     }}
@@ -477,19 +469,18 @@ export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecor
               )
             })}
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-[1rem] border border-dashed border-border/70 bg-muted/[0.12] px-4 py-4 text-base font-medium text-muted-foreground transition-colors hover:bg-muted/[0.22] hover:text-foreground"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/50 px-4 py-4 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground"
               onClick={() => {
                 setDraftFilters((current) => [...current, createEmptyFilter(firstFilterField)])
               }}
               type="button"
             >
-              <span className="text-xl leading-none">+</span>
+              <span className="text-lg leading-none">+</span>
               Add Condition
             </button>
         </div>
         <SheetFooter className="border-t border-border/60 px-6 py-5">
           <Button
-            className={DATA_SUBTLE_ACTION_CLASS_NAME}
             onClick={() => {
               setDraftFilters(filters)
               setIsFilterEditorOpen(false)

@@ -20,11 +20,6 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
-  DATA_TABLE_FRAME_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
   dataWorkspaceMetaBadgeClassName,
@@ -68,8 +63,8 @@ export const LemmaTableSchemaCard = React.forwardRef<HTMLDivElement, LemmaTableS
 
     if (!trimmedTableName) {
       return (
-        <Card ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-          <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <Card ref={ref} className={cn("", className)} {...props}>
+          <CardHeader>
             <DataWorkspaceHeader
               description={description ?? "Select a table to inspect its schema and column metadata."}
               eyebrow="Schema"
@@ -83,12 +78,11 @@ export const LemmaTableSchemaCard = React.forwardRef<HTMLDivElement, LemmaTableS
     const columns = tableState.table?.columns ?? []
 
     return (
-      <Card ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-        <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <Card ref={ref} className={cn("", className)} {...props}>
+        <CardHeader>
           <DataWorkspaceHeader
             actions={(
               <Button
-                className={DATA_SUBTLE_ACTION_CLASS_NAME}
                 disabled={tableState.isLoading}
                 onClick={() => {
                   void tableState.refresh()
@@ -103,10 +97,10 @@ export const LemmaTableSchemaCard = React.forwardRef<HTMLDivElement, LemmaTableS
             eyebrow="Schema"
             meta={(
               <>
-                <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
+                <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
                   {trimmedTableName}
                 </Badge>
-                <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                   {columns.length} column{columns.length === 1 ? "" : "s"}
                 </Badge>
               </>
@@ -114,7 +108,7 @@ export const LemmaTableSchemaCard = React.forwardRef<HTMLDivElement, LemmaTableS
             title={title ?? "Table Schema"}
           />
         </CardHeader>
-        <CardContent className={cn("grid gap-4", DATA_PANEL_CONTENT_CLASS_NAME)}>
+        <CardContent className="grid gap-4">
           {tableState.error ? (
             <DataWorkspaceState description={tableState.error.message} tone="danger" />
           ) : null}
@@ -128,14 +122,14 @@ export const LemmaTableSchemaCard = React.forwardRef<HTMLDivElement, LemmaTableS
           ) : null}
 
           {columns.length > 0 ? (
-            <div className={DATA_TABLE_FRAME_CLASS_NAME}>
+            <div className="rounded-lg border">
               <Table>
-                <TableHeader className="bg-muted/[0.3]">
+                <TableHeader className="bg-muted/50">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Column</TableHead>
-                    <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Type</TableHead>
-                    <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Details</TableHead>
-                    <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Flags</TableHead>
+                    <TableHead className="border-b px-4 py-3 text-sm font-medium text-muted-foreground">Column</TableHead>
+                    <TableHead className="border-b px-4 py-3 text-sm font-medium text-muted-foreground">Type</TableHead>
+                    <TableHead className="border-b px-4 py-3 text-sm font-medium text-muted-foreground">Details</TableHead>
+                    <TableHead className="border-b px-4 py-3 text-sm font-medium text-muted-foreground">Flags</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -148,7 +142,7 @@ export const LemmaTableSchemaCard = React.forwardRef<HTMLDivElement, LemmaTableS
                         </div>
                       </TableCell>
                       <TableCell className="px-4 py-3 align-top">
-                        <Badge className={cn("rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]", dataWorkspaceTypeBadgeClassName(column.foreign_key?.references ? "foreign-key" : column.type))} variant="outline">
+                        <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceTypeBadgeClassName(column.foreign_key?.references ? "foreign-key" : column.type))} variant="outline">
                           {column.foreign_key?.references ? "foreign-key" : column.type}
                         </Badge>
                       </TableCell>
@@ -170,27 +164,27 @@ export const LemmaTableSchemaCard = React.forwardRef<HTMLDivElement, LemmaTableS
                       <TableCell className="px-4 py-3 align-top">
                         <div className="flex flex-wrap gap-2">
                           {column.required ? (
-                            <Badge className={cn("rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
+                            <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
                               Required
                             </Badge>
                           ) : null}
                           {column.unique ? (
-                            <Badge className={cn("rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                            <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                               Unique
                             </Badge>
                           ) : null}
                           {column.system ? (
-                            <Badge className={cn("rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                            <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                               System
                             </Badge>
                           ) : null}
                           {column.computed ? (
-                            <Badge className={cn("rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                            <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                               Computed
                             </Badge>
                           ) : null}
                           {column.auto ? (
-                            <Badge className={cn("rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                            <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                               Auto
                             </Badge>
                           ) : null}

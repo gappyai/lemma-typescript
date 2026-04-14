@@ -5,6 +5,7 @@ import type { JsonSchemaLike } from "lemma-sdk"
 import { useSchemaForm } from "lemma-sdk/react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,13 +18,6 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_SECTION_CLASS_NAME,
-  DATA_INPUT_CLASS_NAME,
-  DATA_FIELD_LABEL_CLASS_NAME,
-  DATA_TYPE_BADGE_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
   dataWorkspaceTypeBadgeClassName,
@@ -97,7 +91,7 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
 
   const meta = hasFields ? (
     <Badge
-      className={cn(DATA_TYPE_BADGE_CLASS_NAME, "border-border/70 bg-background/70 text-muted-foreground")}
+      className={cn("rounded-full border px-2 py-0.5 text-xs", "border-border/70 bg-background/70 text-muted-foreground")}
       variant="outline"
     >
       {visibleFields.length} field{visibleFields.length === 1 ? "" : "s"}
@@ -105,15 +99,15 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
   ) : null
 
   return (
-    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+    <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+      <CardHeader className="p-6">
         <DataWorkspaceHeader
           description={description}
           meta={meta}
           title={title}
         />
-      </div>
-      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+      </CardHeader>
+      <CardContent className="p-6 pt-0">
         <form className="grid gap-5" onSubmit={handleSubmit}>
           {form.error ? (
             <DataWorkspaceState description={form.error.message} heading="Submission failed" tone="danger" />
@@ -130,7 +124,7 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
             const resolvedDescription = fieldDescriptions?.[field.name] ?? field.description
             const fieldBadge = (
               <Badge
-                className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceTypeBadgeClassName(schemaFieldType(field.kind)))}
+                className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceTypeBadgeClassName(schemaFieldType(field.kind)))}
                 variant="outline"
               >
                 {field.kind}
@@ -138,7 +132,7 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
             )
             const fieldLabel = (
               <div className="flex flex-wrap items-center gap-3">
-                <Label className={DATA_FIELD_LABEL_CLASS_NAME} htmlFor={field.name}>
+                <Label className="text-sm font-medium text-muted-foreground" htmlFor={field.name}>
                   {resolvedLabel}
                   {field.required ? " *" : ""}
                 </Label>
@@ -148,7 +142,7 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
 
             if (field.kind === "boolean") {
               return (
-                <div key={field.name} className={cn(DATA_PANEL_SECTION_CLASS_NAME, "grid gap-3 p-4")}>
+                <div key={field.name} className="rounded-lg border bg-muted/50 p-4 grid gap-3">
                   {fieldLabel}
                   {resolvedDescription ? (
                     <p className="text-sm leading-6 text-muted-foreground">{resolvedDescription}</p>
@@ -176,7 +170,7 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
                     value={typeof value === "string" ? value : ""}
                     onValueChange={(nextValue) => form.setValue(field.name, nextValue)}
                   >
-                    <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "h-12")} id={field.name}>
+                    <SelectTrigger className="h-10" id={field.name}>
                       <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
                     </SelectTrigger>
                     <SelectContent>
@@ -200,7 +194,7 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
                     <p className="text-sm leading-6 text-muted-foreground">{resolvedDescription}</p>
                   ) : null}
                   <Textarea
-                    className="min-h-24 rounded-xl border-border/70 bg-background px-4 py-3 text-sm shadow-sm"
+                    className="min-h-24"
                     id={field.name}
                     rows={field.kind === "json" ? 8 : 4}
                     value={typeof value === "string" ? value : ""}
@@ -218,7 +212,7 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
                   <p className="text-sm leading-6 text-muted-foreground">{resolvedDescription}</p>
                 ) : null}
                 <Input
-                  className={cn(DATA_INPUT_CLASS_NAME, "h-12 px-4 text-sm")}
+                  className="h-10"
                   id={field.name}
                   type={
                     field.kind === "number"
@@ -242,7 +236,6 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
           <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border/60 pt-5">
             {showReset ? (
               <Button
-                className="rounded-xl"
                 disabled={disabled || form.isSubmitting}
                 onClick={() => form.reset()}
                 type="button"
@@ -252,7 +245,6 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
               </Button>
             ) : null}
             <Button
-              className="rounded-xl"
               disabled={disabled || form.isSubmitting}
               type="submit"
             >
@@ -260,7 +252,7 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
             </Button>
           </div>
         </form>
-      </div>
+      </CardContent>
     </div>
   )
 })

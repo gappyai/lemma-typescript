@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import type { FlowRun, LemmaClient, Workflow } from "lemma-sdk"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -14,10 +15,6 @@ import { LemmaWorkflowRunDetails } from "@/components/lemma/lemma-workflow-run-d
 import { LemmaWorkflowRunStatus } from "@/components/lemma/lemma-workflow-run-status"
 import { LemmaWorkflowStartForm } from "@/components/lemma/lemma-workflow-start-form"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_INPUT_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -65,7 +62,7 @@ export const LemmaWorkflowLauncherPage = React.forwardRef<HTMLDivElement, LemmaW
 
   const selectorActions = (
     <Select value={selectedWorkflowName} onValueChange={setSelectedWorkflowName}>
-      <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "min-w-[240px]")}>
+      <SelectTrigger className="min-w-[240px]">
         <SelectValue placeholder="Select a workflow" />
       </SelectTrigger>
       <SelectContent>
@@ -80,11 +77,11 @@ export const LemmaWorkflowLauncherPage = React.forwardRef<HTMLDivElement, LemmaW
 
   return (
     <div ref={ref} className={cn("grid gap-4", className)} {...props}>
-      <div className={DATA_PANEL_CARD_CLASS_NAME}>
-        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <Card>
+        <CardHeader className="p-6">
           <DataWorkspaceHeader actions={selectorActions} description={description} title={title} />
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
       {selectedWorkflowName ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
@@ -106,14 +103,14 @@ export const LemmaWorkflowLauncherPage = React.forwardRef<HTMLDivElement, LemmaW
           />
         </div>
       ) : (
-        <div className={DATA_PANEL_CARD_CLASS_NAME}>
-          <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <Card>
+          <CardHeader className="p-6">
             <DataWorkspaceHeader description="Pass workflows or a workflowName to render the launcher." title="No Workflow Selected" />
-          </div>
-          <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+          </CardHeader>
+          <CardContent className="p-6 pt-0">
             <DataWorkspaceState description="Select a workflow from the list above to get started." />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

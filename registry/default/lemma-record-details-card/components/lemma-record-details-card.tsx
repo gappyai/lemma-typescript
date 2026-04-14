@@ -5,6 +5,7 @@ import type { LemmaClient } from "lemma-sdk"
 import { useRecord } from "lemma-sdk/react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
   Sheet,
   SheetContent,
@@ -13,12 +14,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_SECTION_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
-  DATA_TYPE_BADGE_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
   dataWorkspaceMetaBadgeClassName,
@@ -121,19 +116,19 @@ export const LemmaRecordDetailsCard = React.forwardRef<HTMLDivElement, LemmaReco
     const meta = (
       <div className="flex flex-wrap items-center gap-2">
         <Badge
-          className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceMetaBadgeClassName("default"))}
+          className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))}
           variant="outline"
         >
           {trimmedTableName}
         </Badge>
         <Badge
-          className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceMetaBadgeClassName("default"))}
+          className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))}
           variant="outline"
         >
           {visibleFields.length} field{visibleFields.length === 1 ? "" : "s"}
         </Badge>
         <Badge
-          className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceMetaBadgeClassName("primary"), "max-w-full truncate font-mono text-[10px]")}
+          className={cn("rounded-full border px-2 py-0.5 text-xs max-w-full truncate font-mono text-[10px]", dataWorkspaceMetaBadgeClassName("primary"))}
           variant="outline"
         >
           {trimmedRecordId}
@@ -142,7 +137,6 @@ export const LemmaRecordDetailsCard = React.forwardRef<HTMLDivElement, LemmaReco
     )
     const actions = (
       <Button
-        className={DATA_SUBTLE_ACTION_CLASS_NAME}
         disabled={recordState.isLoading}
         onClick={() => {
           void recordState.refresh()
@@ -156,15 +150,15 @@ export const LemmaRecordDetailsCard = React.forwardRef<HTMLDivElement, LemmaReco
 
     const detailsBody = (
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <CardHeader className="p-6">
           <DataWorkspaceHeader
             actions={actions}
             description={headerDescription}
             meta={meta}
             title={headerTitle}
           />
-        </div>
-        <div className={cn("min-h-0 flex-1 overflow-y-auto", DATA_PANEL_CONTENT_CLASS_NAME)}>
+        </CardHeader>
+        <CardContent className="min-h-0 flex-1 overflow-y-auto p-6 pt-0">
           <div className="grid gap-4">
             {recordState.error ? (
               <DataWorkspaceState description={recordState.error.message} heading="Failed to load record" tone="danger" />
@@ -179,12 +173,12 @@ export const LemmaRecordDetailsCard = React.forwardRef<HTMLDivElement, LemmaReco
                 {visibleFields.map((field) => (
                   <section
                     key={field}
-                    className={cn(DATA_PANEL_SECTION_CLASS_NAME, "grid gap-3 p-4")}
+                    className="rounded-lg border bg-muted/50 p-4 grid gap-3"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <div className="text-sm font-medium text-foreground">{sentenceCase(field)}</div>
                       <Badge
-                        className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceMetaBadgeClassName("default"), "font-mono")}
+                        className={cn("rounded-full border px-2 py-0.5 text-xs font-mono", dataWorkspaceMetaBadgeClassName("default"))}
                         variant="outline"
                       >
                         {field}
@@ -198,7 +192,7 @@ export const LemmaRecordDetailsCard = React.forwardRef<HTMLDivElement, LemmaReco
               </div>
             ) : null}
           </div>
-        </div>
+        </CardContent>
       </div>
     )
 
@@ -208,13 +202,13 @@ export const LemmaRecordDetailsCard = React.forwardRef<HTMLDivElement, LemmaReco
       }
 
       return (
-        <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-          <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+          <CardHeader className="p-6">
             <DataWorkspaceHeader
               description={description ?? "Select a record to inspect its full payload."}
               title={headerTitle}
             />
-          </div>
+          </CardHeader>
         </div>
       )
     }
@@ -234,7 +228,7 @@ export const LemmaRecordDetailsCard = React.forwardRef<HTMLDivElement, LemmaReco
     }
 
     return (
-      <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+      <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
         {detailsBody}
       </div>
     )

@@ -2,12 +2,8 @@
 
 import * as React from "react"
 import type { Task } from "lemma-sdk"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_SECTION_CLASS_NAME,
-  DATA_CODE_BLOCK_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -48,27 +44,27 @@ export const LemmaAgentOutputCard = React.forwardRef<HTMLDivElement, LemmaAgentO
   const visibleOutput = finalOnly && !isFinal ? null : resolvedOutput
 
   return (
-    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+    <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+      <CardHeader className="p-6">
         <DataWorkspaceHeader description={description} title={title} />
-      </div>
-      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+      </CardHeader>
+      <CardContent className="p-6 pt-0">
         <div className="flex flex-col gap-4">
           {task ? (
-            <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "grid gap-2 p-4 text-sm")}>
+            <div className="rounded-lg border bg-muted/50 p-4 grid gap-2 text-sm">
               <div className="font-medium">Status: {task.status}</div>
               <div className="truncate text-sm text-muted-foreground">Task ID: {task.id}</div>
             </div>
           ) : null}
           {visibleOutput ? (
-            <pre className={DATA_CODE_BLOCK_CLASS_NAME}>
+            <pre className="rounded-lg border bg-muted/50 p-4 overflow-x-auto whitespace-pre-wrap text-sm">
               {formatJson(visibleOutput)}
             </pre>
           ) : (
             <DataWorkspaceState description={emptyText} />
           )}
         </div>
-      </div>
+      </CardContent>
     </div>
   )
 })

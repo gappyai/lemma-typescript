@@ -5,6 +5,7 @@ import type { LemmaClient } from "lemma-sdk"
 import { useRecordForm } from "lemma-sdk/react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,14 +28,6 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { LemmaForeignKeySelect } from "@/components/lemma/lemma-foreign-key-select"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_SECTION_CLASS_NAME,
-  DATA_INPUT_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
-  DATA_FIELD_LABEL_CLASS_NAME,
-  DATA_TYPE_BADGE_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
   dataWorkspaceTypeBadgeClassName,
@@ -182,13 +175,13 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
 
     if (!hasTableName) {
       return (
-        <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-          <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+          <CardHeader className="p-6">
             <DataWorkspaceHeader
               description={description ?? "Select a table to render the generated record form."}
               title={title ?? "Registry Record Form"}
             />
-          </div>
+          </CardHeader>
         </div>
       )
     }
@@ -198,19 +191,19 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
     const meta = (
       <div className="flex flex-wrap items-center gap-2">
         <Badge
-          className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceMetaBadgeClassName(recordId ? "success" : "primary"))}
+          className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName(recordId ? "success" : "primary"))}
           variant="outline"
         >
           {recordId ? "Update" : "Create"}
         </Badge>
         <Badge
-          className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceMetaBadgeClassName("default"))}
+          className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))}
           variant="outline"
         >
           {fields.length} field{fields.length === 1 ? "" : "s"}
         </Badge>
         <Badge
-          className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceMetaBadgeClassName("default"))}
+          className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))}
           variant="outline"
         >
           {tableName}
@@ -240,12 +233,12 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
           const placeholder = buildPlaceholder(resolvedLabel, field.kind)
           const fieldHeader = (
             <div className="flex flex-wrap items-center gap-3">
-              <Label className={DATA_FIELD_LABEL_CLASS_NAME} htmlFor={field.name}>
+              <Label className="text-sm font-medium text-muted-foreground" htmlFor={field.name}>
                 {resolvedLabel}
                 {field.required ? " *" : ""}
               </Label>
               <Badge
-                className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceTypeBadgeClassName(field.kind))}
+                className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceTypeBadgeClassName(field.kind))}
                 variant="outline"
               >
                 {field.column.type.toLowerCase()}
@@ -260,7 +253,7 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
                 {resolvedFieldDescription ? (
                   <p className="text-sm leading-6 text-muted-foreground">{resolvedFieldDescription}</p>
                 ) : null}
-                <label className={cn(DATA_PANEL_SECTION_CLASS_NAME, "flex items-center gap-3 px-4 py-4 text-sm")}>
+                <label className="rounded-lg border bg-muted/50 flex items-center gap-3 p-4 text-sm">
                   <Checkbox
                     checked={Boolean(value)}
                     onCheckedChange={(checked) => form.setValue(field.name, checked === true)}
@@ -283,7 +276,7 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
                   value={typeof value === "string" ? value : ""}
                   onValueChange={(nextValue) => form.setValue(field.name, nextValue)}
                 >
-                  <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "h-12 w-full px-4 text-sm")} id={field.name}>
+                  <SelectTrigger className="h-10 w-full" id={field.name}>
                     <SelectValue placeholder={placeholder} />
                   </SelectTrigger>
                   <SelectContent>
@@ -329,7 +322,7 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
                   <p className="text-sm leading-6 text-muted-foreground">{resolvedFieldDescription}</p>
                 ) : null}
                 <Textarea
-                  className="min-h-24 rounded-xl border-border/70 bg-background px-4 py-3 text-sm shadow-sm"
+                  className="min-h-24"
                   id={field.name}
                   onChange={(event) => form.setValue(field.name, event.target.value)}
                   placeholder={placeholder}
@@ -348,7 +341,7 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
                 <p className="text-sm leading-6 text-muted-foreground">{resolvedFieldDescription}</p>
               ) : null}
               <Input
-                className={cn(DATA_INPUT_CLASS_NAME, "h-12 px-4 text-sm")}
+                className="h-10"
                 id={field.name}
                 onChange={(event) => form.setValue(field.name, event.target.value)}
                 placeholder={placeholder}
@@ -372,7 +365,6 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
           <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border/60 pt-5">
             {showReset ? (
               <Button
-                className="rounded-xl"
                 disabled={form.isSubmitting}
                 onClick={() => form.reset()}
                 type="button"
@@ -381,11 +373,10 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
                 {resetLabel}
               </Button>
             ) : null}
-            <Button className="rounded-xl" onClick={onCancel} type="button" variant="ghost">
+            <Button onClick={onCancel} type="button" variant="ghost">
               {cancelLabel}
             </Button>
             <Button
-              className="rounded-xl"
               disabled={form.isSubmitting || form.isLoadingSchema || form.isLoadingRecord}
               type="submit"
             >
@@ -400,7 +391,7 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
       return (
         <Sheet open={open ?? internalOpen} onOpenChange={handleSheetOpenChange}>
           <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-3xl" side={side}>
-            <SheetHeader className={cn(DATA_PANEL_HEADER_CLASS_NAME, "text-left")}>
+            <SheetHeader className="p-6 text-left">
               <SheetTitle className="text-lg font-semibold leading-tight tracking-[-0.01em] md:text-xl">
                 {resolvedTitle}
               </SheetTitle>
@@ -409,14 +400,13 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
               </SheetDescription>
               {meta}
             </SheetHeader>
-            <div ref={ref} className={cn("min-h-0 flex-1 overflow-y-auto", DATA_PANEL_CONTENT_CLASS_NAME, className)} {...props}>
+            <div ref={ref} className={cn("min-h-0 flex-1 overflow-y-auto p-6 pt-0", className)} {...props}>
               {body}
             </div>
             <SheetFooter className="border-t border-border/60 px-5 py-4 sm:justify-between md:px-6">
               <div className="flex flex-wrap items-center gap-2">
                 {showReset ? (
                   <Button
-                    className="rounded-xl"
                     disabled={form.isSubmitting}
                     onClick={() => form.reset()}
                     type="button"
@@ -427,11 +417,10 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
                 ) : null}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Button className="rounded-xl" onClick={onCancel} type="button" variant="ghost">
+                <Button onClick={onCancel} type="button" variant="ghost">
                   {cancelLabel}
                 </Button>
                 <Button
-                  className="rounded-xl"
                   disabled={form.isSubmitting || form.isLoadingSchema || form.isLoadingRecord}
                   form={formId}
                   type="submit"
@@ -446,15 +435,15 @@ export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormP
     }
 
     return (
-      <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+        <CardHeader className="p-6">
           <DataWorkspaceHeader
             description={resolvedDescription}
             meta={meta}
             title={resolvedTitle}
           />
-        </div>
-        <div className={DATA_PANEL_CONTENT_CLASS_NAME}>{body}</div>
+        </CardHeader>
+        <CardContent className="p-6 pt-0">{body}</CardContent>
       </div>
     )
   },

@@ -4,8 +4,8 @@ import * as React from "react"
 import { Badge } from "@/components/ui/badge"
 import {
   Card,
-  CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -24,31 +24,33 @@ export interface SectionCardsProps {
 
 function SectionCard({ card }: { card: SectionCardItem }) {
   return (
-    <Card className="relative @container/card overflow-hidden border-border/70 shadow-[0_1px_0_rgba(255,255,255,0.55),0_12px_28px_-30px_rgba(15,23,42,0.22)]">
+    <Card className="@container/card">
       <CardHeader className="relative">
+        <CardDescription>{card.title}</CardDescription>
+        <CardTitle className="@[250px]/card:text-3xl text-2xl font-semibold tabular-nums">
+          {card.value}
+        </CardTitle>
         {card.badge ? (
-          <Badge className="absolute right-4 top-4" variant="secondary">
-            {card.badge}
-          </Badge>
+          <div className="absolute right-4 top-4">
+            <Badge variant="outline" className="flex gap-1 rounded-lg text-xs">
+              {card.icon}
+              {card.badge}
+            </Badge>
+          </div>
         ) : null}
-        <CardDescription className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-          {card.icon}
-          {card.title}
-        </CardDescription>
       </CardHeader>
-      <CardContent className="pt-0">
-        <div className="text-2xl font-semibold leading-tight tracking-tight">{card.value}</div>
-        {card.description ? (
-          <div className="mt-1 text-sm text-muted-foreground">{card.description}</div>
-        ) : null}
-      </CardContent>
+      {card.description ? (
+        <CardFooter className="flex-col items-start gap-1 text-sm">
+          <div className="text-muted-foreground">{card.description}</div>
+        </CardFooter>
+      ) : null}
     </Card>
   )
 }
 
 export function SectionCards({ cards = [] }: SectionCardsProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+    <div className="*:data-[slot=card]:shadow-sm @xl/main:grid-cols-2 @5xl/main:grid-cols-4 grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card lg:px-6">
       {cards.map((card) => (
         <SectionCard card={card} key={card.title} />
       ))}

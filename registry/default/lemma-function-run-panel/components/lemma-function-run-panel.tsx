@@ -3,13 +3,9 @@
 import * as React from "react"
 import type { JsonSchemaLike, LemmaClient, FunctionRun } from "lemma-sdk"
 import { useFunctionRun } from "lemma-sdk/react"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { LemmaSchemaForm } from "@/components/lemma/lemma-schema-form"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_SECTION_CLASS_NAME,
-  DATA_CODE_BLOCK_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -73,38 +69,38 @@ export const LemmaFunctionRunPanel = React.forwardRef<HTMLDivElement, LemmaFunct
         submitLabel={run.isPolling ? "Running\u2026" : "Run function"}
         title={title}
       />
-      <div className={DATA_PANEL_CARD_CLASS_NAME}>
-        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <Card>
+        <CardHeader className="p-6">
           <DataWorkspaceHeader
             description="Latest run status and output."
             title="Function Run"
           />
-        </div>
-        <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+        </CardHeader>
+        <CardContent className="p-6 pt-0">
           <div className="flex flex-col gap-4">
             {run.error ? (
               <DataWorkspaceState description={run.error.message} heading="Run error" tone="danger" />
             ) : null}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+              <div className="rounded-lg border bg-muted/50 p-4 text-sm">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Status</div>
                 <div className="font-medium">{run.status ?? "idle"}</div>
               </div>
-              <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+              <div className="rounded-lg border bg-muted/50 p-4 text-sm">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Run ID</div>
                 <div className="truncate font-medium">{run.runId ?? "none"}</div>
               </div>
             </div>
             {run.output ? (
-              <pre className={DATA_CODE_BLOCK_CLASS_NAME}>
+              <pre className="rounded-lg border bg-muted/50 p-4 overflow-x-auto whitespace-pre-wrap text-sm">
                 {formatJson(run.output)}
               </pre>
             ) : (
               <DataWorkspaceState description="Run the function to inspect output." />
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 })

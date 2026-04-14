@@ -20,11 +20,6 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import {
-  DATA_INPUT_CLASS_NAME,
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
   dataWorkspaceMetaBadgeClassName,
@@ -138,12 +133,11 @@ export const LemmaRecordPicker = React.forwardRef<HTMLDivElement, LemmaRecordPic
   }, [deferredSearch, effectiveRecords, labelFields, searchFields])
 
   return (
-    <Card ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-      <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+    <Card ref={ref} className={cn("", className)} {...props}>
+      <CardHeader>
         <DataWorkspaceHeader
           actions={(
             <Button
-              className={DATA_SUBTLE_ACTION_CLASS_NAME}
               disabled={effectiveIsLoading || trimmedTableName.length === 0}
               onClick={() => {
                 if (onRefresh) {
@@ -163,11 +157,11 @@ export const LemmaRecordPicker = React.forwardRef<HTMLDivElement, LemmaRecordPic
           meta={(
             <>
               {trimmedTableName ? (
-                <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
+                <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
                   {trimmedTableName}
                 </Badge>
               ) : null}
-              <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+              <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                 {filteredRecords.length} result{filteredRecords.length === 1 ? "" : "s"}
               </Badge>
             </>
@@ -175,13 +169,12 @@ export const LemmaRecordPicker = React.forwardRef<HTMLDivElement, LemmaRecordPic
           title={title}
         />
       </CardHeader>
-      <CardContent className={cn("flex flex-col gap-4", DATA_PANEL_CONTENT_CLASS_NAME)}>
+      <CardContent className="flex flex-col gap-4">
         {effectiveError ? (
           <DataWorkspaceState description={effectiveError.message} tone="danger" />
         ) : null}
 
         <Input
-          className={DATA_INPUT_CLASS_NAME}
           onChange={(event) => {
             if (onSearchChange) {
               onSearchChange(event.target.value)
@@ -198,7 +191,7 @@ export const LemmaRecordPicker = React.forwardRef<HTMLDivElement, LemmaRecordPic
           value={value ?? ""}
           onValueChange={onValueChange}
         >
-          <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-record-picker">
+          <SelectTrigger id="lemma-record-picker">
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>

@@ -2,11 +2,8 @@
 
 import * as React from "react"
 import type { FlowRun } from "lemma-sdk"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_CODE_BLOCK_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -40,11 +37,11 @@ export const LemmaWorkflowRunDetails = React.forwardRef<HTMLDivElement, LemmaWor
     ...props
   }, ref) => {
   return (
-    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+    <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+      <CardHeader className="p-6">
         <DataWorkspaceHeader description={description} title={title} />
-      </div>
-      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+      </CardHeader>
+      <CardContent className="p-6 pt-0">
         <div className="grid gap-4">
           {error ? (
             <DataWorkspaceState description={error.message} heading="Failed to load details" tone="danger" />
@@ -55,10 +52,10 @@ export const LemmaWorkflowRunDetails = React.forwardRef<HTMLDivElement, LemmaWor
             <DataWorkspaceState description="Select a workflow run to inspect details." />
           ) : (
             <>
-              <pre className={DATA_CODE_BLOCK_CLASS_NAME}>
+              <pre className="rounded-lg border bg-muted/50 p-4 overflow-x-auto whitespace-pre-wrap text-sm">
                 {formatJson(run.execution_context ?? {})}
               </pre>
-              <pre className={DATA_CODE_BLOCK_CLASS_NAME}>
+              <pre className="rounded-lg border bg-muted/50 p-4 overflow-x-auto whitespace-pre-wrap text-sm">
                 {formatJson({
                   execution_stack: run.execution_stack ?? [],
                   step_history: run.step_history ?? [],
@@ -67,7 +64,7 @@ export const LemmaWorkflowRunDetails = React.forwardRef<HTMLDivElement, LemmaWor
             </>
           )}
         </div>
-      </div>
+      </CardContent>
     </div>
   )
 })

@@ -4,8 +4,6 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import {
-  DATA_FLOATING_BAR_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
   DataWorkspaceState,
   dataWorkspaceMetaBadgeClassName,
 } from "@/components/lemma/registry-data-workspace"
@@ -57,11 +55,11 @@ export const LemmaBulkActionsBar = React.forwardRef<HTMLDivElement, LemmaBulkAct
   return (
     <div ref={ref} className={cn("grid gap-3", className)} {...props}>
       {selectedCount > 0 ? (
-        <div className={cn("flex flex-col gap-3 md:flex-row md:items-center md:justify-between", DATA_FLOATING_BAR_CLASS_NAME)}>
+        <div className="flex flex-col gap-3 rounded-full border bg-background/95 px-4 py-2 shadow-lg md:flex-row md:items-center md:justify-between">
           <div className="grid gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <div className="text-sm font-medium text-foreground">{title}</div>
-              <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))}>
+              <div className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("primary"))}>
                 {selectedCount} selected
               </div>
             </div>
@@ -71,13 +69,12 @@ export const LemmaBulkActionsBar = React.forwardRef<HTMLDivElement, LemmaBulkAct
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {onClearSelection ? (
-              <Button className={DATA_SUBTLE_ACTION_CLASS_NAME} onClick={onClearSelection} variant="ghost">
+              <Button onClick={onClearSelection} variant="ghost">
                 {clearLabel}
               </Button>
             ) : null}
             {actions.map((action) => (
               <Button
-                className={action.variant === "destructive" ? "" : DATA_SUBTLE_ACTION_CLASS_NAME}
                 disabled={action.isLoading || isBusy}
                 key={action.label}
                 onClick={() => action.onClick(selectedIds)}

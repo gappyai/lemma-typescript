@@ -4,12 +4,8 @@ import * as React from "react"
 import type { LemmaClient } from "lemma-sdk"
 import { useFunctionRuns } from "lemma-sdk/react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_LIST_ITEM_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -44,7 +40,6 @@ export const LemmaFunctionRunHistory = React.forwardRef<HTMLDivElement, LemmaFun
 
   const actions = (
     <Button
-      className={DATA_SUBTLE_ACTION_CLASS_NAME}
       disabled={history.isLoading || !functionName}
       onClick={() => {
         void history.refresh()
@@ -57,11 +52,11 @@ export const LemmaFunctionRunHistory = React.forwardRef<HTMLDivElement, LemmaFun
   )
 
   return (
-    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+    <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+      <CardHeader className="p-6">
         <DataWorkspaceHeader actions={actions} description={description} title={title} />
-      </div>
-      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+      </CardHeader>
+      <CardContent className="p-6 pt-0">
         <div className="flex flex-col gap-4">
           {history.error ? (
             <DataWorkspaceState description={history.error.message} heading="Failed to load history" tone="danger" />
@@ -71,7 +66,7 @@ export const LemmaFunctionRunHistory = React.forwardRef<HTMLDivElement, LemmaFun
           ) : (
             history.runs.map((run) => (
               <button
-                className={cn(DATA_LIST_ITEM_CLASS_NAME, "text-left text-sm data-[selected=true]:border-primary/50 data-[selected=true]:bg-foreground/[0.04]")}
+                className="rounded-lg border p-4 hover:bg-muted/50 text-left text-sm data-[selected=true]:border-primary/50 data-[selected=true]:bg-foreground/[0.04]"
                 data-selected={run.id === history.effectiveSelectedRunId}
                 key={run.id}
                 onClick={() => {
@@ -90,7 +85,6 @@ export const LemmaFunctionRunHistory = React.forwardRef<HTMLDivElement, LemmaFun
           )}
           {history.nextPageToken ? (
             <Button
-              className="rounded-xl"
               disabled={history.isLoadingMore}
               onClick={() => {
                 void history.loadMore()
@@ -102,7 +96,7 @@ export const LemmaFunctionRunHistory = React.forwardRef<HTMLDivElement, LemmaFun
             </Button>
           ) : null}
         </div>
-      </div>
+      </CardContent>
     </div>
   )
 })

@@ -4,11 +4,9 @@ import * as React from "react"
 import type { FlowRun, LemmaClient } from "lemma-sdk"
 import { useWorkflowStart } from "lemma-sdk/react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { LemmaSchemaForm } from "@/components/lemma/lemma-schema-form"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -65,37 +63,36 @@ export const LemmaWorkflowStartForm = React.forwardRef<HTMLDivElement, LemmaWork
 
   if (!hasWorkflowName) {
     return (
-      <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+        <CardHeader className="p-6">
           <DataWorkspaceHeader description={description} title={title} />
-        </div>
+        </CardHeader>
       </div>
     )
   }
 
   if (!workflow.workflow && workflow.isLoadingWorkflow) {
     return (
-      <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+        <CardHeader className="p-6">
           <DataWorkspaceHeader description="Loading workflow definition\u2026" title={title} />
-        </div>
+        </CardHeader>
       </div>
     )
   }
 
   if (!workflow.inputSchema || Object.keys(workflow.inputSchema).length === 0) {
     return (
-      <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+        <CardHeader className="p-6">
           <DataWorkspaceHeader description={description} title={title} />
-        </div>
-        <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+        </CardHeader>
+        <CardContent className="p-6 pt-0">
           <div className="grid gap-4">
             {workflow.error ? (
               <DataWorkspaceState description={workflow.error.message} heading="Workflow error" tone="danger" />
             ) : null}
             <Button
-              className="rounded-xl"
               disabled={workflow.isStarting}
               onClick={() => {
                 void workflow.start(initialValues ?? {}).then((run) => {
@@ -107,7 +104,7 @@ export const LemmaWorkflowStartForm = React.forwardRef<HTMLDivElement, LemmaWork
               {workflow.isStarting ? "Starting\u2026" : submitLabel}
             </Button>
           </div>
-        </div>
+        </CardContent>
       </div>
     )
   }

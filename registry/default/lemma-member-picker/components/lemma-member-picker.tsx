@@ -3,6 +3,7 @@
 import * as React from "react"
 import type { LemmaClient, PodMember } from "lemma-sdk"
 import { useMembers } from "lemma-sdk/react"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -11,10 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_INPUT_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -51,7 +48,7 @@ export const LemmaMemberPicker = React.forwardRef<HTMLDivElement, LemmaMemberPic
 
   const selector = (
     <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "min-w-[240px]")}>
+      <SelectTrigger className="min-w-[240px]">
         <SelectValue placeholder={state.isLoading ? "Loading members\u2026" : "Select a member"} />
       </SelectTrigger>
       <SelectContent>
@@ -65,15 +62,15 @@ export const LemmaMemberPicker = React.forwardRef<HTMLDivElement, LemmaMemberPic
   )
 
   return (
-    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+    <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+      <CardHeader className="p-6">
         <DataWorkspaceHeader actions={selector} description={description} title={title} />
-      </div>
-      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+      </CardHeader>
+      <CardContent className="p-6 pt-0">
         {state.error && !members ? (
           <DataWorkspaceState description={state.error.message} heading="Failed to load members" tone="danger" />
         ) : null}
-      </div>
+      </CardContent>
     </div>
   )
 })

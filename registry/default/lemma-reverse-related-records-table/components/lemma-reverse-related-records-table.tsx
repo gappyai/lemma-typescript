@@ -28,12 +28,6 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import {
-  DATA_INPUT_CLASS_NAME,
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
-  DATA_TABLE_FRAME_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
   dataWorkspaceMetaBadgeClassName,
@@ -118,8 +112,8 @@ export const LemmaReverseRelatedRecordsTable = React.forwardRef<HTMLDivElement, 
 
     if (!trimmedTableName || !trimmedRecordId) {
       return (
-        <Card ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-          <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <Card ref={ref} className={cn("", className)} {...props}>
+          <CardHeader>
             <DataWorkspaceHeader
               description={description ?? "Select a record to inspect child rows that point back to it."}
               eyebrow="Reverse Relations"
@@ -131,12 +125,11 @@ export const LemmaReverseRelatedRecordsTable = React.forwardRef<HTMLDivElement, 
     }
 
     return (
-      <Card ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-        <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <Card ref={ref} className={cn("", className)} {...props}>
+        <CardHeader>
           <DataWorkspaceHeader
             actions={(
               <Button
-                className={DATA_SUBTLE_ACTION_CLASS_NAME}
                 disabled={reverseState.isLoading}
                 onClick={() => {
                   void reverseState.refresh()
@@ -151,10 +144,10 @@ export const LemmaReverseRelatedRecordsTable = React.forwardRef<HTMLDivElement, 
             eyebrow="Reverse Relations"
             meta={(
               <>
-                <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
+                <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
                   {trimmedTableName}
                 </Badge>
-                <Badge className={cn("max-w-full rounded-full border px-2.5 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                <Badge className={cn("max-w-full rounded-full border px-2 py-0.5 font-mono text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                   {trimmedRecordId}
                 </Badge>
               </>
@@ -162,7 +155,7 @@ export const LemmaReverseRelatedRecordsTable = React.forwardRef<HTMLDivElement, 
             title={title ?? "Reverse Related Records"}
           />
         </CardHeader>
-        <CardContent className={cn("flex flex-col gap-4", DATA_PANEL_CONTENT_CLASS_NAME)}>
+        <CardContent className="flex flex-col gap-4">
           {reverseState.relations.length > 1 ? (
             <Select
               value={reverseState.selectedRelation ? `${reverseState.selectedRelation.tableName}:${reverseState.selectedRelation.foreignKey}` : ""}
@@ -175,7 +168,7 @@ export const LemmaReverseRelatedRecordsTable = React.forwardRef<HTMLDivElement, 
                 )
               }}
             >
-              <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-reverse-related-relation">
+              <SelectTrigger id="lemma-reverse-related-relation">
                 <SelectValue placeholder="Select a reverse relation" />
               </SelectTrigger>
               <SelectContent>
@@ -207,15 +200,15 @@ export const LemmaReverseRelatedRecordsTable = React.forwardRef<HTMLDivElement, 
           ) : null}
 
           {reverseState.records.length > 0 && reverseState.columns.length > 0 ? (
-            <div className={DATA_TABLE_FRAME_CLASS_NAME}>
+            <div className="rounded-lg border">
               <Table>
-                <TableHeader className="bg-muted/[0.3]">
+                <TableHeader className="bg-muted/50">
                   <TableRow className="hover:bg-transparent">
                     {reverseState.columns.map((column) => (
-                      <TableHead key={column.key} className="align-top border-b border-border/60 px-4 py-3">
+                      <TableHead key={column.key} className="align-top border-b px-4 py-3">
                         <div className="grid gap-2">
                           <div className="text-sm font-medium text-foreground">{column.label}</div>
-                          <Badge className={cn("w-fit rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]", dataWorkspaceRelationBadgeClassName("related"))} variant="outline">
+                          <Badge className={cn("w-fit rounded-full border px-2 py-0.5 text-xs", dataWorkspaceRelationBadgeClassName("related"))} variant="outline">
                             {column.field}
                           </Badge>
                         </div>

@@ -30,11 +30,6 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
-  DATA_TABLE_FRAME_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
   dataWorkspaceMetaBadgeClassName,
@@ -184,7 +179,7 @@ function renderCellValue(value: unknown, column: LemmaRecordsTableColumn): React
   if ((normalizedType === "enum" || normalizedType === "select") && typeof value === "string") {
     return (
       <Badge
-        className={cn("rounded-full border px-2.5 py-1 text-xs font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))}
+        className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("primary"))}
         variant="outline"
       >
         {value}
@@ -400,8 +395,8 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
 
     if (!trimmedTableName) {
       return (
-        <Card ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-          <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <Card ref={ref} className={className} {...props}>
+          <CardHeader>
             <CardTitle>{title ?? "Records Table"}</CardTitle>
             <CardDescription>{description ?? "Select a table to preview its records."}</CardDescription>
           </CardHeader>
@@ -410,66 +405,66 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
     }
 
     return (
-      <div ref={ref} className={cn("", className)} {...props}>
+      <div ref={ref} className={className} {...props}>
         <div className="grid gap-4">
           {(title || description || onCreateRecord || allowColumnVisibility || onRefresh) ? (
-            <div className={cn("rounded-[1.25rem] border border-border/70 bg-card/90 p-5 shadow-[0_1px_0_rgba(255,255,255,0.48),0_16px_42px_-34px_rgba(15,23,42,0.35)]", DATA_PANEL_HEADER_CLASS_NAME)}>
-              <DataWorkspaceHeader
-                actions={(
-                  <>
-                    {allowColumnVisibility && allColumns.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <DataWorkspaceHeader
+                  actions={(
+                    <>
+                      {allowColumnVisibility && allColumns.length > 0 ? (
+                        <Button
+                          onClick={() => setIsColumnEditorOpen(true)}
+                          type="button"
+                          variant="ghost"
+                        >
+                          {columnVisibilityLabel}
+                        </Button>
+                      ) : null}
                       <Button
-                        className={DATA_SUBTLE_ACTION_CLASS_NAME}
-                        onClick={() => setIsColumnEditorOpen(true)}
+                        disabled={effectiveIsLoading}
+                        onClick={() => {
+                          if (onRefresh) {
+                            onRefresh()
+                            return
+                          }
+                          void recordsState.refresh()
+                        }}
                         type="button"
                         variant="ghost"
                       >
-                        {columnVisibilityLabel}
+                        {effectiveIsLoading ? "Refreshing..." : "Refresh"}
                       </Button>
-                    ) : null}
-                    <Button
-                      className={DATA_SUBTLE_ACTION_CLASS_NAME}
-                      disabled={effectiveIsLoading}
-                      onClick={() => {
-                        if (onRefresh) {
-                          onRefresh()
-                          return
-                        }
-                        void recordsState.refresh()
-                      }}
-                      type="button"
-                      variant="ghost"
-                    >
-                      {effectiveIsLoading ? "Refreshing..." : "Refresh"}
-                    </Button>
-                    {onCreateRecord ? (
-                      <Button onClick={onCreateRecord} type="button">
-                        {createButtonLabel}
-                      </Button>
-                    ) : null}
-                  </>
-                )}
-                description={description ?? `Preview the latest ${limit} records from this table.`}
-                eyebrow="Records"
-                meta={(
-                  <>
-                    <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
-                      {trimmedTableName}
-                    </Badge>
-                    <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
-                      {filteredRecords.length} row{filteredRecords.length === 1 ? "" : "s"}
-                    </Badge>
-                    <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
-                      {visibleColumns.length} column{visibleColumns.length === 1 ? "" : "s"}
-                    </Badge>
-                  </>
-                )}
-                title={title ?? `Records: ${trimmedTableName}`}
-              />
-            </div>
+                      {onCreateRecord ? (
+                        <Button onClick={onCreateRecord} type="button">
+                          {createButtonLabel}
+                        </Button>
+                      ) : null}
+                    </>
+                  )}
+                  description={description ?? `Preview the latest ${limit} records from this table.`}
+                  eyebrow="Records"
+                  meta={(
+                    <>
+                      <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
+                        {trimmedTableName}
+                      </Badge>
+                      <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                        {filteredRecords.length} row{filteredRecords.length === 1 ? "" : "s"}
+                      </Badge>
+                      <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                        {visibleColumns.length} column{visibleColumns.length === 1 ? "" : "s"}
+                      </Badge>
+                    </>
+                  )}
+                  title={title ?? `Records: ${trimmedTableName}`}
+                />
+              </CardHeader>
+            </Card>
           ) : null}
 
-          <div className={DATA_TABLE_FRAME_CLASS_NAME}>
+          <div className="rounded-lg border">
             {effectiveError ? (
               <DataWorkspaceState className="m-4" description={effectiveError.message} tone="danger" />
             ) : null}
@@ -482,17 +477,17 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
               <DataWorkspaceState className="m-4" description={emptyText} heading="No rows found" />
             ) : null}
 
-            {!effectiveIsLoading && filteredRecords.length > 0 && visibleColumns.length === 0 ? (
+            {!effectiveIsLoading && filteredRecords.length === 0 && visibleColumns.length === 0 ? (
               <DataWorkspaceState className="m-4" description="All columns are currently hidden. Reopen the column picker to show fields." heading="Nothing visible" />
             ) : null}
 
             {filteredRecords.length > 0 && visibleColumns.length > 0 ? (
               <div className="overflow-hidden">
                 <Table>
-                  <TableHeader className="bg-muted/[0.28]">
+                  <TableHeader className="bg-muted/50">
                     <TableRow className="hover:bg-transparent">
                       {selectionEnabled ? (
-                        <TableHead className="w-12 border-b border-border/60 px-3">
+                        <TableHead className="w-12 border-b px-3">
                           <Checkbox
                             aria-label="Select visible records"
                             checked={allVisibleSelected}
@@ -503,7 +498,7 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
                       {visibleColumns.map((column) => (
                         <TableHead
                           className={cn(
-                            "border-b border-border/60 px-4 py-3 align-middle",
+                            "border-b px-4 py-3 align-middle",
                             alignClassName(column.align),
                             column.headerClassName,
                           )}
@@ -519,7 +514,7 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
                             </span>
                             <Badge
                               className={cn(
-                                "rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
+                                "rounded-full border px-2 py-0.5 text-xs",
                                 dataWorkspaceTypeBadgeClassName(column.type),
                               )}
                               variant="outline"
@@ -530,7 +525,7 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
                         </TableHead>
                       ))}
                       {hasRowActions ? (
-                        <TableHead className="border-b border-border/60 px-4 py-3 text-right text-foreground/80">
+                        <TableHead className="border-b px-4 py-3 text-right text-foreground/80">
                           {rowActionsLabel}
                         </TableHead>
                       ) : null}
@@ -611,7 +606,6 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
                               <div className="flex items-center justify-end gap-2">
                                 {rowActions.map((action) => (
                                   <Button
-                                    className={action.variant === "destructive" ? "" : DATA_SUBTLE_ACTION_CLASS_NAME}
                                     disabled={action.disabled?.(record) ?? false}
                                     key={action.key}
                                     onClick={(event) => {
@@ -637,13 +631,12 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
             ) : null}
 
             {resolvedTotalCount > 0 && (onPreviousPage || onNextPage) ? (
-              <div className="flex flex-col gap-4 border-t border-border/60 bg-muted/[0.18] px-5 py-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-4 border-t px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
                 <div className="inline-flex items-center gap-2">
                   Showing {rangeStart}-{rangeEnd} of {resolvedTotalCount}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
-                    className={DATA_SUBTLE_ACTION_CLASS_NAME}
                     disabled={pageIndex === 0}
                     onClick={onPreviousPage}
                     type="button"
@@ -653,7 +646,6 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
                   </Button>
                   <div className="text-sm text-muted-foreground">Page {pageIndex + 1}</div>
                   <Button
-                    className={DATA_SUBTLE_ACTION_CLASS_NAME}
                     disabled={!hasNextPage}
                     onClick={onNextPage}
                     type="button"
@@ -668,8 +660,8 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
         </div>
 
         <Sheet open={isColumnEditorOpen} onOpenChange={setIsColumnEditorOpen}>
-          <SheetContent className="flex w-full flex-col gap-0 border-l border-border/60 bg-background/95 p-0 sm:max-w-xl" side="right">
-            <SheetHeader className="border-b border-border/60 px-6 py-5 text-left">
+          <SheetContent className="flex w-full flex-col gap-0 border-l p-0 sm:max-w-xl" side="right">
+            <SheetHeader className="border-b px-6 py-5 text-left">
               <SheetTitle>Choose Columns</SheetTitle>
               <SheetDescription>Show or hide fields for this table view.</SheetDescription>
             </SheetHeader>
@@ -682,8 +674,8 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
                   return (
                     <label
                       className={cn(
-                        "grid gap-3 rounded-[1rem] border px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]",
-                        isHideable ? "cursor-pointer border-border/70 bg-background/95 hover:border-border hover:bg-muted/[0.18]" : "border-border/50 bg-muted/[0.22] opacity-70",
+                        "grid gap-3 rounded-lg border p-4",
+                        isHideable ? "cursor-pointer hover:bg-muted/50" : "opacity-70",
                       )}
                       key={column.name}
                     >
@@ -710,7 +702,7 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
                             </span>
                             <Badge
                               className={cn(
-                                "rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]",
+                                "rounded-full border px-2 py-0.5 text-xs",
                                 dataWorkspaceTypeBadgeClassName(column.type),
                               )}
                               variant="outline"
@@ -733,17 +725,16 @@ export const LemmaRecordsTable = React.forwardRef<HTMLDivElement, LemmaRecordsTa
                 })}
               </div>
             </div>
-            <div className="border-t border-border px-6 py-5">
+            <div className="border-t px-6 py-5">
               <div className="flex items-center justify-end gap-3">
                 <Button
-                  className={DATA_SUBTLE_ACTION_CLASS_NAME}
                   onClick={() => setResolvedHiddenColumnNames([])}
                   type="button"
                   variant="ghost"
                 >
                   Show All
                 </Button>
-                <Button className="rounded-xl" onClick={() => setIsColumnEditorOpen(false)} type="button">
+                <Button onClick={() => setIsColumnEditorOpen(false)} type="button">
                   Done
                 </Button>
               </div>

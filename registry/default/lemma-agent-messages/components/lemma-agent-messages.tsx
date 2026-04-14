@@ -4,12 +4,8 @@ import * as React from "react"
 import type { LemmaClient } from "lemma-sdk"
 import { useAgentRun } from "lemma-sdk/react"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_SECTION_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -52,7 +48,6 @@ export const LemmaAgentMessages = React.forwardRef<HTMLDivElement, LemmaAgentMes
 
   const actions = (
     <Button
-      className={DATA_SUBTLE_ACTION_CLASS_NAME}
       disabled={!taskId}
       onClick={() => {
         void run.loadMessages(taskId)
@@ -65,15 +60,15 @@ export const LemmaAgentMessages = React.forwardRef<HTMLDivElement, LemmaAgentMes
   )
 
   return (
-    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+    <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
+      <CardHeader className="p-6">
         <DataWorkspaceHeader
           actions={actions}
           description={description}
           title={title}
         />
-      </div>
-      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+      </CardHeader>
+      <CardContent className="p-6 pt-0">
         <div className="flex flex-col gap-4">
           {run.error ? (
             <DataWorkspaceState description={run.error.message} heading="Failed to load messages" tone="danger" />
@@ -84,7 +79,7 @@ export const LemmaAgentMessages = React.forwardRef<HTMLDivElement, LemmaAgentMes
             <DataWorkspaceState description="No messages loaded for this run." />
           ) : (
             run.messages.map((message) => (
-              <div key={message.id} className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4")}>
+              <div key={message.id} className="rounded-lg border bg-muted/50 p-4">
                 <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
                   {message.role ?? "message"}
                 </div>
@@ -95,7 +90,7 @@ export const LemmaAgentMessages = React.forwardRef<HTMLDivElement, LemmaAgentMes
             ))
           )}
         </div>
-      </div>
+      </CardContent>
     </div>
   )
 })

@@ -20,11 +20,6 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_SUBTLE_ACTION_CLASS_NAME,
-  DATA_TABLE_FRAME_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
   dataWorkspaceMetaBadgeClassName,
@@ -57,12 +52,11 @@ export const LemmaMembersTable = React.forwardRef<HTMLDivElement, LemmaMembersTa
   const rows = members ?? state.members
 
   return (
-    <Card ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
-      <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+    <Card ref={ref} className={cn("", className)} {...props}>
+      <CardHeader>
         <DataWorkspaceHeader
           actions={!members ? (
             <Button
-              className={DATA_SUBTLE_ACTION_CLASS_NAME}
               disabled={state.isLoading}
               onClick={() => {
                 void state.refresh()
@@ -76,28 +70,28 @@ export const LemmaMembersTable = React.forwardRef<HTMLDivElement, LemmaMembersTa
           description={description}
           eyebrow="Access"
           meta={(
-            <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+            <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
               {rows.length} member{rows.length === 1 ? "" : "s"}
             </Badge>
           )}
           title={title}
         />
       </CardHeader>
-      <CardContent className={DATA_PANEL_CONTENT_CLASS_NAME}>
+      <CardContent>
         {state.error && !members ? (
           <DataWorkspaceState className="mb-4" description={state.error.message} tone="danger" />
         ) : null}
         {rows.length === 0 ? (
           <DataWorkspaceState description="No members loaded." heading="Waiting for collaborators" />
         ) : (
-          <div className={DATA_TABLE_FRAME_CLASS_NAME}>
+          <div className="rounded-lg border">
             <Table>
-              <TableHeader className="bg-muted/[0.3]">
+              <TableHeader className="bg-muted/50">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Name</TableHead>
-                  <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Email</TableHead>
-                  <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Role</TableHead>
-                  <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">User ID</TableHead>
+                  <TableHead className="border-b px-4 py-3 text-sm font-medium text-muted-foreground">Name</TableHead>
+                  <TableHead className="border-b px-4 py-3 text-sm font-medium text-muted-foreground">Email</TableHead>
+                  <TableHead className="border-b px-4 py-3 text-sm font-medium text-muted-foreground">Role</TableHead>
+                  <TableHead className="border-b px-4 py-3 text-sm font-medium text-muted-foreground">User ID</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -108,7 +102,7 @@ export const LemmaMembersTable = React.forwardRef<HTMLDivElement, LemmaMembersTa
                     </TableCell>
                     <TableCell className="px-4 py-3 text-muted-foreground">{member.user_email}</TableCell>
                     <TableCell className="px-4 py-3">
-                      <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                      <Badge className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
                         {member.role}
                       </Badge>
                     </TableCell>

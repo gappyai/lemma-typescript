@@ -3,6 +3,7 @@
 import * as React from "react"
 import type { Agent, LemmaClient } from "lemma-sdk"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -12,10 +13,6 @@ import {
 } from "@/components/ui/select"
 import { LemmaAgentRunPanel } from "@/components/lemma/lemma-agent-run-panel"
 import {
-  DATA_PANEL_CARD_CLASS_NAME,
-  DATA_PANEL_HEADER_CLASS_NAME,
-  DATA_PANEL_CONTENT_CLASS_NAME,
-  DATA_INPUT_CLASS_NAME,
   DataWorkspaceHeader,
   DataWorkspaceState,
 } from "@/components/lemma/registry-data-workspace"
@@ -63,7 +60,7 @@ export const LemmaAgentRunnerPage = React.forwardRef<HTMLDivElement, LemmaAgentR
   const selectorActions = (
     <>
       <Select value={selectedAgentName} onValueChange={setSelectedAgentName}>
-        <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "min-w-[240px]")}>
+        <SelectTrigger className="min-w-[240px]">
           <SelectValue placeholder="Select an agent" />
         </SelectTrigger>
         <SelectContent>
@@ -79,23 +76,23 @@ export const LemmaAgentRunnerPage = React.forwardRef<HTMLDivElement, LemmaAgentR
 
   return (
     <div ref={ref} className={cn("grid gap-4", className)} {...props}>
-      <div className={DATA_PANEL_CARD_CLASS_NAME}>
-        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+      <Card>
+        <CardHeader className="p-6">
           <DataWorkspaceHeader actions={selectorActions} description={description} title={title} />
-        </div>
-      </div>
+        </CardHeader>
+      </Card>
 
       {selectedAgentName ? (
         <LemmaAgentRunPanel client={client} podId={podId} agentName={selectedAgentName} onError={onError} />
       ) : (
-        <div className={DATA_PANEL_CARD_CLASS_NAME}>
-          <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <Card>
+          <CardHeader className="p-6">
             <DataWorkspaceHeader description="Pass agents or an agentName to render the runner." title="No Agent Selected" />
-          </div>
-          <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+          </CardHeader>
+          <CardContent className="p-6 pt-0">
             <DataWorkspaceState description="Select an agent from the list above to get started." />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

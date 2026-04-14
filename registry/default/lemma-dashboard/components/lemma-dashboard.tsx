@@ -8,6 +8,7 @@ import { SectionCards } from "@/components/lemma/section-cards"
 
 export interface LemmaDashboardProps extends React.HTMLAttributes<HTMLDivElement> {
   brand?: React.ReactNode
+  brandSublabel?: string
   activeHref?: string
   onNavigate?: (href: string) => void
   headerBreadcrumb?: React.ReactNode
@@ -24,6 +25,7 @@ export interface LemmaDashboardProps extends React.HTMLAttributes<HTMLDivElement
 
 export function LemmaDashboard({
   brand,
+  brandSublabel,
   activeHref,
   onNavigate,
   headerBreadcrumb,
@@ -39,13 +41,18 @@ export function LemmaDashboard({
         <AppSidebar
           activeHref={activeHref}
           brand={brand}
+          brandSublabel={brandSublabel}
           onNavigate={onNavigate}
         />
         <SidebarInset>
           <SiteHeader actions={headerActions} breadcrumb={headerBreadcrumb} />
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0 md:p-6 md:pt-0">
-            {cards ? <SectionCards cards={cards} /> : null}
-            {children}
+          <div className="flex flex-1 flex-col">
+            <div className="@container/main flex flex-1 flex-col gap-2">
+              <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+                {cards ? <SectionCards cards={cards} /> : null}
+                {children}
+              </div>
+            </div>
           </div>
         </SidebarInset>
       </SidebarProvider>
