@@ -2,72 +2,113 @@
 
 import * as React from "react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import {
+  DATA_FLOATING_BAR_CLASS_NAME,
+  DATA_SUBTLE_ACTION_CLASS_NAME,
+  DataWorkspaceState,
+  dataWorkspaceMetaBadgeClassName,
+} from "@/components/lemma/registry-data-workspace"
 
-export interface LemmaBulkActionsBarProps {
+export interface BulkAction {
+  label: string
+  onClick: (selectedIds: string[]) => void
+  variant?: "default" | "destructive"
+  isLoading?: boolean
+}
+
+export interface LemmaBulkActionsBarProps extends React.HTMLAttributes<HTMLDivElement> {
   selectedCount: number
+  selectedIds?: string[]
   title?: string
   description?: string
   isDeleting?: boolean
+  isProcessing?: boolean
   deleteLabel?: string
   clearLabel?: string
   onDeleteSelected?: () => void
   onClearSelection?: () => void
   error?: Error | null
   message?: string | null
+  actions?: BulkAction[]
 }
 
-export function LemmaBulkActionsBar({
-  selectedCount,
-  title = "Bulk actions",
-  description = "Select multiple rows to run a single action across them.",
-  isDeleting = false,
-  deleteLabel = "Delete selected",
-  clearLabel = "Clear selection",
-  onDeleteSelected,
-  onClearSelection,
-  error,
-  message,
-}: LemmaBulkActionsBarProps) {
+export const LemmaBulkActionsBar = React.forwardRef<HTMLDivElement, LemmaBulkActionsBarProps>(
+  ({
+    selectedCount,
+    selectedIds = [],
+    title = "Bulk actions",
+    description = "Select multiple rows to run a single action across them.",
+    isDeleting = false,
+    isProcessing,
+    deleteLabel = "Delete selected",
+    clearLabel = "Clear selection",
+    onDeleteSelected,
+    onClearSelection,
+    error,
+    message,
+    actions = [],
+    className,
+    ...props
+  }, ref) => {
+  const isBusy = isDeleting || isProcessing
   if (selectedCount <= 0 && !error && !message) return null
 
   return (
-    <div className="grid gap-3 rounded-[var(--resource-radius-md)] border border-[color:var(--resource-border)] bg-[var(--resource-surface)] p-4 shadow-sm">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="grid gap-1">
-          <div className="text-sm font-medium text-[color:var(--resource-text)]">{title}</div>
-          <div className="text-sm text-[color:var(--resource-muted)]">
-            {selectedCount > 0
-              ? `${selectedCount} record${selectedCount === 1 ? "" : "s"} selected. ${description}`
-              : description}
+    <div ref={ref} className={cn("grid gap-3", className)} {...props}>
+      {selectedCount > 0 ? (
+        <div className={cn("flex flex-col gap-3 md:flex-row md:items-center md:justify-between", DATA_FLOATING_BAR_CLASS_NAME)}>
+          <div className="grid gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm font-medium text-foreground">{title}</div>
+              <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))}>
+                {selectedCount} selected
+              </div>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              {description}
+            </div>
           </div>
-        </div>
-        {selectedCount > 0 ? (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {onClearSelection ? (
-              <Button onClick={onClearSelection} variant="ghost">
+              <Button className={DATA_SUBTLE_ACTION_CLASS_NAME} onClick={onClearSelection} variant="ghost">
                 {clearLabel}
               </Button>
             ) : null}
+            {actions.map((action) => (
+              <Button
+                className={action.variant === "destructive" ? "" : DATA_SUBTLE_ACTION_CLASS_NAME}
+                disabled={action.isLoading || isBusy}
+                key={action.label}
+                onClick={() => action.onClick(selectedIds)}
+                variant={action.variant === "destructive" ? "destructive" : "ghost"}
+              >
+                {action.isLoading ? "Loading…" : action.label}
+              </Button>
+            ))}
             {onDeleteSelected ? (
-              <Button disabled={isDeleting} onClick={onDeleteSelected}>
-                {isDeleting ? "Deleting…" : deleteLabel}
+              <Button disabled={isBusy} onClick={onDeleteSelected} type="button" variant="destructive">
+                {isBusy ? "Deleting…" : deleteLabel}
               </Button>
             ) : null}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       {error ? (
-        <div className="rounded-md border border-[color:var(--resource-danger-border)] bg-[var(--resource-danger-soft)] px-3 py-2 text-sm text-[color:var(--resource-danger)]">
-          {error.message}
-        </div>
+        <DataWorkspaceState
+          description={error.message}
+          tone="danger"
+        />
       ) : null}
 
       {message ? (
-        <div className="rounded-md border border-[color:var(--resource-border-strong)] bg-[var(--resource-surface-alt)] px-3 py-2 text-sm text-[color:var(--resource-text)]">
-          {message}
-        </div>
+        <DataWorkspaceState
+          description={message}
+          heading={selectedCount > 0 ? `${selectedCount} record${selectedCount === 1 ? "" : "s"} selected.` : title}
+        />
       ) : null}
     </div>
   )
-}
+})
+LemmaBulkActionsBar.displayName = "LemmaBulkActionsBar"

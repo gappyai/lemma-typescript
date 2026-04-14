@@ -5,8 +5,13 @@
   "title": "Lemma Reverse Related Records Table",
   "description": "A reverse-relation browser that finds child rows pointing back to the selected record.",
   "dependencies": ["lemma-sdk"],
-  "registryDependencies": ["button", "card", "select"],
+  "registryDependencies": ["badge", "button", "card", "select", "table"],
   "files": [
+    {
+      "path": "registry/default/shared/components/registry-data-workspace.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/registry-data-workspace.tsx"
+    },
     {
       "path": "registry/default/lemma-reverse-related-records-table/components/lemma-reverse-related-records-table.tsx",
       "type": "registry:component",

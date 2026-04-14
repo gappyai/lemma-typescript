@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { Table } from "../types.js";
+import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseTablesOptions {
   client: LemmaClient;
@@ -16,18 +17,10 @@ export interface UseTablesResult {
   total: number;
   nextPageToken: string | null;
   isLoading: boolean;
+  isLoadingMore: boolean;
   error: Error | null;
   refresh: (overrides?: { limit?: number; pageToken?: string }) => Promise<Table[]>;
-}
-
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
+  loadMore: (overrides?: { limit?: number }) => Promise<Table[]>;
 }
 
 export function useTables({
@@ -42,9 +35,10 @@ export function useTables({
   const [total, setTotal] = useState(0);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const refresh = useCallback(async (overrides: { limit?: number; pageToken?: string } = {}): Promise<Table[]> => {
+  const refresh = useCallback(async (overrides: { limit?: number; pageToken?: string } = {}, signal?: AbortSignal): Promise<Table[]> => {
     if (!enabled) {
       setTables([]);
       setTotal(0);
@@ -64,19 +58,49 @@ export function useTables({
         pageToken: overrides.pageToken ?? pageToken,
       });
 
+      if (signal?.aborted) return [];
       const nextTables = response.items ?? [];
       setTables(nextTables);
-      setTotal(nextTables.length);
+      setTotal((response as { total?: number }).total ?? nextTables.length);
       setNextPageToken(response.next_page_token ?? null);
       return nextTables;
     } catch (refreshError) {
+      if (signal?.aborted) return [];
       const normalized = normalizeError(refreshError, "Failed to load tables.");
       setError(normalized);
       return [];
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, enabled, limit, pageToken, podId]);
+
+  const loadMore = useCallback(async (overrides: { limit?: number } = {}): Promise<Table[]> => {
+    if (!enabled || !nextPageToken || isLoading || isLoadingMore) {
+      return [];
+    }
+
+    setIsLoadingMore(true);
+    setError(null);
+
+    try {
+      const scopedClient = resolvePodClient(client, podId);
+      const response = await scopedClient.tables.list({
+        limit: overrides.limit ?? limit,
+        pageToken: nextPageToken,
+      });
+      const moreTables = response.items ?? [];
+      setTables((previous) => [...previous, ...moreTables]);
+      setTotal((response as { total?: number }).total ?? tables.length + moreTables.length);
+      setNextPageToken(response.next_page_token ?? null);
+      return moreTables;
+    } catch (loadError) {
+      const normalized = normalizeError(loadError, "Failed to load more tables.");
+      setError(normalized);
+      return [];
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [client, enabled, isLoading, isLoadingMore, limit, nextPageToken, podId, tables.length]);
 
   useEffect(() => {
     if (!enabled) {
@@ -85,11 +109,26 @@ export function useTables({
       setNextPageToken(null);
       setError(null);
       setIsLoading(false);
+      setIsLoadingMore(false);
       return;
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh({}, controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load tables."), "Failed to load tables."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, enabled, refresh]);
 
   return useMemo(() => ({
@@ -97,7 +136,9 @@ export function useTables({
     total,
     nextPageToken,
     isLoading,
+    isLoadingMore,
     error,
     refresh,
-  }), [error, isLoading, nextPageToken, refresh, tables, total]);
+    loadMore,
+  }), [error, isLoading, isLoadingMore, loadMore, nextPageToken, refresh, tables, total]);
 }

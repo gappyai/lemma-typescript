@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import type { LemmaClient, PodMember } from "lemma-sdk"
 import { useMembers } from "lemma-sdk/react"
 import {
@@ -16,8 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
-export interface LemmaMemberPickerProps {
+export interface LemmaMemberPickerProps extends React.HTMLAttributes<HTMLDivElement> {
   client: LemmaClient
   podId?: string
   members?: PodMember[]
@@ -27,15 +29,18 @@ export interface LemmaMemberPickerProps {
   description?: string
 }
 
-export function LemmaMemberPicker({
-  client,
-  podId,
-  members,
-  value,
-  onValueChange,
-  title = "Member Picker",
-  description = "Select a pod member by user ID.",
-}: LemmaMemberPickerProps) {
+export const LemmaMemberPicker = React.forwardRef<HTMLDivElement, LemmaMemberPickerProps>(
+  ({
+    client,
+    podId,
+    members,
+    value,
+    onValueChange,
+    title = "Member Picker",
+    description = "Select a pod member by user ID.",
+    className,
+    ...props
+  }, ref) => {
   const state = useMembers({
     client,
     podId,
@@ -44,14 +49,14 @@ export function LemmaMemberPicker({
   const rows = members ?? state.members
 
   return (
-    <Card>
+    <Card ref={ref} className={cn("", className)} {...props}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-3">
+      <CardContent className="flex flex-col gap-4">
         {state.error && !members ? (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {state.error.message}
           </div>
         ) : null}
@@ -70,4 +75,5 @@ export function LemmaMemberPicker({
       </CardContent>
     </Card>
   )
-}
+})
+LemmaMemberPicker.displayName = "LemmaMemberPicker"

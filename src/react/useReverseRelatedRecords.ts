@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import { parseForeignKeyReference } from "../datastore-query.js";
 import type { Table } from "../types.js";
+import { normalizeError, resolvePodClient, stringifyComparable } from "./utils.js";
 
 export interface ReverseRelationSelector {
   tableName: string;
@@ -50,24 +51,6 @@ export interface UseReverseRelatedRecordsResult<TRow extends Record<string, unkn
   isLoading: boolean;
   error: Error | null;
   refresh: () => Promise<TRow[]>;
-}
-
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
-
-function stringifyComparable(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
 }
 
 function sentenceCase(value: string): string {
@@ -136,7 +119,7 @@ export function useReverseRelatedRecords<TRow extends Record<string, unknown> = 
   const stableFields = useMemo(() => fields, [fieldsKey]);
   const isEnabled = enabled && trimmedTableName.length > 0 && trimmedRecordId.length > 0;
 
-  const refresh = useCallback(async (): Promise<TRow[]> => {
+  const refresh = useCallback(async (signal?: AbortSignal): Promise<TRow[]> => {
     if (!isEnabled) {
       setParentTable(null);
       setRelatedTable(null);
@@ -162,10 +145,14 @@ export function useReverseRelatedRecords<TRow extends Record<string, unknown> = 
         scopedClient.records.get(trimmedTableName, trimmedRecordId),
       ]);
 
+      if (signal?.aborted) return [];
+
       const listedTables = tablesResponse.items ?? [];
       const nextParentTable = listedTables.find((tableEntry) => tableEntry.name === trimmedTableName)
         ?? await scopedClient.tables.get(trimmedTableName);
       const nextParentRecord = parentRecordResponse.data ?? null;
+
+      if (signal?.aborted) return [];
 
       setParentTable(nextParentTable);
       setParentRecord(nextParentRecord);
@@ -212,6 +199,8 @@ export function useReverseRelatedRecords<TRow extends Record<string, unknown> = 
       const referenceValue = nextParentRecord?.[nextSelectedRelation.referencedColumn]
         ?? (nextSelectedRelation.referencedColumn === "id" ? trimmedRecordId : undefined);
 
+      if (signal?.aborted) return [];
+
       setRelatedTable(nextRelatedTable);
 
       if (typeof referenceValue === "undefined" || referenceValue === null) {
@@ -237,6 +226,7 @@ export function useReverseRelatedRecords<TRow extends Record<string, unknown> = 
         order,
       });
 
+      if (signal?.aborted) return [];
       const nextRecords = (response.items ?? []) as TRow[];
       setColumns(resolvedFields.map((field) => ({
         key: field,
@@ -248,11 +238,12 @@ export function useReverseRelatedRecords<TRow extends Record<string, unknown> = 
       setNextPageToken(response.next_page_token ?? null);
       return nextRecords;
     } catch (refreshError) {
+      if (signal?.aborted) return [];
       const normalized = normalizeError(refreshError, "Failed to load reverse-related records.");
       setError(normalized);
       return [];
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [
     client,
@@ -286,7 +277,21 @@ export function useReverseRelatedRecords<TRow extends Record<string, unknown> = 
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh(controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load reverse-related records."), "Failed to load reverse-related records."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, isEnabled, refresh]);
 
   return useMemo(() => ({

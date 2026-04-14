@@ -525,7 +525,6 @@
 
 .lemma-assistant-model-picker,
 .lemma-assistant-experience-model-picker {
-  appearance: none;
   min-width: 132px;
   border-color: color-mix(in srgb, var(--border-default) 86%, transparent);
   background: var(--bg-surface);
@@ -817,7 +816,8 @@
 
 .lemma-assistant-experience-upload:disabled,
 .lemma-assistant-experience-send:disabled,
-.lemma-assistant-model-picker:disabled {
+.lemma-assistant-model-picker:disabled,
+.lemma-assistant-model-picker[data-disabled="true"] {
   cursor: default;
 }
 

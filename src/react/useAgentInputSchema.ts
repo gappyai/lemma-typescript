@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { JsonSchemaLike } from "../schema-form.js";
 import type { Agent } from "../types.js";
+import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseAgentInputSchemaOptions {
   client: LemmaClient;
@@ -20,16 +21,6 @@ export interface UseAgentInputSchemaResult {
   refresh: () => Promise<Agent | null>;
 }
 
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
-
 export function useAgentInputSchema({
   client,
   podId,
@@ -44,7 +35,7 @@ export function useAgentInputSchema({
   const trimmedAgentName = agentName.trim();
   const isEnabled = enabled && trimmedAgentName.length > 0;
 
-  const refresh = useCallback(async (): Promise<Agent | null> => {
+  const refresh = useCallback(async (signal?: AbortSignal): Promise<Agent | null> => {
     if (!isEnabled) {
       setAgent(null);
       setError(null);
@@ -58,15 +49,17 @@ export function useAgentInputSchema({
     try {
       const scopedClient = resolvePodClient(client, podId);
       const nextAgent = await scopedClient.agents.get(trimmedAgentName);
+      if (signal?.aborted) return null;
       setAgent(nextAgent);
       return nextAgent;
     } catch (refreshError) {
+      if (signal?.aborted) return null;
       const normalized = normalizeError(refreshError, "Failed to load agent schema.");
       setError(normalized);
       setAgent(null);
       return null;
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, isEnabled, podId, trimmedAgentName]);
 
@@ -79,7 +72,21 @@ export function useAgentInputSchema({
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh(controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load agent schema."), "Failed to load agent schema."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, isEnabled, refresh]);
 
   return useMemo(() => ({

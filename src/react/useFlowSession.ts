@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import { isTerminalFlowStatus, normalizeRunStatus, sleep } from "../run-utils.js";
 import type { FlowRun, WorkflowRunInputs } from "../types.js";
+import { normalizeError, resolvePodClient, resolvePodId } from "./utils.js";
 
 export interface UseFlowSessionOptions {
   client: LemmaClient;
@@ -41,14 +42,6 @@ export interface UseFlowSessionResult {
   retry: (runId?: string | null) => Promise<void>;
 }
 
-function resolvePodId(client: LemmaClient, podId?: string): string {
-  const resolved = podId ?? client.podId;
-  if (!resolved) {
-    throw new Error("podId is required. Pass podId or set it on LemmaClient.");
-  }
-  return resolved;
-}
-
 function resolveFlowName(base?: string, override?: string): string {
   const resolved = override ?? base;
   if (!resolved) {
@@ -63,16 +56,6 @@ function resolveRunId(base?: string | null, override?: string | null): string {
     throw new Error("runId is required.");
   }
   return resolved;
-}
-
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
 }
 
 export function useFlowSession({
@@ -90,6 +73,12 @@ export function useFlowSession({
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  const onRunRef = useRef(onRun);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => { onRunRef.current = onRun; }, [onRun]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
   const setRunId = useCallback((nextRunId: string | null) => {
     setRunIdState(nextRunId);
@@ -110,16 +99,16 @@ export function useFlowSession({
       setRun(nextRun);
       const nextStatus = normalizeRunStatus(nextRun.status);
       setStatus(nextStatus);
-      onRun?.(nextRun);
+      onRunRef.current?.(nextRun);
 
       return nextRun;
     } catch (refreshError) {
       const normalized = normalizeError(refreshError, "Failed to fetch flow run.");
       setError(normalized);
-      onError?.(refreshError);
+      onErrorRef.current?.(refreshError);
       return null;
     }
-  }, [client, onError, onRun, podId, runId]);
+  }, [client, podId, runId]);
 
   const listHistory = useCallback(async (options: {
     flowName?: string;
@@ -138,10 +127,10 @@ export function useFlowSession({
     } catch (listError) {
       const normalized = normalizeError(listError, "Failed to list flow runs.");
       setError(normalized);
-      onError?.(listError);
+      onErrorRef.current?.(listError);
       return [];
     }
-  }, [client, flowName, onError, podId]);
+  }, [client, flowName, podId]);
 
   const start = useCallback(async (options: {
     flowName?: string;
@@ -159,14 +148,14 @@ export function useFlowSession({
     setRunIdState(created.id ?? null);
     const nextStatus = normalizeRunStatus(created.status);
     setStatus(nextStatus);
-    onRun?.(created);
+    onRunRef.current?.(created);
 
     if (options.connect !== false && created.id) {
       await refresh(created.id);
     }
 
     return created;
-  }, [client, flowName, onRun, podId, refresh]);
+  }, [client, flowName, podId, refresh]);
 
   const resume = useCallback(async (options: {
     runId?: string | null;
@@ -183,14 +172,14 @@ export function useFlowSession({
     setRunIdState(resumed.id ?? id);
     const nextStatus = normalizeRunStatus(resumed.status);
     setStatus(nextStatus);
-    onRun?.(resumed);
+    onRunRef.current?.(resumed);
 
     if (options.connect !== false) {
       await refresh(resumed.id ?? id);
     }
 
     return resumed;
-  }, [client, onRun, podId, refresh, runId]);
+  }, [client, podId, refresh, runId]);
 
   const cancel = useCallback(async (explicitRunId?: string | null): Promise<void> => {
     try {
@@ -201,9 +190,9 @@ export function useFlowSession({
     } catch (cancelError) {
       const normalized = normalizeError(cancelError, "Failed to cancel flow run.");
       setError(normalized);
-      onError?.(cancelError);
+      onErrorRef.current?.(cancelError);
     }
-  }, [client, onError, podId, refresh, runId]);
+  }, [client, podId, refresh, runId]);
 
   const retry = useCallback(async (explicitRunId?: string | null): Promise<void> => {
     try {
@@ -214,16 +203,30 @@ export function useFlowSession({
     } catch (retryError) {
       const normalized = normalizeError(retryError, "Failed to retry flow run.");
       setError(normalized);
-      onError?.(retryError);
+      onErrorRef.current?.(retryError);
     }
-  }, [client, onError, podId, refresh, runId]);
+  }, [client, podId, refresh, runId]);
 
   useEffect(() => {
     if (!runId) {
       return;
     }
 
-    void refresh(runId);
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh(runId);
+      } catch {
+        if (!cancelled) {
+          // refresh handles errors internally
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [refresh, runId]);
 
   useEffect(() => {
@@ -264,7 +267,7 @@ export function useFlowSession({
     void loop().catch((pollError) => {
       const normalized = normalizeError(pollError, "Failed while polling flow run.");
       setError(normalized);
-      onError?.(pollError);
+      onErrorRef.current?.(pollError);
       setIsPolling(false);
     });
 
@@ -272,7 +275,7 @@ export function useFlowSession({
       active = false;
       abortController.abort();
     };
-  }, [autoPoll, onError, pollIntervalMs, refresh, runId]);
+  }, [autoPoll, pollIntervalMs, refresh, runId]);
 
   return {
     runId,

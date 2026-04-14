@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { isTerminalFunctionStatus, normalizeRunStatus } from "../run-utils.js";
 import type { FunctionRun } from "../types.js";
 import {
@@ -48,17 +48,19 @@ export function useFunctionRun(options: UseFunctionRunOptions): UseFunctionRunRe
     return session.listHistory(listOptions);
   }, [session]);
 
-  const normalizedStatus = normalizeRunStatus(session.status);
-  const isFinished = isTerminalFunctionStatus(normalizedStatus);
-  const output = session.run?.output_data ?? null;
-  const finalOutput = isFinished ? output : null;
+  return useMemo(() => {
+    const normalizedStatus = normalizeRunStatus(session.status);
+    const isFinished = isTerminalFunctionStatus(normalizedStatus);
+    const output = session.run?.output_data ?? null;
+    const finalOutput = isFinished ? output : null;
 
-  return {
-    ...session,
-    output,
-    finalOutput,
-    isFinished,
-    start,
-    listRuns,
-  };
+    return {
+      ...session,
+      output,
+      finalOutput,
+      isFinished,
+      start,
+      listRuns,
+    };
+  }, [listRuns, session, start]);
 }

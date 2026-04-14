@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { DatastoreMessageResponse } from "../types.js";
+import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseBulkRecordsOptions {
   client: LemmaClient;
@@ -21,16 +22,6 @@ export interface UseBulkRecordsResult {
   reset: () => void;
 }
 
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
-
 export function useBulkRecords({
   client,
   podId,
@@ -43,6 +34,12 @@ export function useBulkRecords({
   const [error, setError] = useState<Error | null>(null);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
 
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+
   const trimmedTableName = tableName.trim();
   const isEnabled = enabled && trimmedTableName.length > 0;
 
@@ -51,8 +48,6 @@ export function useBulkRecords({
     fallbackError: string,
   ): Promise<DatastoreMessageResponse | null> => {
     if (!isEnabled) {
-      const disabledError = new Error("Bulk record operations are disabled.");
-      setError(disabledError);
       return null;
     }
 
@@ -63,17 +58,17 @@ export function useBulkRecords({
       const scopedClient = resolvePodClient(client, podId);
       const response = await action(scopedClient);
       setLastMessage(response.message ?? null);
-      onSuccess?.(response);
+      onSuccessRef.current?.(response);
       return response;
     } catch (mutationError) {
       const normalized = normalizeError(mutationError, fallbackError);
       setError(normalized);
-      onError?.(mutationError);
+      onErrorRef.current?.(mutationError);
       return null;
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, isEnabled, onError, onSuccess, podId]);
+  }, [client, isEnabled, podId]);
 
   const createMany = useCallback(async (
     records: Record<string, unknown>[],

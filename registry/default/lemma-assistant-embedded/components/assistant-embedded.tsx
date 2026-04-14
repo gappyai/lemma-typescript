@@ -1,7 +1,13 @@
 import type { LemmaClient } from "lemma-sdk";
 import { useAssistantController, type AssistantConversationScope } from "lemma-sdk/react";
-import { AssistantThemeScope, type AssistantThemeMode } from "./assistant-chrome.js";
-import { AssistantExperienceView, type AssistantExperienceViewProps } from "./assistant-experience.js";
+import {
+  AssistantThemeScope,
+  type AssistantThemeMode,
+} from "../../lemma-assistant-experience/components/assistant-chrome";
+import {
+  AssistantExperienceView,
+  type AssistantExperienceViewProps,
+} from "../../lemma-assistant-experience/components/assistant-experience";
 
 export interface AssistantEmbeddedProps
   extends Omit<AssistantExperienceViewProps, "controller">,

@@ -5,7 +5,7 @@
   "title": "Lemma Record Details Card",
   "description": "A selected-record details card powered by useRecord.",
   "dependencies": ["lemma-sdk"],
-  "registryDependencies": ["button", "card"],
+  "registryDependencies": ["badge", "button", "card", "sheet"],
   "files": [
     {
       "path": "registry/default/lemma-record-details-card/components/lemma-record-details-card.tsx",

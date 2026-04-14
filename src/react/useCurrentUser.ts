@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { User } from "../types.js";
+import { normalizeError } from "./utils.js";
 
 export interface UseCurrentUserOptions {
   client: LemmaClient;
@@ -15,11 +16,6 @@ export interface UseCurrentUserResult {
   refresh: () => Promise<User | null>;
 }
 
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
-
 export function useCurrentUser({
   client,
   enabled = true,
@@ -29,7 +25,7 @@ export function useCurrentUser({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const refresh = useCallback(async (): Promise<User | null> => {
+  const refresh = useCallback(async (signal?: AbortSignal): Promise<User | null> => {
     if (!enabled) {
       setUser(null);
       setError(null);
@@ -42,15 +38,17 @@ export function useCurrentUser({
 
     try {
       const nextUser = await client.users.current();
+      if (signal?.aborted) return null;
       setUser(nextUser);
       return nextUser;
     } catch (refreshError) {
+      if (signal?.aborted) return null;
       const normalized = normalizeError(refreshError, "Failed to load current user.");
       setError(normalized);
       setUser(null);
       return null;
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, enabled]);
 
@@ -63,7 +61,21 @@ export function useCurrentUser({
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh(controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load current user."), "Failed to load current user."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, enabled, refresh]);
 
   return useMemo(() => ({

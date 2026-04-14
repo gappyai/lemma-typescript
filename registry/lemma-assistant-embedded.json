@@ -5,6 +5,14 @@
   "title": "Lemma Assistant Embedded",
   "description": "A ready-made embedded assistant UI powered by useAssistantController from lemma-sdk/react.",
   "dependencies": ["lemma-sdk", "react-markdown", "remark-gfm"],
+  "cssVars": {
+    "theme": {
+      "assistant-shell-radius": "calc(var(--radius) + 0.125rem)",
+      "assistant-item-radius": "var(--radius)",
+      "assistant-bubble-radius": "var(--radius)",
+      "assistant-inline-radius": "calc(var(--radius) - 0.125rem)"
+    }
+  },
   "files": [
     {
       "path": "registry/default/lemma-assistant-embedded/components/assistant-types.ts",

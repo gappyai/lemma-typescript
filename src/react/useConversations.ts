@@ -5,6 +5,7 @@ import {
   useAssistantSession,
   type CreateConversationInput,
 } from "./useAssistantSession.js";
+import { normalizeError } from "./utils.js";
 
 export interface UseConversationsOptions {
   client: LemmaClient;
@@ -39,11 +40,13 @@ export interface UseConversationsResult {
   effectiveSelectedConversationId: string | null;
   selectedConversation: Conversation | null;
   isLoading: boolean;
+  isLoadingMore: boolean;
   error: Error | null;
   selectConversation: (conversationId: string | null) => void;
   clearSelection: () => void;
   selectLatestConversation: () => string | null;
   refresh: (overrides?: { limit?: number; pageToken?: string }) => Promise<Conversation[]>;
+  loadMore: (overrides?: { limit?: number }) => Promise<Conversation[]>;
   createConversation: (input?: CreateConversationInput) => Promise<Conversation>;
   createAndSelectConversation: (input?: Omit<CreateConversationInput, "setActive">) => Promise<Conversation>;
   ensureConversation: (input?: Omit<CreateConversationInput, "setActive">) => Promise<Conversation>;
@@ -75,6 +78,7 @@ export function useConversations({
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(initialConversationId);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const scopeKey = useMemo(() => JSON.stringify({
     podId: podId ?? null,
@@ -115,7 +119,7 @@ export function useConversations({
       });
       const nextConversations = sortConversationsByUpdatedAt(response.items ?? []);
       setConversations(nextConversations);
-      setTotal(nextConversations.length);
+      setTotal(response.total ?? nextConversations.length);
       setNextPageToken(response.next_page_token ?? null);
       setSelectedConversationId((current) => {
         if (current) return current;
@@ -128,6 +132,30 @@ export function useConversations({
       setIsLoading(false);
     }
   }, [autoSelectFirst, enabled, initialConversationId, limit, listConversations, pageToken]);
+
+  const loadMore = useCallback(async (overrides: { limit?: number } = {}): Promise<Conversation[]> => {
+    if (!enabled || !nextPageToken || isLoading || isLoadingMore) {
+      return [];
+    }
+
+    setIsLoadingMore(true);
+    try {
+      const response = await listConversations({
+        limit: overrides.limit ?? limit,
+        pageToken: nextPageToken,
+      });
+      const moreConversations = sortConversationsByUpdatedAt(response.items ?? []);
+      setConversations((previous) => [...previous, ...moreConversations]);
+      setTotal(response.total ?? conversations.length + moreConversations.length);
+      setNextPageToken(response.next_page_token ?? null);
+      return moreConversations;
+    } catch (loadError) {
+      const normalized = normalizeError(loadError, "Failed to load more conversations.");
+      throw normalized;
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [conversations.length, enabled, isLoading, isLoadingMore, limit, listConversations, nextPageToken]);
 
   const createConversation = useCallback(async (input: CreateConversationInput = {}): Promise<Conversation> => {
     const createdConversation = await sessionCreateConversation({
@@ -188,6 +216,7 @@ export function useConversations({
       setNextPageToken(null);
       setSelectedConversationId(initialConversationId);
       setIsLoading(false);
+      setIsLoadingMore(false);
       return;
     }
 
@@ -197,7 +226,21 @@ export function useConversations({
     setSelectedConversationId(initialConversationId);
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh();
+      } catch {
+        if (!cancelled) {
+          // refresh handles errors internally
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, enabled, initialConversationId, refresh, scopeKey]);
 
   const effectiveSelectedConversationId = useMemo(() => {
@@ -243,11 +286,13 @@ export function useConversations({
     effectiveSelectedConversationId,
     selectedConversation,
     isLoading,
+    isLoadingMore,
     error,
     selectConversation,
     clearSelection,
     selectLatestConversation,
     refresh,
+    loadMore,
     createConversation,
     createAndSelectConversation,
     ensureConversation,
@@ -257,7 +302,10 @@ export function useConversations({
     createAndSelectConversation,
     createConversation,
     effectiveSelectedConversationId,
+    error,
     isLoading,
+    isLoadingMore,
+    loadMore,
     nextPageToken,
     refresh,
     ensureConversation,
@@ -265,7 +313,6 @@ export function useConversations({
     selectLatestConversation,
     selectedConversation,
     selectedConversationId,
-    error,
     total,
   ]);
 }

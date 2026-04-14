@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from "react";
 import type { LemmaClient } from "../client.js";
 import type { SseRawEvent } from "../streams.js";
 import type { ConversationMessage } from "../types.js";
@@ -52,22 +53,22 @@ export function useAssistantRun({
     onError,
   });
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = useCallback(async (content: string) => {
     await messages.sendMessage(content, {
       conversationId: requireConversationId(conversationId ?? messages.conversationId),
       createIfMissing: false,
     });
-  };
+  }, [conversationId, messages]);
 
-  const resume = async () => {
+  const resume = useCallback(async () => {
     await messages.resume(requireConversationId(conversationId ?? messages.conversationId));
-  };
+  }, [conversationId, messages]);
 
-  const stop = async () => {
+  const stop = useCallback(async () => {
     await messages.stop(requireConversationId(conversationId ?? messages.conversationId));
-  };
+  }, [conversationId, messages]);
 
-  return {
+  return useMemo(() => ({
     isStreaming: messages.isStreaming,
     error: messages.error,
     status: messages.status,
@@ -77,10 +78,10 @@ export function useAssistantRun({
     finalOutput: messages.finalOutput,
     finalOutputText: messages.finalOutputText,
     latestAssistantMessage: messages.latestAssistantMessage,
-    refresh: () => messages.refresh(),
+    refresh: messages.refresh,
     sendMessage,
     resume,
     stop,
     cancel: messages.cancel,
-  };
+  }), [messages, sendMessage, resume, stop]);
 }

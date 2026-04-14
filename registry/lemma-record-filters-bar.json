@@ -5,8 +5,13 @@
   "title": "Lemma Record Filters Bar",
   "description": "A lightweight records search, sort, page-size, and refresh toolbar.",
   "dependencies": ["lemma-sdk"],
-  "registryDependencies": ["button", "input", "select"],
+  "registryDependencies": ["button", "input", "select", "sheet"],
   "files": [
+    {
+      "path": "registry/default/shared/components/registry-data-workspace.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/registry-data-workspace.tsx"
+    },
     {
       "path": "registry/default/lemma-record-filters-bar/components/lemma-record-filters-bar.tsx",
       "type": "registry:component",

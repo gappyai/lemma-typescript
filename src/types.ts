@@ -114,6 +114,7 @@ export interface CursorPage<T> {
   items: T[];
   limit: number;
   next_page_token?: string | null;
+  total?: number;
 }
 
 /**

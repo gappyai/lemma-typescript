@@ -5,7 +5,7 @@
   "title": "Lemma Record Form",
   "description": "A schema-aware record form for Lemma datastore tables, including enum and foreign-key fields.",
   "dependencies": ["lemma-sdk"],
-  "registryDependencies": ["button", "card", "checkbox", "input", "label", "select", "textarea"],
+  "registryDependencies": ["badge", "button", "card", "checkbox", "input", "label", "select", "sheet", "textarea"],
   "files": [
     {
       "path": "registry/default/lemma-record-form/components/lemma-foreign-key-select.tsx",

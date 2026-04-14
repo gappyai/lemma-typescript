@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import { buildJoinedRecordsQuery, parseForeignKeyReference } from "../datastore-query.js";
 import type { Table } from "../types.js";
+import { normalizeError, resolvePodClient, stringifyComparable } from "./utils.js";
 
 export interface RelatedRecordsInclude {
   foreignKey: string;
@@ -46,24 +47,6 @@ export interface UseRelatedRecordsResult<TRow extends Record<string, unknown> = 
   isLoading: boolean;
   error: Error | null;
   refresh: () => Promise<TRow[]>;
-}
-
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
-
-function stringifyComparable(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
 }
 
 function sentenceCase(value: string): string {
@@ -155,7 +138,7 @@ export function useRelatedRecords<TRow extends Record<string, unknown> = Record<
   const stableBaseFields = useMemo(() => baseFields, [baseFieldsKey]);
   const isEnabled = enabled && trimmedTableName.length > 0 && stableInclude.length > 0;
 
-  const refresh = useCallback(async (): Promise<TRow[]> => {
+  const refresh = useCallback(async (signal?: AbortSignal): Promise<TRow[]> => {
     if (!isEnabled) {
       setRecords([]);
       setColumns([]);
@@ -173,6 +156,7 @@ export function useRelatedRecords<TRow extends Record<string, unknown> = Record<
     try {
       const scopedClient = resolvePodClient(client, podId);
       const nextBaseTable = await scopedClient.tables.get(trimmedTableName);
+      if (signal?.aborted) return [];
 
       if (nextBaseTable.enable_rls) {
         throw new Error(
@@ -186,6 +170,7 @@ export function useRelatedRecords<TRow extends Record<string, unknown> = Record<
         .filter((field, index, allFields) => field.trim().length > 0 && allFields.indexOf(field) === index);
 
       const resolvedIncludes = await Promise.all(stableInclude.map(async (entry, index) => {
+        if (signal?.aborted) throw new Error("Aborted");
         const baseColumn = nextBaseTable.columns.find((column) => column.name === entry.foreignKey) ?? null;
         const reference = baseColumn?.foreign_key?.references
           ? parseForeignKeyReference(baseColumn.foreign_key.references)
@@ -254,6 +239,7 @@ export function useRelatedRecords<TRow extends Record<string, unknown> = Record<
       setIncludes(resolvedIncludes.map(({ alias: _alias, ...rest }) => rest));
 
       const response = await scopedClient.datastore.query(nextSql);
+      if (signal?.aborted) return [];
       const nextColumns: RelatedRecordsColumn[] = [
         ...resolvedBaseFields.map((field) => ({
           key: field,
@@ -291,11 +277,12 @@ export function useRelatedRecords<TRow extends Record<string, unknown> = Record<
       setRecords(nextRecords);
       return nextRecords;
     } catch (refreshError) {
+      if (signal?.aborted) return [];
       const normalized = normalizeError(refreshError, "Failed to load related records.");
       setError(normalized);
       return [];
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, isEnabled, limit, offset, podId, stableBaseFields, stableInclude, trimmedTableName]);
 
@@ -312,7 +299,21 @@ export function useRelatedRecords<TRow extends Record<string, unknown> = Record<
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh(controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load related records."), "Failed to load related records."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, isEnabled, refresh]);
 
   return useMemo(() => ({

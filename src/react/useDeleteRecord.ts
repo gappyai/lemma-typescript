@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { DatastoreMessageResponse } from "../types.js";
+import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseDeleteRecordOptions {
   client: LemmaClient;
@@ -20,16 +21,6 @@ export interface UseDeleteRecordResult {
   reset: () => void;
 }
 
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
-
 export function useDeleteRecord({
   client,
   podId,
@@ -43,6 +34,12 @@ export function useDeleteRecord({
   const [error, setError] = useState<Error | null>(null);
   const [lastMessage, setLastMessage] = useState<string | null>(null);
 
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
+
   const trimmedTableName = tableName.trim();
   const trimmedRecordId = typeof recordId === "string" ? recordId.trim() : "";
   const isEnabled = enabled && trimmedTableName.length > 0;
@@ -55,8 +52,6 @@ export function useDeleteRecord({
       : trimmedRecordId;
 
     if (!isEnabled || nextRecordId.length === 0) {
-      const disabledError = new Error("Record deletion requires a table and record ID.");
-      setError(disabledError);
       return false;
     }
 
@@ -67,17 +62,17 @@ export function useDeleteRecord({
       const scopedClient = resolvePodClient(client, podId);
       const response = await scopedClient.records.delete(trimmedTableName, nextRecordId);
       setLastMessage(response.message ?? "Record deleted.");
-      onSuccess?.(response);
+      onSuccessRef.current?.(response);
       return true;
     } catch (mutationError) {
       const normalized = normalizeError(mutationError, "Failed to delete record.");
       setError(normalized);
-      onError?.(mutationError);
+      onErrorRef.current?.(mutationError);
       return false;
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, isEnabled, onError, onSuccess, podId, trimmedRecordId, trimmedTableName]);
+  }, [client, isEnabled, podId, trimmedRecordId, trimmedTableName]);
 
   const reset = useCallback(() => {
     setError(null);

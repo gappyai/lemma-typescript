@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { isTerminalFlowStatus, normalizeRunStatus } from "../run-utils.js";
 import type { FlowRun, WorkflowRunInputs } from "../types.js";
 import {
@@ -69,22 +69,24 @@ export function useWorkflowRun({
     });
   }, [session, workflowName]);
 
-  const normalizedStatus = normalizeRunStatus(session.status);
-  const isFinished = isTerminalFlowStatus(normalizedStatus);
-  const isWaitingForInput = normalizedStatus === "WAITING"
-    || !!session.run?.waiting_task_id
-    || !!session.run?.waiting_function_run_id
-    || !!session.run?.waiting_trigger_id;
-  const output = session.run?.execution_context ?? null;
-  const finalOutput = isFinished ? output : null;
+  return useMemo(() => {
+    const normalizedStatus = normalizeRunStatus(session.status);
+    const isFinished = isTerminalFlowStatus(normalizedStatus);
+    const isWaitingForInput = normalizedStatus === "WAITING"
+      || !!session.run?.waiting_task_id
+      || !!session.run?.waiting_function_run_id
+      || !!session.run?.waiting_trigger_id;
+    const output = session.run?.execution_context ?? null;
+    const finalOutput = isFinished ? output : null;
 
-  return {
-    ...session,
-    output,
-    finalOutput,
-    isWaitingForInput,
-    isFinished,
-    start,
-    listRuns,
-  };
+    return {
+      ...session,
+      output,
+      finalOutput,
+      isWaitingForInput,
+      isFinished,
+      start,
+      listRuns,
+    };
+  }, [listRuns, session, start]);
 }

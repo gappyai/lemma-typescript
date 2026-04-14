@@ -18,8 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { LemmaAgentRunPanel } from "@/components/lemma/lemma-agent-run-panel"
+import { cn } from "@/lib/utils"
 
-export interface LemmaAgentRunnerPageProps {
+export interface LemmaAgentRunnerPageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError"> {
   client: LemmaClient
   podId?: string
   agents?: Agent[]
@@ -27,17 +28,22 @@ export interface LemmaAgentRunnerPageProps {
   onAgentNameChange?: (agentName: string) => void
   title?: string
   description?: string
+  onError?: (error: Error) => void
 }
 
-export function LemmaAgentRunnerPage({
-  client,
-  podId,
-  agents = [],
-  agentName,
-  onAgentNameChange,
-  title = "Agent Runner",
-  description = "Choose an agent and run it with a schema-aware input panel.",
-}: LemmaAgentRunnerPageProps) {
+export const LemmaAgentRunnerPage = React.forwardRef<HTMLDivElement, LemmaAgentRunnerPageProps>(
+  ({
+    client,
+    podId,
+    agents = [],
+    agentName,
+    onAgentNameChange,
+    title = "Agent Runner",
+    description = "Choose an agent and run it with a schema-aware input panel.",
+    onError,
+    className,
+    ...props
+  }, ref) => {
   const [internalAgentName, setInternalAgentName] = React.useState(agentName ?? agents[0]?.name ?? "")
   const selectedAgentName = agentName ?? internalAgentName
 
@@ -54,13 +60,13 @@ export function LemmaAgentRunnerPage({
   }, [agentName, onAgentNameChange])
 
   return (
-    <div className="grid gap-4">
+    <div ref={ref} className={cn("grid gap-4", className)} {...props}>
       <Card>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <CardContent className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
           <Select value={selectedAgentName} onValueChange={setSelectedAgentName}>
             <SelectTrigger>
               <SelectValue placeholder="Select an agent" />
@@ -85,7 +91,7 @@ export function LemmaAgentRunnerPage({
       </Card>
 
       {selectedAgentName ? (
-        <LemmaAgentRunPanel client={client} podId={podId} agentName={selectedAgentName} />
+        <LemmaAgentRunPanel client={client} podId={podId} agentName={selectedAgentName} onError={onError} />
       ) : (
         <Card>
           <CardHeader>
@@ -96,4 +102,5 @@ export function LemmaAgentRunnerPage({
       )}
     </div>
   )
-}
+})
+LemmaAgentRunnerPage.displayName = "LemmaAgentRunnerPage"

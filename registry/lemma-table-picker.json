@@ -5,8 +5,13 @@
   "title": "Lemma Table Picker",
   "description": "A table selector powered by useTables.",
   "dependencies": ["lemma-sdk"],
-  "registryDependencies": ["button", "card", "select"],
+  "registryDependencies": ["badge", "button", "card", "select"],
   "files": [
+    {
+      "path": "registry/default/shared/components/registry-data-workspace.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/registry-data-workspace.tsx"
+    },
     {
       "path": "registry/default/lemma-table-picker/components/lemma-table-picker.tsx",
       "type": "registry:component",

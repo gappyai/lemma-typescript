@@ -19,10 +19,10 @@
   --state-info: #1d4ed8;
   --state-warning: #b45309;
   --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.08);
-  --assistant-radius-shell: 6px;
-  --assistant-radius-item: 4px;
-  --assistant-radius-bubble: 4px;
-  --assistant-radius-inline: 3px;
+  --assistant-radius-shell: var(--assistant-shell-radius, calc(var(--radius, 0.75rem) + 0.125rem));
+  --assistant-radius-item: var(--assistant-item-radius, var(--radius, 0.75rem));
+  --assistant-radius-bubble: var(--assistant-bubble-radius, var(--radius, 0.75rem));
+  --assistant-radius-inline: var(--assistant-inline-radius, calc(var(--radius, 0.75rem) - 0.125rem));
   --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
   --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.1);
   --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
@@ -111,10 +111,10 @@
   --state-info: #1d4ed8;
   --state-warning: #b45309;
   --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.08);
-  --assistant-radius-shell: 6px;
-  --assistant-radius-item: 4px;
-  --assistant-radius-bubble: 4px;
-  --assistant-radius-inline: 3px;
+  --assistant-radius-shell: var(--assistant-shell-radius, calc(var(--radius, 0.75rem) + 0.125rem));
+  --assistant-radius-item: var(--assistant-item-radius, var(--radius, 0.75rem));
+  --assistant-radius-bubble: var(--assistant-bubble-radius, var(--radius, 0.75rem));
+  --assistant-radius-inline: var(--assistant-inline-radius, calc(var(--radius, 0.75rem) - 0.125rem));
   --shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.08);
   --shadow-md: 0 6px 16px rgba(15, 23, 42, 0.1);
   --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.12);
@@ -154,6 +154,13 @@
   height: 100%;
 }
 
+.lemma-assistant-experience[data-radius="theme"] {
+  --assistant-radius-shell: var(--assistant-shell-radius, calc(var(--radius, 0.75rem) + 0.125rem));
+  --assistant-radius-item: var(--assistant-item-radius, var(--radius, 0.75rem));
+  --assistant-radius-bubble: var(--assistant-bubble-radius, var(--radius, 0.75rem));
+  --assistant-radius-inline: var(--assistant-inline-radius, calc(var(--radius, 0.75rem) - 0.125rem));
+}
+
 .lemma-assistant-experience[data-radius="none"] {
   --assistant-radius-shell: 0px;
   --assistant-radius-item: 0px;
@@ -162,10 +169,10 @@
 }
 
 .lemma-assistant-experience[data-radius="sm"] {
-  --assistant-radius-shell: 6px;
-  --assistant-radius-item: 4px;
-  --assistant-radius-bubble: 4px;
-  --assistant-radius-inline: 3px;
+  --assistant-radius-shell: 10px;
+  --assistant-radius-item: 8px;
+  --assistant-radius-bubble: 8px;
+  --assistant-radius-inline: 6px;
 }
 
 .lemma-assistant-experience[data-radius="md"] {
@@ -762,7 +769,7 @@
 }
 
 .lemma-assistant-empty-state {
-  padding: 20px 8px;
+  padding: 24px 16px;
   text-align: center;
 }
 
@@ -893,7 +900,7 @@
 .lemma-assistant-header-title,
 .lemma-assistant-conversation-list-title,
 .lemma-assistant-experience-sidebar-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   line-height: 1.2;
   color: var(--text-primary);
@@ -903,7 +910,7 @@
 .lemma-assistant-conversation-list-meta,
 .lemma-assistant-experience-sidebar-meta {
   margin-top: 4px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-tertiary);
 }
 
@@ -927,7 +934,7 @@
   cursor: pointer;
   border: 1px solid var(--border-default);
   background: var(--bg-surface);
-  padding: 10px 12px;
+  padding: 14px 16px;
   text-align: left;
   color: inherit;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
@@ -946,7 +953,7 @@
 
 .lemma-assistant-conversation-list-item-title,
 .lemma-assistant-experience-sidebar-item-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-primary);
 }
@@ -954,7 +961,7 @@
 .lemma-assistant-conversation-list-item-status,
 .lemma-assistant-experience-sidebar-item-status {
   margin-top: 4px;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-tertiary);
@@ -1238,7 +1245,7 @@
 }
 
 .lemma-assistant-plan-strip {
-  padding: 10px 12px;
+  padding: 14px 16px;
 }
 
 .lemma-assistant-plan-strip-summary {
@@ -1308,7 +1315,7 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .lemma-assistant-plan-strip-step-dot {
@@ -1555,7 +1562,7 @@
 
 .lemma-assistant-tool-details-panel {
   margin-top: 6px;
-  padding: 10px 12px;
+  padding: 14px 16px;
   border: 1px solid color-mix(in srgb, var(--border-default) 86%, transparent);
   border-radius: var(--assistant-radius-inline);
   background: color-mix(in srgb, var(--bg-surface) 96%, var(--bg-canvas));
@@ -1665,7 +1672,7 @@
 
 .lemma-assistant-tool-details-value {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   color: var(--text-primary);
   overflow-wrap: anywhere;

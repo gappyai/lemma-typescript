@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { OrganizationMember } from "../types.js";
+import { normalizeError } from "./utils.js";
 
 export interface UseOrganizationMembersOptions {
   client: LemmaClient;
@@ -16,13 +17,10 @@ export interface UseOrganizationMembersResult {
   total: number;
   nextPageToken: string | null;
   isLoading: boolean;
+  isLoadingMore: boolean;
   error: Error | null;
   refresh: (overrides?: { limit?: number; pageToken?: string }) => Promise<OrganizationMember[]>;
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
+  loadMore: (overrides?: { limit?: number }) => Promise<OrganizationMember[]>;
 }
 
 export function useOrganizationMembers({
@@ -37,12 +35,13 @@ export function useOrganizationMembers({
   const [total, setTotal] = useState(0);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const trimmedOrganizationId = organizationId.trim();
   const isEnabled = enabled && trimmedOrganizationId.length > 0;
 
-  const refresh = useCallback(async (overrides: { limit?: number; pageToken?: string } = {}): Promise<OrganizationMember[]> => {
+  const refresh = useCallback(async (overrides: { limit?: number; pageToken?: string } = {}, signal?: AbortSignal): Promise<OrganizationMember[]> => {
     if (!isEnabled) {
       setMembers([]);
       setTotal(0);
@@ -60,19 +59,48 @@ export function useOrganizationMembers({
         limit: overrides.limit ?? limit,
         pageToken: overrides.pageToken ?? pageToken,
       });
+      if (signal?.aborted) return [];
       const nextMembers = response.items ?? [];
       setMembers(nextMembers);
-      setTotal(nextMembers.length);
+      setTotal((response as { total?: number }).total ?? nextMembers.length);
       setNextPageToken(response.next_page_token ?? null);
       return nextMembers;
     } catch (refreshError) {
+      if (signal?.aborted) return [];
       const normalized = normalizeError(refreshError, "Failed to load organization members.");
       setError(normalized);
       return [];
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, isEnabled, limit, pageToken, trimmedOrganizationId]);
+
+  const loadMore = useCallback(async (overrides: { limit?: number } = {}): Promise<OrganizationMember[]> => {
+    if (!isEnabled || !nextPageToken || isLoading || isLoadingMore) {
+      return [];
+    }
+
+    setIsLoadingMore(true);
+    setError(null);
+
+    try {
+      const response = await client.organizations.members.list(trimmedOrganizationId, {
+        limit: overrides.limit ?? limit,
+        pageToken: nextPageToken,
+      });
+      const moreMembers = response.items ?? [];
+      setMembers((previous) => [...previous, ...moreMembers]);
+      setTotal((response as { total?: number }).total ?? members.length + moreMembers.length);
+      setNextPageToken(response.next_page_token ?? null);
+      return moreMembers;
+    } catch (loadError) {
+      const normalized = normalizeError(loadError, "Failed to load more organization members.");
+      setError(normalized);
+      return [];
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [client, isEnabled, isLoading, isLoadingMore, limit, members.length, nextPageToken, trimmedOrganizationId]);
 
   useEffect(() => {
     if (!isEnabled) {
@@ -81,11 +109,26 @@ export function useOrganizationMembers({
       setNextPageToken(null);
       setError(null);
       setIsLoading(false);
+      setIsLoadingMore(false);
       return;
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh({}, controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load organization members."), "Failed to load organization members."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, isEnabled, refresh]);
 
   return useMemo(() => ({
@@ -93,7 +136,9 @@ export function useOrganizationMembers({
     total,
     nextPageToken,
     isLoading,
+    isLoadingMore,
     error,
     refresh,
-  }), [error, isLoading, members, nextPageToken, refresh, total]);
+    loadMore,
+  }), [error, isLoading, isLoadingMore, loadMore, members, nextPageToken, refresh, total]);
 }

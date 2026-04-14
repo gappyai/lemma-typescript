@@ -1,7 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import type { LemmaClient } from "../client.js";
 import { isTerminalTaskStatus, normalizeRunStatus } from "../run-utils.js";
 import type { Task } from "../types.js";
+import { resolvePodClient } from "./utils.js";
 import {
   useTaskSession,
   type UseTaskSessionOptions,
@@ -33,11 +34,6 @@ function resolveAgentName(base?: string, override?: string): string {
     throw new Error("agentName is required.");
   }
   return resolved;
-}
-
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
 }
 
 export function useAgentRun({
@@ -86,19 +82,21 @@ export function useAgentRun({
     return session.refreshTask(resolvedTaskId);
   }, [client, podId, session]);
 
-  const normalizedStatus = normalizeRunStatus(session.status);
-  const isFinished = isTerminalTaskStatus(normalizedStatus);
-  const isWaitingForInput = normalizedStatus === "WAITING";
-  const output = session.task?.output_data ?? null;
-  const finalOutput = isFinished ? output : null;
+  return useMemo(() => {
+    const normalizedStatus = normalizeRunStatus(session.status);
+    const isFinished = isTerminalTaskStatus(normalizedStatus);
+    const isWaitingForInput = normalizedStatus === "WAITING";
+    const output = session.task?.output_data ?? null;
+    const finalOutput = isFinished ? output : null;
 
-  return {
-    ...session,
-    output,
-    finalOutput,
-    isWaitingForInput,
-    isFinished,
-    start,
-    submitInput,
-  };
+    return {
+      ...session,
+      output,
+      finalOutput,
+      isWaitingForInput,
+      isFinished,
+      start,
+      submitInput,
+    };
+  }, [session, start, submitInput]);
 }

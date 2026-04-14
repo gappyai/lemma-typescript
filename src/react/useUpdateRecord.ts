@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { RecordResponse } from "../types.js";
+import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseUpdateRecordOptions {
   client: LemmaClient;
@@ -23,16 +24,6 @@ export interface UseUpdateRecordResult<TRecord extends Record<string, unknown> =
   reset: () => void;
 }
 
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
-
 export function useUpdateRecord<TRecord extends Record<string, unknown> = Record<string, unknown>>({
   client,
   podId,
@@ -45,6 +36,12 @@ export function useUpdateRecord<TRecord extends Record<string, unknown> = Record
   const [updatedRecord, setUpdatedRecord] = useState<TRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => { onSuccessRef.current = onSuccess; }, [onSuccess]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
   const trimmedTableName = tableName.trim();
   const trimmedRecordId = typeof recordId === "string" ? recordId.trim() : "";
@@ -59,8 +56,6 @@ export function useUpdateRecord<TRecord extends Record<string, unknown> = Record
       : trimmedRecordId;
 
     if (!isEnabled || nextRecordId.length === 0) {
-      const disabledError = new Error("Record update requires a table and record ID.");
-      setError(disabledError);
       return null;
     }
 
@@ -73,18 +68,18 @@ export function useUpdateRecord<TRecord extends Record<string, unknown> = Record
       const nextRecord = (response.data ?? null) as TRecord | null;
       setUpdatedRecord(nextRecord);
       if (nextRecord) {
-        onSuccess?.(nextRecord, response);
+        onSuccessRef.current?.(nextRecord, response);
       }
       return nextRecord;
     } catch (mutationError) {
       const normalized = normalizeError(mutationError, "Failed to update record.");
       setError(normalized);
-      onError?.(mutationError);
+      onErrorRef.current?.(mutationError);
       return null;
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, isEnabled, onError, onSuccess, podId, trimmedRecordId, trimmedTableName]);
+  }, [client, isEnabled, podId, trimmedRecordId, trimmedTableName]);
 
   const reset = useCallback(() => {
     setUpdatedRecord(null);

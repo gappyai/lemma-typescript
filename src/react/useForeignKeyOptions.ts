@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import { parseForeignKeyReference, type ForeignKeyReference } from "../datastore-query.js";
 import type { ColumnSchema, Table } from "../types.js";
+import { normalizeError, resolvePodId } from "./utils.js";
 
 export interface ForeignKeyOption {
   value: unknown;
@@ -35,18 +36,7 @@ export interface UseForeignKeyOptionsResult {
 
 const EMPTY_LABEL_FIELDS: string[] = [];
 
-function resolvePodId(client: LemmaClient, podId?: string): string {
-  const resolved = podId ?? client.podId;
-  if (!resolved) {
-    throw new Error("podId is required. Pass podId or set it on LemmaClient.");
-  }
-  return resolved;
-}
 
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
 
 function readRecordValue(record: Record<string, unknown>, field?: string | null): unknown {
   if (!field) return undefined;
@@ -123,7 +113,7 @@ export function useForeignKeyOptions({
   const labelFieldsKey = useMemo(() => JSON.stringify(labelFields), [labelFields]);
   const stableLabelFields = useMemo(() => labelFields, [labelFieldsKey]);
 
-  const refresh = useCallback(async (): Promise<ForeignKeyOption[]> => {
+  const refresh = useCallback(async (signal?: AbortSignal): Promise<ForeignKeyOption[]> => {
     if (!enabled) return [];
 
     setIsLoading(true);
@@ -133,6 +123,7 @@ export function useForeignKeyOptions({
       const resolvedPodId = resolvePodId(client, podId);
       const scopedClient = resolvedPodId === client.podId ? client : client.withPod(resolvedPodId);
       const nextTable = await scopedClient.tables.get(tableName);
+      if (signal?.aborted) return [];
       const nextColumn = nextTable.columns.find((entry) => entry.name === columnName) ?? null;
       const nextReference = nextColumn?.foreign_key?.references
         ? parseForeignKeyReference(nextColumn.foreign_key.references)
@@ -160,6 +151,7 @@ export function useForeignKeyOptions({
           : undefined,
       });
 
+      if (signal?.aborted) return [];
       const records = response.items ?? [];
       const nextResolvedLabelField = pickResolvedLabelField(
         records,
@@ -197,17 +189,32 @@ export function useForeignKeyOptions({
       setOptions(nextOptions);
       return nextOptions;
     } catch (refreshError) {
+      if (signal?.aborted) return [];
       const normalized = normalizeError(refreshError, "Failed to load foreign key options.");
       setError(normalized);
       return [];
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, columnName, enabled, labelField, limit, podId, search, stableLabelFields, tableName]);
 
   useEffect(() => {
     if (!enabled || !autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh(controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load foreign key options."), "Failed to load foreign key options."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, enabled, refresh]);
 
   return useMemo(() => ({

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FlowRun } from "../types.js";
 import type { UseFlowSessionResult } from "./useFlowSession.js";
+import { normalizeError } from "./utils.js";
 
 export interface UseFlowRunHistoryOptions {
   session: Pick<UseFlowSessionResult, "run" | "runId" | "setRunId" | "listHistory">;
@@ -20,10 +21,6 @@ export interface UseFlowRunHistoryResult {
   refresh: () => Promise<FlowRun[]>;
 }
 
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
 
 export function useFlowRunHistory({
   session,

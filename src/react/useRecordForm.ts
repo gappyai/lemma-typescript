@@ -6,6 +6,7 @@ import {
   type RecordSchemaField,
 } from "../record-form.js";
 import type { RecordResponse } from "../types.js";
+import { normalizeError, resolvePodClient, stringifyComparable } from "./utils.js";
 import {
   useRecordSchema,
   type UseRecordSchemaResult,
@@ -50,23 +51,8 @@ export interface UseRecordFormResult {
   submit: (overrides?: { mode?: "create" | "update" }) => Promise<Record<string, unknown> | null>;
 }
 
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
 
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
 
-function stringifyComparable(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
 
 export function useRecordForm({
   client,

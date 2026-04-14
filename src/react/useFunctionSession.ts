@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import { isTerminalFunctionStatus, normalizeRunStatus, sleep } from "../run-utils.js";
 import type { FunctionRun } from "../types.js";
+import { normalizeError, resolvePodClient, resolvePodId } from "./utils.js";
 
 export interface UseFunctionSessionOptions {
   client: LemmaClient;
@@ -34,30 +35,12 @@ export interface UseFunctionSessionResult {
   }) => Promise<FunctionRun[]>;
 }
 
-function resolvePodId(client: LemmaClient, podId?: string): string {
-  const resolved = podId ?? client.podId;
-  if (!resolved) {
-    throw new Error("podId is required. Pass podId or set it on LemmaClient.");
-  }
-  return resolved;
-}
-
 function resolveFunctionName(base?: string, override?: string): string {
   const resolved = override ?? base;
   if (!resolved) {
     throw new Error("functionName is required.");
   }
   return resolved;
-}
-
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
 }
 
 export function useFunctionSession({
@@ -75,6 +58,12 @@ export function useFunctionSession({
   const [status, setStatus] = useState<string | undefined>(undefined);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+
+  const onRunRef = useRef(onRun);
+  const onErrorRef = useRef(onError);
+
+  useEffect(() => { onRunRef.current = onRun; }, [onRun]);
+  useEffect(() => { onErrorRef.current = onError; }, [onError]);
 
   const setRunId = useCallback((nextRunId: string | null) => {
     setRunIdState(nextRunId);
@@ -104,16 +93,16 @@ export function useFunctionSession({
       setRun(nextRun);
       const nextStatus = normalizeRunStatus(nextRun.status);
       setStatus(nextStatus);
-      onRun?.(nextRun);
+      onRunRef.current?.(nextRun);
 
       return nextRun;
     } catch (refreshError) {
       const normalized = normalizeError(refreshError, "Failed to fetch function run.");
       setError(normalized);
-      onError?.(refreshError);
+      onErrorRef.current?.(refreshError);
       return null;
     }
-  }, [client, functionName, onError, onRun, podId, runId]);
+  }, [client, functionName, podId, runId]);
 
   const listHistory = useCallback(async (options: {
     functionName?: string;
@@ -132,10 +121,10 @@ export function useFunctionSession({
     } catch (listError) {
       const normalized = normalizeError(listError, "Failed to list function runs.");
       setError(normalized);
-      onError?.(listError);
+      onErrorRef.current?.(listError);
       return [];
     }
-  }, [client, functionName, onError, podId]);
+  }, [client, functionName, podId]);
 
   const start = useCallback(async (options: {
     functionName?: string;
@@ -155,21 +144,35 @@ export function useFunctionSession({
     setRunIdState(created.id);
     const nextStatus = normalizeRunStatus(created.status);
     setStatus(nextStatus);
-    onRun?.(created);
+    onRunRef.current?.(created);
 
     if (options.connect !== false) {
       await refresh(created.id);
     }
 
     return created;
-  }, [client, functionName, onRun, podId, refresh]);
+  }, [client, functionName, podId, refresh]);
 
   useEffect(() => {
     if (!runId) {
       return;
     }
 
-    void refresh(runId);
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh(runId);
+      } catch {
+        if (!cancelled) {
+          // refresh handles errors internally
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [refresh, runId]);
 
   useEffect(() => {
@@ -210,7 +213,7 @@ export function useFunctionSession({
     void loop().catch((pollError) => {
       const normalized = normalizeError(pollError, "Failed while polling function run.");
       setError(normalized);
-      onError?.(pollError);
+      onErrorRef.current?.(pollError);
       setIsPolling(false);
     });
 
@@ -218,7 +221,7 @@ export function useFunctionSession({
       active = false;
       abortController.abort();
     };
-  }, [autoPoll, onError, pollIntervalMs, refresh, runId]);
+  }, [autoPoll, pollIntervalMs, refresh, runId]);
 
   return {
     runId,

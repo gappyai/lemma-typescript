@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { Conversation } from "../types.js";
+import { normalizeError } from "./utils.js";
 
 export interface UseConversationOptions {
   client: LemmaClient;
@@ -15,11 +16,6 @@ export interface UseConversationResult {
   isLoading: boolean;
   error: Error | null;
   refresh: (overrides?: { conversationId?: string | null }) => Promise<Conversation | null>;
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
 }
 
 export function useConversation({
@@ -38,6 +34,7 @@ export function useConversation({
 
   const refresh = useCallback(async (
     overrides: { conversationId?: string | null } = {},
+    signal?: AbortSignal,
   ): Promise<Conversation | null> => {
     const nextConversationId = typeof overrides.conversationId === "string"
       ? overrides.conversationId.trim()
@@ -58,14 +55,16 @@ export function useConversation({
       const nextConversation = await scopedClient.conversations.get(nextConversationId, {
         pod_id: podId,
       });
+      if (signal?.aborted) return null;
       setConversation(nextConversation);
       return nextConversation;
     } catch (refreshError) {
+      if (signal?.aborted) return null;
       const normalized = normalizeError(refreshError, "Failed to load conversation.");
       setError(normalized);
       return null;
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, enabled, podId, trimmedConversationId]);
 
@@ -78,7 +77,21 @@ export function useConversation({
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh({}, controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load conversation."), "Failed to load conversation."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, isEnabled, refresh]);
 
   return useMemo(() => ({

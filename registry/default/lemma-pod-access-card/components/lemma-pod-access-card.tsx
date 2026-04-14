@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import type { LemmaClient } from "lemma-sdk"
 import { usePodAccess } from "lemma-sdk/react"
 import { Button } from "@/components/ui/button"
@@ -10,20 +11,24 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
-export interface LemmaPodAccessCardProps {
+export interface LemmaPodAccessCardProps extends React.HTMLAttributes<HTMLDivElement> {
   client: LemmaClient
   podId?: string
   title?: string
   description?: string
 }
 
-export function LemmaPodAccessCard({
-  client,
-  podId,
-  title = "Pod Access",
-  description = "Check current user membership and request access when needed.",
-}: LemmaPodAccessCardProps) {
+export const LemmaPodAccessCard = React.forwardRef<HTMLDivElement, LemmaPodAccessCardProps>(
+  ({
+    client,
+    podId,
+    title = "Pod Access",
+    description = "Check current user membership and request access when needed.",
+    className,
+    ...props
+  }, ref) => {
   const access = usePodAccess({
     client,
     podId,
@@ -31,23 +36,23 @@ export function LemmaPodAccessCard({
   })
 
   return (
-    <Card>
+    <Card ref={ref} className={cn("", className)} {...props}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-3">
+      <CardContent className="flex flex-col gap-4">
         {access.error ? (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {access.error.message}
           </div>
         ) : null}
-        <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
           <div className="text-muted-foreground">Status</div>
           <div className="font-medium">{access.status}</div>
         </div>
         {access.member ? (
-          <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+          <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
             <div className="font-medium">{access.member.user_name || access.member.user_email}</div>
             <div className="text-muted-foreground">{access.member.role}</div>
           </div>
@@ -74,4 +79,5 @@ export function LemmaPodAccessCard({
       </CardContent>
     </Card>
   )
-}
+})
+LemmaPodAccessCard.displayName = "LemmaPodAccessCard"

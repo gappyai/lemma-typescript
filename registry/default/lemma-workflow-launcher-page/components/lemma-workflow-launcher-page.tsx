@@ -19,8 +19,9 @@ import { LemmaWorkflowHistory } from "@/components/lemma/lemma-workflow-history"
 import { LemmaWorkflowRunDetails } from "@/components/lemma/lemma-workflow-run-details"
 import { LemmaWorkflowRunStatus } from "@/components/lemma/lemma-workflow-run-status"
 import { LemmaWorkflowStartForm } from "@/components/lemma/lemma-workflow-start-form"
+import { cn } from "@/lib/utils"
 
-export interface LemmaWorkflowLauncherPageProps {
+export interface LemmaWorkflowLauncherPageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError"> {
   client: LemmaClient
   podId?: string
   workflows?: Workflow[]
@@ -28,17 +29,22 @@ export interface LemmaWorkflowLauncherPageProps {
   onWorkflowNameChange?: (workflowName: string) => void
   title?: string
   description?: string
+  onError?: (error: Error) => void
 }
 
-export function LemmaWorkflowLauncherPage({
-  client,
-  podId,
-  workflows = [],
-  workflowName,
-  onWorkflowNameChange,
-  title = "Workflow Launcher",
-  description = "Start a workflow and review its recent run history.",
-}: LemmaWorkflowLauncherPageProps) {
+export const LemmaWorkflowLauncherPage = React.forwardRef<HTMLDivElement, LemmaWorkflowLauncherPageProps>(
+  ({
+    client,
+    podId,
+    workflows = [],
+    workflowName,
+    onWorkflowNameChange,
+    title = "Workflow Launcher",
+    description = "Start a workflow and review its recent run history.",
+    onError,
+    className,
+    ...props
+  }, ref) => {
   const [internalWorkflowName, setInternalWorkflowName] = React.useState(workflowName ?? workflows[0]?.name ?? "")
   const [lastRun, setLastRun] = React.useState<FlowRun | null>(null)
   const selectedWorkflowName = workflowName ?? internalWorkflowName
@@ -56,7 +62,7 @@ export function LemmaWorkflowLauncherPage({
   }, [onWorkflowNameChange, workflowName])
 
   return (
-    <div className="grid gap-4">
+    <div ref={ref} className={cn("grid gap-4", className)} {...props}>
       <Card>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
@@ -80,9 +86,10 @@ export function LemmaWorkflowLauncherPage({
 
       {selectedWorkflowName ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-          <div className="grid gap-4">
+    <div>
             <LemmaWorkflowStartForm
               client={client}
+              onError={onError}
               onStarted={(run) => setLastRun(run)}
               podId={podId}
               workflowName={selectedWorkflowName}
@@ -106,4 +113,5 @@ export function LemmaWorkflowLauncherPage({
       )}
     </div>
   )
-}
+})
+LemmaWorkflowLauncherPage.displayName = "LemmaWorkflowLauncherPage"

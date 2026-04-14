@@ -4,12 +4,29 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import {
+  DATA_INPUT_CLASS_NAME,
+  DATA_PANEL_SECTION_CLASS_NAME,
+  DATA_SUBTLE_ACTION_CLASS_NAME,
+  DATA_TOOLBAR_CARD_CLASS_NAME,
+  DataWorkspaceState,
+  dataWorkspaceMetaBadgeClassName,
+} from "@/components/lemma/registry-data-workspace"
 
 type SortFieldOption = string | { value: string; label: string }
 export type LemmaFilterFieldType =
@@ -32,14 +49,28 @@ export interface LemmaFilterFieldOption {
   options?: string[]
 }
 
+export type LemmaFilterOperator =
+  | "contains"
+  | "does_not_contain"
+  | "is"
+  | "is_not"
+  | "starts_with"
+  | "ends_with"
+  | "gt"
+  | "gte"
+  | "lt"
+  | "lte"
+  | "is_empty"
+  | "is_not_empty"
+
 export interface LemmaFilterCondition {
   id: string
   field: string
-  op: string
-  value?: string
+  op: LemmaFilterOperator
+  value?: string | number | boolean
 }
 
-export interface LemmaRecordFiltersBarProps {
+export interface LemmaRecordFiltersBarProps extends React.HTMLAttributes<HTMLDivElement> {
   search: string
   onSearchChange: (value: string) => void
   searchPlaceholder?: string
@@ -90,7 +121,7 @@ function normalizeSortOptions(options?: SortFieldOption[]): Array<{ value: strin
     .filter((option) => option.value.trim().length > 0)
 }
 
-function defaultFilterOperator(type?: LemmaFilterFieldType): string {
+function defaultFilterOperator(type?: LemmaFilterFieldType): LemmaFilterOperator {
   if (type === "boolean") return "is"
   if (type === "select") return "is"
   if (FILTERABLE_NUMERIC_TYPES.has(type ?? "")) return "is"
@@ -98,7 +129,7 @@ function defaultFilterOperator(type?: LemmaFilterFieldType): string {
   return "contains"
 }
 
-function availableOperators(type?: LemmaFilterFieldType): Array<{ value: string; label: string }> {
+function availableOperators(type?: LemmaFilterFieldType): Array<{ value: LemmaFilterOperator; label: string }> {
   if (type === "boolean" || type === "select") {
     return [
       { value: "is", label: "is" },
@@ -131,33 +162,42 @@ function availableOperators(type?: LemmaFilterFieldType): Array<{ value: string;
   ]
 }
 
-function operatorNeedsValue(op: string): boolean {
+function operatorNeedsValue(op: LemmaFilterOperator): boolean {
   return op !== "is_empty" && op !== "is_not_empty"
 }
 
-export function LemmaRecordFiltersBar({
-  search,
-  onSearchChange,
-  searchPlaceholder = "Search records…",
-  resultCount,
-  onRefresh,
-  isRefreshing = false,
-  sortBy = "",
-  onSortByChange,
-  sortOrder = "asc",
-  onSortOrderChange,
-  availableSortFields,
-  pageSize,
-  onPageSizeChange,
-  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
-  availableFilterFields = [],
-  filters = [],
-  onFiltersChange,
-  allowSearch = true,
-  allowFilters = true,
-  allowSorting = true,
-  allowPageSizeSelect = true,
-}: LemmaRecordFiltersBarProps) {
+function stringifyFilterValue(value: LemmaFilterCondition["value"]): string {
+  if (typeof value === "string") return value
+  if (typeof value === "number" || typeof value === "boolean") return String(value)
+  return ""
+}
+
+export const LemmaRecordFiltersBar = React.forwardRef<HTMLDivElement, LemmaRecordFiltersBarProps>(
+  ({
+    search,
+    onSearchChange,
+    searchPlaceholder = "Search records…",
+    resultCount,
+    onRefresh,
+    isRefreshing = false,
+    sortBy = "",
+    onSortByChange,
+    sortOrder = "asc",
+    onSortOrderChange,
+    availableSortFields,
+    pageSize,
+    onPageSizeChange,
+    pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
+    availableFilterFields = [],
+    filters = [],
+    onFiltersChange,
+    allowSearch = true,
+    allowFilters = true,
+    allowSorting = true,
+    allowPageSizeSelect = true,
+    className,
+    ...props
+  }, ref) => {
   const sortOptions = React.useMemo(
     () => normalizeSortOptions(availableSortFields),
     [availableSortFields],
@@ -171,16 +211,20 @@ export function LemmaRecordFiltersBar({
     }
   }, [filters, isFilterEditorOpen])
 
-  const activeFilterCount = filters.filter((filter) => filter.field && (operatorNeedsValue(filter.op) ? (filter.value ?? "").trim().length > 0 : true)).length
+  const activeFilterCount = filters.filter((filter) => (
+    filter.field
+    && (operatorNeedsValue(filter.op) ? stringifyFilterValue(filter.value).trim().length > 0 : true)
+  )).length
   const firstFilterField = availableFilterFields[0]
 
   return (
-    <>
-    <div className="flex min-w-0 flex-col gap-3 rounded-[8px] border border-[color:var(--resource-border)] bg-[var(--resource-surface)] p-4 shadow-sm">
-      <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center">
+    <div ref={ref} className={cn("", className)} {...props}>
+    <div className={cn("flex min-w-0 flex-col gap-4", DATA_TOOLBAR_CARD_CLASS_NAME)}>
+      <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center">
       {allowSearch ? (
-        <div className="min-w-[220px] flex-1">
+        <div className="min-w-[240px] flex-1">
           <Input
+            className={DATA_INPUT_CLASS_NAME}
             onChange={(event) => onSearchChange(event.target.value)}
             placeholder={searchPlaceholder}
             value={search}
@@ -189,11 +233,13 @@ export function LemmaRecordFiltersBar({
       ) : null}
       {allowFilters && onFiltersChange && availableFilterFields.length > 0 ? (
         <Button
+          className={DATA_SUBTLE_ACTION_CLASS_NAME}
           onClick={() => {
             setDraftFilters(filters.length > 0 ? filters : [createEmptyFilter(firstFilterField)])
             setIsFilterEditorOpen(true)
           }}
-          variant="outline"
+          type="button"
+          variant="ghost"
         >
           Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ""}
         </Button>
@@ -204,7 +250,7 @@ export function LemmaRecordFiltersBar({
             value={sortBy || DEFAULT_SORT_VALUE}
             onValueChange={(value) => onSortByChange(value === DEFAULT_SORT_VALUE ? "" : value)}
           >
-            <SelectTrigger id="lemma-record-filters-sort-by">
+            <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-record-filters-sort-by">
               <SelectValue placeholder="Sort field" />
             </SelectTrigger>
             <SelectContent>
@@ -221,7 +267,7 @@ export function LemmaRecordFiltersBar({
       {allowSorting && onSortOrderChange ? (
         <div className="grid gap-2 md:min-w-[140px]">
           <Select value={sortOrder} onValueChange={(value) => onSortOrderChange(value as "asc" | "desc")}>
-            <SelectTrigger id="lemma-record-filters-sort-order">
+            <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-record-filters-sort-order">
               <SelectValue placeholder="Sort order" />
             </SelectTrigger>
             <SelectContent>
@@ -234,7 +280,7 @@ export function LemmaRecordFiltersBar({
       {allowPageSizeSelect && typeof pageSize === "number" && onPageSizeChange ? (
         <div className="grid gap-2 md:min-w-[130px]">
           <Select value={String(pageSize)} onValueChange={(value) => onPageSizeChange(Number(value))}>
-            <SelectTrigger id="lemma-record-filters-page-size">
+            <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-record-filters-page-size">
               <SelectValue placeholder="Page size" />
             </SelectTrigger>
             <SelectContent>
@@ -247,14 +293,14 @@ export function LemmaRecordFiltersBar({
           </Select>
         </div>
       ) : null}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 xl:ml-auto">
         {typeof resultCount === "number" ? (
-          <p className="text-xs text-[color:var(--resource-muted)]">
+          <p className={cn("inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium", dataWorkspaceMetaBadgeClassName("default"))}>
             {resultCount} result{resultCount === 1 ? "" : "s"}
           </p>
         ) : null}
         {onRefresh ? (
-          <Button disabled={isRefreshing} onClick={onRefresh} variant="outline">
+          <Button className={DATA_SUBTLE_ACTION_CLASS_NAME} disabled={isRefreshing} onClick={onRefresh} type="button" variant="ghost">
             {isRefreshing ? "Refreshing…" : "Refresh"}
           </Button>
         ) : null}
@@ -263,16 +309,19 @@ export function LemmaRecordFiltersBar({
       {activeFilterCount > 0 ? (
         <div className="flex flex-wrap gap-2">
           {filters
-            .filter((filter) => filter.field && (operatorNeedsValue(filter.op) ? (filter.value ?? "").trim().length > 0 : true))
+            .filter((filter) => (
+              filter.field
+              && (operatorNeedsValue(filter.op) ? stringifyFilterValue(filter.value).trim().length > 0 : true)
+            ))
             .map((filter) => {
               const field = availableFilterFields.find((option) => option.value === filter.field)
               const operator = availableOperators(field?.type).find((option) => option.value === filter.op)
               return (
                 <div
-                  className="inline-flex items-center gap-2 rounded-full border border-[color:var(--resource-border)] bg-[var(--resource-surface-alt)] px-3 py-1 text-xs text-[color:var(--resource-muted-strong)]"
+                  className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs", dataWorkspaceMetaBadgeClassName("default"))}
                   key={filter.id}
                 >
-                  <span className="font-medium text-[color:var(--resource-text)]">{field?.label ?? filter.field}</span>
+                  <span className="font-medium text-foreground">{field?.label ?? filter.field}</span>
                   <span>{operator?.label ?? filter.op}</span>
                   {operatorNeedsValue(filter.op) ? <span>{filter.value}</span> : null}
                 </div>
@@ -280,35 +329,30 @@ export function LemmaRecordFiltersBar({
             })}
         </div>
       ) : null}
+
+      {!activeFilterCount && !search.trim() && !sortBy && typeof resultCount !== "undefined" ? (
+        <DataWorkspaceState
+          description="Search, sort, and filters stay compact until you need them, then expand into a dedicated editor."
+          heading="Operational controls"
+        />
+      ) : null}
     </div>
-    {isFilterEditorOpen ? (
-      <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/20 px-4 py-8 backdrop-blur-[1px]">
-        <div className="w-full max-w-5xl rounded-[8px] border border-[color:var(--resource-border)] bg-[var(--resource-surface)] shadow-[0_28px_90px_-40px_var(--resource-shadow-lg)]">
-          <div className="flex items-start justify-between gap-4 border-b border-[color:var(--resource-border)] px-6 py-5">
-            <div className="grid gap-2">
-              <h3 className="text-3xl font-semibold text-[color:var(--resource-text)]">Filter Records</h3>
-              <p className="text-sm uppercase tracking-[0.18em] text-[color:var(--resource-muted-strong)]">
-                Refine your view by adding conditions
-              </p>
-            </div>
-            <Button
-              onClick={() => {
-                setDraftFilters(filters)
-                setIsFilterEditorOpen(false)
-              }}
-              variant="ghost"
-            >
-              Close
-            </Button>
-          </div>
-          <div className="grid gap-4 border-b border-[color:var(--resource-border)] px-6 py-6">
+    <Sheet open={isFilterEditorOpen} onOpenChange={setIsFilterEditorOpen}>
+      <SheetContent className="flex w-full flex-col gap-0 border-l border-border/70 bg-background/95 p-0 sm:max-w-4xl" side="right">
+        <SheetHeader className="border-b border-border/60 px-6 py-5 text-left">
+          <SheetTitle>Filter Records</SheetTitle>
+          <SheetDescription>
+            Refine the current records view with structured conditions.
+          </SheetDescription>
+        </SheetHeader>
+        <div className="grid gap-4 border-b border-border/60 px-6 py-6">
             {draftFilters.map((filter, index) => {
               const field = availableFilterFields.find((option) => option.value === filter.field) ?? firstFilterField
               const operators = availableOperators(field?.type)
               const showValueInput = operatorNeedsValue(filter.op)
               const fieldType = field?.type ?? "text"
               return (
-                <div className="grid gap-3 md:grid-cols-[minmax(0,1.3fr)_minmax(180px,0.9fr)_minmax(0,1.6fr)_auto]" key={filter.id}>
+                <div className={cn("grid gap-3 p-4 md:grid-cols-[minmax(0,1.3fr)_minmax(180px,0.9fr)_minmax(0,1.6fr)_auto]", DATA_PANEL_SECTION_CLASS_NAME)} key={filter.id}>
                   <Select
                     value={filter.field}
                     onValueChange={(value) => {
@@ -325,7 +369,7 @@ export function LemmaRecordFiltersBar({
                       )))
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={DATA_INPUT_CLASS_NAME}>
                       <SelectValue placeholder="Field" />
                     </SelectTrigger>
                     <SelectContent>
@@ -339,18 +383,19 @@ export function LemmaRecordFiltersBar({
                   <Select
                     value={filter.op}
                     onValueChange={(value) => {
+                      const opValue = value as LemmaFilterOperator
                       setDraftFilters((current) => current.map((entry) => (
                         entry.id === filter.id
                           ? {
                               ...entry,
-                              op: value,
-                              value: operatorNeedsValue(value) ? entry.value ?? "" : "",
+                              op: opValue,
+                              value: operatorNeedsValue(opValue) ? entry.value ?? "" : "",
                             }
                           : entry
                       )))
                     }}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className={DATA_INPUT_CLASS_NAME}>
                       <SelectValue placeholder="Condition" />
                     </SelectTrigger>
                     <SelectContent>
@@ -364,14 +409,14 @@ export function LemmaRecordFiltersBar({
                   {showValueInput ? (
                     fieldType === "boolean" ? (
                       <Select
-                        value={filter.value ?? ""}
+                        value={stringifyFilterValue(filter.value)}
                         onValueChange={(value) => {
                           setDraftFilters((current) => current.map((entry) => (
                             entry.id === filter.id ? { ...entry, value } : entry
                           )))
                         }}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className={DATA_INPUT_CLASS_NAME}>
                           <SelectValue placeholder="Value" />
                         </SelectTrigger>
                         <SelectContent>
@@ -381,14 +426,14 @@ export function LemmaRecordFiltersBar({
                       </Select>
                     ) : fieldType === "select" && field?.options?.length ? (
                       <Select
-                        value={filter.value ?? ""}
+                        value={stringifyFilterValue(filter.value)}
                         onValueChange={(value) => {
                           setDraftFilters((current) => current.map((entry) => (
                             entry.id === filter.id ? { ...entry, value } : entry
                           )))
                         }}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className={DATA_INPUT_CLASS_NAME}>
                           <SelectValue placeholder="Value" />
                         </SelectTrigger>
                         <SelectContent>
@@ -401,6 +446,7 @@ export function LemmaRecordFiltersBar({
                       </Select>
                     ) : (
                       <Input
+                        className={DATA_INPUT_CLASS_NAME}
                         onChange={(event) => {
                           const value = event.target.value
                           setDraftFilters((current) => current.map((entry) => (
@@ -409,18 +455,20 @@ export function LemmaRecordFiltersBar({
                         }}
                         placeholder="Value"
                         type={fieldType === "number" ? "number" : fieldType === "date" ? "date" : fieldType === "datetime" ? "datetime-local" : "text"}
-                        value={filter.value ?? ""}
+                        value={stringifyFilterValue(filter.value)}
                       />
                     )
                   ) : (
-                    <div className="flex items-center rounded-[8px] border border-dashed border-[color:var(--resource-border)] px-3 text-sm text-[color:var(--resource-muted)]">
+                    <div className="flex items-center rounded-xl border border-dashed border-border/70 bg-muted/[0.18] px-4 py-3 text-sm text-muted-foreground">
                       No value needed
                     </div>
                   )}
                   <Button
+                    className={DATA_SUBTLE_ACTION_CLASS_NAME}
                     onClick={() => {
                       setDraftFilters((current) => current.filter((entry) => entry.id !== filter.id))
                     }}
+                    type="button"
                     variant="ghost"
                   >
                     Remove
@@ -429,7 +477,7 @@ export function LemmaRecordFiltersBar({
               )
             })}
             <button
-              className="flex w-full items-center justify-center gap-2 rounded-[8px] border border-dashed border-[color:var(--resource-border)] px-4 py-4 text-base font-medium text-[color:var(--resource-muted-strong)] transition-colors hover:bg-[var(--resource-surface-alt)]"
+              className="flex w-full items-center justify-center gap-2 rounded-[1rem] border border-dashed border-border/70 bg-muted/[0.12] px-4 py-4 text-base font-medium text-muted-foreground transition-colors hover:bg-muted/[0.22] hover:text-foreground"
               onClick={() => {
                 setDraftFilters((current) => [...current, createEmptyFilter(firstFilterField)])
               }}
@@ -438,34 +486,37 @@ export function LemmaRecordFiltersBar({
               <span className="text-xl leading-none">+</span>
               Add Condition
             </button>
-          </div>
-          <div className="flex items-center justify-end gap-3 px-6 py-5">
-            <Button
-              onClick={() => {
-                setDraftFilters(filters)
-                setIsFilterEditorOpen(false)
-              }}
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                onFiltersChange?.(
-                  draftFilters.filter((filter) => (
-                    filter.field.trim().length > 0
-                    && (operatorNeedsValue(filter.op) ? (filter.value ?? "").trim().length > 0 : true)
-                  )),
-                )
-                setIsFilterEditorOpen(false)
-              }}
-            >
-              Apply Filters
-            </Button>
-          </div>
         </div>
-      </div>
-    ) : null}
-    </>
+        <SheetFooter className="border-t border-border/60 px-6 py-5">
+          <Button
+            className={DATA_SUBTLE_ACTION_CLASS_NAME}
+            onClick={() => {
+              setDraftFilters(filters)
+              setIsFilterEditorOpen(false)
+            }}
+            type="button"
+            variant="ghost"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              onFiltersChange?.(
+                draftFilters.filter((filter) => (
+                  filter.field.trim().length > 0
+                  && (operatorNeedsValue(filter.op) ? stringifyFilterValue(filter.value).trim().length > 0 : true)
+                )),
+              )
+              setIsFilterEditorOpen(false)
+            }}
+            type="button"
+          >
+            Apply Filters
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+    </div>
   )
-}
+})
+LemmaRecordFiltersBar.displayName = "LemmaRecordFiltersBar"

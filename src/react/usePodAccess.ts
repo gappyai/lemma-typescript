@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import { ApiError } from "../http.js";
 import type { PodJoinRequest, PodMember, User } from "../types.js";
+import { normalizeError, resolvePodId } from "./utils.js";
 
 export type PodAccessStatus = "idle" | "checking" | "member" | "missing" | "pending" | "error";
 
@@ -25,21 +26,8 @@ export interface UsePodAccessResult {
   requestAccess: () => Promise<PodJoinRequest>;
 }
 
-function resolvePodId(client: LemmaClient, podId?: string): string {
-  const resolved = podId ?? client.podId;
-  if (!resolved) {
-    throw new Error("podId is required. Pass podId or set it on LemmaClient.");
-  }
-  return resolved;
-}
-
 function isMissingAccessError(error: unknown): boolean {
   return error instanceof ApiError && (error.statusCode === 403 || error.statusCode === 404);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
 }
 
 export function usePodAccess({

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { Table } from "../types.js";
+import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseTableOptions {
   client: LemmaClient;
@@ -17,15 +18,7 @@ export interface UseTableResult {
   refresh: () => Promise<Table | null>;
 }
 
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
 
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
 
 export function useTable({
   client,
@@ -41,7 +34,7 @@ export function useTable({
   const trimmedTableName = tableName.trim();
   const isEnabled = enabled && trimmedTableName.length > 0;
 
-  const refresh = useCallback(async (): Promise<Table | null> => {
+  const refresh = useCallback(async (signal?: AbortSignal): Promise<Table | null> => {
     if (!isEnabled) {
       setTable(null);
       setError(null);
@@ -55,14 +48,16 @@ export function useTable({
     try {
       const scopedClient = resolvePodClient(client, podId);
       const nextTable = await scopedClient.tables.get(trimmedTableName);
+      if (signal?.aborted) return null;
       setTable(nextTable);
       return nextTable;
     } catch (refreshError) {
+      if (signal?.aborted) return null;
       const normalized = normalizeError(refreshError, "Failed to load table.");
       setError(normalized);
       return null;
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, isEnabled, podId, trimmedTableName]);
 
@@ -75,7 +70,21 @@ export function useTable({
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh(controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load table."), "Failed to load table."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, isEnabled, refresh]);
 
   return useMemo(() => ({

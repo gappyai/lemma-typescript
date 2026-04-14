@@ -10,6 +10,7 @@ import {
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AvailableModels, type ConversationModel } from "lemma-sdk";
+import { cn } from "@/lib/utils";
 import type {
   AssistantMessagePart,
   AssistantRenderableMessage,
@@ -18,6 +19,7 @@ import type {
 import type {
   AssistantControllerView,
   AssistantConversationRenderArgs,
+  AssistantExperienceCustomizationProps,
   AssistantMessageRenderArgs,
   AssistantPendingFileRenderArgs,
   AssistantPresentedFileRenderArgs,
@@ -92,32 +94,14 @@ export type AssistantChromeStyle = "elevated" | "subtle" | "flat";
 export type AssistantStatusPlacement = "inline" | "composer" | "none";
 export type AssistantRadiusScale = "none" | "sm" | "md" | "lg" | "xl";
 
-export interface AssistantExperienceViewProps {
+export interface AssistantExperienceViewProps extends AssistantExperienceCustomizationProps {
   controller: AssistantControllerView;
-  title?: ReactNode;
-  subtitle?: ReactNode;
-  badge?: ReactNode | null;
-  placeholder?: string;
-  emptyState?: ReactNode;
-  emptyStateSuggestions?: EmptyStateSuggestion[];
-  draft?: string;
-  onDraftChange?: (value: string) => void;
-  showConversationList?: boolean;
   chromeStyle?: AssistantChromeStyle;
   statusPlacement?: AssistantStatusPlacement;
   radius?: AssistantRadiusScale;
   showModelPicker?: boolean;
   showNewConversationButton?: boolean;
   onNavigateResource?: (resourceType: string, resourceId: string, meta?: Record<string, unknown>) => void;
-  renderConversationLabel?: (args: AssistantConversationRenderArgs) => ReactNode;
-  renderMessageContent?: (args: AssistantMessageRenderArgs) => ReactNode;
-  renderPresentedFile?: (args: AssistantPresentedFileRenderArgs) => ReactNode;
-  renderPendingFile?: (args: AssistantPendingFileRenderArgs) => ReactNode;
-  renderToolInvocation?: (args: AssistantToolRenderArgs) => ReactNode;
-}
-
-function cx(...values: Array<string | false | null | undefined>): string {
-  return values.filter(Boolean).join(" ");
 }
 
 function asArray(value: unknown): unknown[] {
@@ -810,13 +794,13 @@ export function PlanSummaryStrip({ plan, onHide }: { plan: PlanSummaryState; onH
             className="lemma-assistant-plan-strip-step"
             data-status={step.status}
           >
-            <span className={cx(
+            <span className={cn(
               "lemma-assistant-plan-strip-step-dot",
               step.status === "completed" && "lemma-assistant-plan-strip-step-dot-completed",
               step.status === "in_progress" && "lemma-assistant-plan-strip-step-dot-in-progress",
               step.status === "pending" && "lemma-assistant-plan-strip-step-dot-pending",
             )} />
-            <span className={cx(
+            <span className={cn(
               "lemma-assistant-plan-strip-step-label",
               step.status === "completed" && "lemma-assistant-plan-strip-step-label-completed",
               step.status === "in_progress" && "lemma-assistant-plan-strip-step-label-in-progress",
@@ -985,7 +969,7 @@ function ReasoningPartCard({
     <details className="lemma-assistant-reasoning" open={isStreaming}>
       <summary className="lemma-assistant-reasoning-summary">
         {/* <span className="lemma-assistant-reasoning-caret">›</span> */}
-        <span className={cx(
+        <span className={cn(
           "lemma-assistant-reasoning-label",
           isStreaming && "lemma-assistant-reasoning-label-streaming",
         )}>
@@ -1392,7 +1376,7 @@ function ToolActivityRollup({
           <span className="lemma-assistant-tool-rollup-banner-line" aria-hidden="true" />
           <span className="lemma-assistant-tool-rollup-banner-copy">
             {isWorking ? <span className="lemma-assistant-tool-rollup-dot" aria-hidden="true" /> : null}
-            <span className={cx(
+            <span className={cn(
               "lemma-assistant-tool-rollup-banner-label",
               isWorking && "lemma-assistant-tool-rollup-banner-label-working",
             )}>
@@ -1412,7 +1396,7 @@ function ToolActivityRollup({
         !isSingleDetail ? (
           <div className="lemma-assistant-tool-rollup-header">
             {isWorking ? <span className="lemma-assistant-tool-rollup-dot" /> : null}
-            <span className={cx(
+            <span className={cn(
               "lemma-assistant-tool-rollup-summary",
               isWorking && "lemma-assistant-tool-rollup-summary-working",
             )}>{summary}</span>
@@ -1421,7 +1405,7 @@ function ToolActivityRollup({
       )}
 
       {!shouldCollapse || isExpanded ? (
-        <div className={cx(
+        <div className={cn(
           "lemma-assistant-tool-rollup-details",
           isSingleDetail && "lemma-assistant-tool-rollup-details-single",
         )}>
@@ -1526,7 +1510,7 @@ function ShowWidgetToolCard({
     <div className="lemma-assistant-widget-card">
       <div className="lemma-assistant-widget-card-header">
         <div className="lemma-assistant-widget-card-title">{displayName}</div>
-        <span className={cx(
+        <span className={cn(
           "lemma-assistant-widget-card-badge",
           isExecuting && "lemma-assistant-widget-card-badge-rendering",
           isFailed && "lemma-assistant-widget-card-badge-failed",
@@ -2169,7 +2153,7 @@ export function AssistantExperienceView({
                   key={conversation.id}
                   type="button"
                   onClick={() => controller.selectConversation(conversation.id)}
-                  className={cx(
+                  className={cn(
                     "lemma-assistant-experience-sidebar-item",
                     isActive && "lemma-assistant-experience-sidebar-item-active",
                   )}
@@ -2291,7 +2275,7 @@ export function AssistantExperienceView({
               <div className="lemma-assistant-experience-error">
                 <div>
                   <p className="lemma-assistant-experience-error-title">Something went wrong</p>
-                  <p className="lemma-assistant-experience-error-copy">{controller.error}</p>
+                  <p className="lemma-assistant-experience-error-copy">{typeof controller.error === 'object' && controller.error !== null ? (controller.error as Error).message : controller.error}</p>
                 </div>
               </div>
             ) : null}

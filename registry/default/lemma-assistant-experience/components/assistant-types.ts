@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { AvailableModelInfo } from "lemma-sdk";
 import type {
+  AssistantAction,
   AssistantRenderableMessage,
   AssistantToolInvocation,
 } from "lemma-sdk/react";
@@ -28,9 +29,9 @@ export interface AssistantControllerView {
   hasOlderMessages: boolean;
   isUploadingFiles: boolean;
   pendingFiles: File[];
-  error: string | null;
-  pendingActions: unknown[];
-  completedActions: unknown[];
+  error: Error | string | null;
+  pendingActions: AssistantAction[];
+  completedActions: AssistantAction[];
   selectConversation(conversationId: string | null): void;
   sendMessage(content: string, options?: { forceNewConversation?: boolean }): Promise<void>;
   uploadFiles(files: File[], options?: { deferUntilSend?: boolean }): Promise<void>;

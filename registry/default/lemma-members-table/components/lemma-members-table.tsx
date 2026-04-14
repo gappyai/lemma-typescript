@@ -1,17 +1,37 @@
 "use client"
 
+import * as React from "react"
 import type { LemmaClient, PodMember } from "lemma-sdk"
 import { useMembers } from "lemma-sdk/react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { cn } from "@/lib/utils"
+import {
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_SUBTLE_ACTION_CLASS_NAME,
+  DATA_TABLE_FRAME_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+  dataWorkspaceMetaBadgeClassName,
+  dataWorkspaceRowClassName,
+} from "@/components/lemma/registry-data-workspace"
 
-export interface LemmaMembersTableProps {
+export interface LemmaMembersTableProps extends React.HTMLAttributes<HTMLDivElement> {
   client: LemmaClient
   podId?: string
   members?: PodMember[]
@@ -19,13 +39,16 @@ export interface LemmaMembersTableProps {
   description?: string
 }
 
-export function LemmaMembersTable({
-  client,
-  podId,
-  members,
-  title = "Members",
-  description = "Pod collaborators and roles.",
-}: LemmaMembersTableProps) {
+export const LemmaMembersTable = React.forwardRef<HTMLDivElement, LemmaMembersTableProps>(
+  ({
+    client,
+    podId,
+    members,
+    title = "Members",
+    description = "Pod collaborators and roles.",
+    className,
+    ...props
+  }, ref) => {
   const state = useMembers({
     client,
     podId,
@@ -34,61 +57,70 @@ export function LemmaMembersTable({
   const rows = members ?? state.members
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="grid gap-1">
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </div>
-          {!members ? (
+    <Card ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+      <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <DataWorkspaceHeader
+          actions={!members ? (
             <Button
+              className={DATA_SUBTLE_ACTION_CLASS_NAME}
               disabled={state.isLoading}
               onClick={() => {
                 void state.refresh()
               }}
-              variant="outline"
+              type="button"
+              variant="ghost"
             >
               {state.isLoading ? "Refreshing..." : "Refresh"}
             </Button>
           ) : null}
-        </div>
+          description={description}
+          eyebrow="Access"
+          meta={(
+            <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+              {rows.length} member{rows.length === 1 ? "" : "s"}
+            </Badge>
+          )}
+          title={title}
+        />
       </CardHeader>
-      <CardContent>
+      <CardContent className={DATA_PANEL_CONTENT_CLASS_NAME}>
         {state.error && !members ? (
-          <div className="mb-3 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            {state.error.message}
-          </div>
+          <DataWorkspaceState className="mb-4" description={state.error.message} tone="danger" />
         ) : null}
         {rows.length === 0 ? (
-          <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-6 text-sm text-muted-foreground">
-            No members loaded.
-          </div>
+          <DataWorkspaceState description="No members loaded." heading="Waiting for collaborators" />
         ) : (
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full min-w-[560px] text-sm">
-              <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <tr>
-                  <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2">Email</th>
-                  <th className="px-3 py-2">Role</th>
-                  <th className="px-3 py-2">User ID</th>
-                </tr>
-              </thead>
-              <tbody>
+          <div className={DATA_TABLE_FRAME_CLASS_NAME}>
+            <Table>
+              <TableHeader className="bg-muted/[0.3]">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Name</TableHead>
+                  <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Email</TableHead>
+                  <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">Role</TableHead>
+                  <TableHead className="border-b border-border/60 px-4 py-3 text-xs uppercase tracking-[0.14em] text-muted-foreground">User ID</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {rows.map((member) => (
-                  <tr key={member.user_id} className="border-t border-border">
-                    <td className="px-3 py-2 font-medium">{member.user_name ?? "Unnamed"}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{member.user_email}</td>
-                    <td className="px-3 py-2">{member.role}</td>
-                    <td className="px-3 py-2 text-muted-foreground">{member.user_id}</td>
-                  </tr>
+                  <TableRow key={member.user_id} className={dataWorkspaceRowClassName()}>
+                    <TableCell className="px-4 py-3">
+                      <div className="font-medium text-foreground">{member.user_name ?? "Unnamed"}</div>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-muted-foreground">{member.user_email}</TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                        {member.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-4 py-3 font-mono text-xs text-muted-foreground">{member.user_id}</TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </CardContent>
     </Card>
   )
-}
+})
+LemmaMembersTable.displayName = "LemmaMembersTable"

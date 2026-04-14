@@ -5,8 +5,13 @@
   "title": "Lemma Related Records Table",
   "description": "A relation-first joined records table powered by useRelatedRecords.",
   "dependencies": ["lemma-sdk"],
-  "registryDependencies": ["button", "card"],
+  "registryDependencies": ["badge", "button", "card", "table"],
   "files": [
+    {
+      "path": "registry/default/shared/components/registry-data-workspace.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/registry-data-workspace.tsx"
+    },
     {
       "path": "registry/default/lemma-related-records-table/components/lemma-related-records-table.tsx",
       "type": "registry:component",

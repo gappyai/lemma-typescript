@@ -3,13 +3,12 @@
 import * as React from "react"
 import type { LemmaClient, Table } from "lemma-sdk"
 import { useTables } from "lemma-sdk/react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import {
   Select,
@@ -18,8 +17,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import {
+  DATA_INPUT_CLASS_NAME,
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_SUBTLE_ACTION_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+  dataWorkspaceMetaBadgeClassName,
+} from "@/components/lemma/registry-data-workspace"
 
-export interface LemmaTablePickerProps {
+export interface LemmaTablePickerProps extends React.HTMLAttributes<HTMLDivElement> {
   client: LemmaClient
   podId?: string
   value?: string
@@ -34,20 +44,23 @@ export interface LemmaTablePickerProps {
   onRefresh?: () => void
 }
 
-export function LemmaTablePicker({
-  client,
-  podId,
-  value,
-  onValueChange,
-  title = "Table Picker",
-  description = "Choose a datastore table.",
-  placeholder = "Select a table",
-  limit = 100,
-  tables,
-  isLoading,
-  error,
-  onRefresh,
-}: LemmaTablePickerProps) {
+export const LemmaTablePicker = React.forwardRef<HTMLDivElement, LemmaTablePickerProps>(
+  ({
+    client,
+    podId,
+    value,
+    onValueChange,
+    title = "Table Picker",
+    description = "Choose a datastore table.",
+    placeholder = "Select a table",
+    limit = 100,
+    tables,
+    isLoading,
+    error,
+    onRefresh,
+    className,
+    ...props
+  }, ref) => {
   const tablesState = useTables({
     client,
     podId,
@@ -58,39 +71,53 @@ export function LemmaTablePicker({
   const effectiveTables = tables ?? tablesState.tables
   const effectiveIsLoading = isLoading ?? tablesState.isLoading
   const effectiveError = error ?? tablesState.error
+  const selectedTable = effectiveTables.find((table) => table.name === value) ?? null
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-3">
-          <div className="grid gap-1">
-            <CardTitle>{title}</CardTitle>
-            <CardDescription>{description}</CardDescription>
-          </div>
-          <Button
-            disabled={effectiveIsLoading}
-            onClick={() => {
-              if (onRefresh) {
-                onRefresh()
-                return
-              }
-              void tablesState.refresh()
-            }}
-            variant="outline"
-          >
-            {effectiveIsLoading ? "Refreshing…" : "Refresh"}
-          </Button>
-        </div>
+    <Card ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+      <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <DataWorkspaceHeader
+          actions={(
+            <Button
+              className={DATA_SUBTLE_ACTION_CLASS_NAME}
+              disabled={effectiveIsLoading}
+              onClick={() => {
+                if (onRefresh) {
+                  onRefresh()
+                  return
+                }
+                void tablesState.refresh()
+              }}
+              type="button"
+              variant="ghost"
+            >
+              {effectiveIsLoading ? "Refreshing…" : "Refresh"}
+            </Button>
+          )}
+          description={description}
+          eyebrow="Table Context"
+          meta={(
+            <>
+              <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                {effectiveIsLoading ? "Loading…" : `${effectiveTables.length} table${effectiveTables.length === 1 ? "" : "s"}`}
+              </Badge>
+              {selectedTable ? (
+                <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
+                  {selectedTable.name}
+                </Badge>
+              ) : null}
+            </>
+          )}
+          title={title}
+        />
       </CardHeader>
-      <CardContent className="grid gap-3">
+      <CardContent className={cn("flex flex-col gap-4", DATA_PANEL_CONTENT_CLASS_NAME)}>
         {effectiveError ? (
-          <div className="rounded-md border border-[color:var(--resource-danger-border)] bg-[var(--resource-danger-soft)] px-3 py-2 text-sm text-[color:var(--resource-danger)]">
-            {effectiveError.message}
-          </div>
+          <DataWorkspaceState description={effectiveError.message} tone="danger" />
         ) : null}
 
-        <Select value={value ?? ""} onValueChange={onValueChange}>
-          <SelectTrigger id="lemma-table-picker">
+        <Select disabled={effectiveTables.length === 0 && effectiveIsLoading} value={value ?? ""} onValueChange={onValueChange}>
+          <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-table-picker">
             <SelectValue placeholder={placeholder} />
           </SelectTrigger>
           <SelectContent>
@@ -102,10 +129,18 @@ export function LemmaTablePicker({
           </SelectContent>
         </Select>
 
-        <p className="text-xs text-[color:var(--resource-muted)]">
-          {effectiveIsLoading ? "Loading tables…" : `${effectiveTables.length} table${effectiveTables.length === 1 ? "" : "s"} available`}
-        </p>
+        {!effectiveError ? (
+          <DataWorkspaceState
+            description={selectedTable
+              ? `Using ${selectedTable.name} as the active table for records, forms, and relation views.`
+              : effectiveIsLoading
+                ? "Loading tables so you can choose the active workspace context."
+                : "Choose a table to anchor the records workspace and its related views."}
+            heading={selectedTable ? "Active table ready" : "Choose a table"}
+          />
+        ) : null}
       </CardContent>
     </Card>
   )
-}
+})
+LemmaTablePicker.displayName = "LemmaTablePicker"

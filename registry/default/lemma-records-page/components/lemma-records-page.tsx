@@ -20,25 +20,70 @@ import {
 import { LemmaRelatedRecordsTable } from "@/components/lemma/lemma-related-records-table"
 import { LemmaReverseRelatedRecordsTable } from "@/components/lemma/lemma-reverse-related-records-table"
 import { LemmaTablePicker } from "@/components/lemma/lemma-table-picker"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import {
+  DATA_INPUT_CLASS_NAME,
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_SECTION_CLASS_NAME,
+  DATA_SUBTLE_ACTION_CLASS_NAME,
+  DataWorkspaceHeader,
+  dataWorkspaceMetaBadgeClassName,
+} from "@/components/lemma/registry-data-workspace"
 
 type SortFieldOption = { value: string; label: string }
 
-export interface LemmaRecordsPageProps {
+export interface RecordsTableOptions {
+  columns?: LemmaRecordsTableColumn[]
+  hiddenColumnNames?: string[]
+  defaultHiddenColumnNames?: string[]
+  onHiddenColumnNamesChange?: (hiddenColumnNames: string[]) => void
+  allowColumnVisibility?: boolean
+  createButtonLabel?: string
+  rowActions?: LemmaRecordsTableRowAction[]
+  recordIdField?: string
+  getRecordId?: (record: Record<string, unknown>) => string
+  tableTitle?: string
+  tableDescription?: string
+}
+
+export interface RecordFormOptions {
+  hiddenFields?: string[]
+  fieldOrder?: string[]
+  fieldLabels?: Record<string, string>
+  fieldDescriptions?: Record<string, string>
+  createFormTitle?: string
+  editFormTitle?: string
+  createSubmitLabel?: string
+  editSubmitLabel?: string
+  variant?: "card" | "sheet"
+  side?: "top" | "right" | "bottom" | "left"
+}
+
+export interface FiltersBarOptions {
+  allowSearch?: boolean
+  allowFilters?: boolean
+  allowSorting?: boolean
+  allowPageSizeSelect?: boolean
+}
+
+export interface LemmaRecordsPageProps extends React.HTMLAttributes<HTMLDivElement> {
   client: LemmaClient
   podId?: string
   title?: string
@@ -57,35 +102,17 @@ export interface LemmaRecordsPageProps {
   showTablePicker?: boolean
   showRecordPicker?: boolean
   showRecordDetails?: boolean
+  recordDetailsVariant?: "card" | "sheet"
+  recordDetailsSide?: "top" | "right" | "bottom" | "left"
   variant?: "workspace" | "browser"
-  columns?: LemmaRecordsTableColumn[]
-  hiddenColumnNames?: string[]
-  defaultHiddenColumnNames?: string[]
-  onHiddenColumnNamesChange?: (hiddenColumnNames: string[]) => void
-  allowColumnVisibility?: boolean
   allowCreate?: boolean
   allowEdit?: boolean
   allowSelection?: boolean
   allowBulkDelete?: boolean
-  allowSearch?: boolean
-  allowFilters?: boolean
-  allowSorting?: boolean
-  allowPageSizeSelect?: boolean
-  createButtonLabel?: string
   editButtonLabel?: string
-  rowActions?: LemmaRecordsTableRowAction[]
-  recordIdField?: string
-  getRecordId?: (record: Record<string, unknown>) => string
-  recordFormHiddenFields?: string[]
-  recordFormFieldOrder?: string[]
-  recordFormFieldLabels?: Record<string, string>
-  recordFormFieldDescriptions?: Record<string, string>
-  createFormTitle?: string
-  editFormTitle?: string
-  createSubmitLabel?: string
-  editSubmitLabel?: string
-  tableTitle?: string
-  tableDescription?: string
+  table?: RecordsTableOptions
+  recordForm?: RecordFormOptions
+  filtersBar?: FiltersBarOptions
 }
 
 function filterRecords(records: Record<string, unknown>[], search: string): Record<string, unknown>[] {
@@ -125,9 +152,9 @@ function applyFilterConditions(
   return records.filter((record) => activeFilters.every((filter) => {
     const rawValue = record[filter.field]
     const normalizedRecordValue = normalizeComparableValue(rawValue)
-    const normalizedFilterValue = normalizeComparableValue(filter.value ?? "")
+    const normalizedFilterValue = normalizeComparableValue(String(filter.value ?? ""))
     const numericRecordValue = typeof rawValue === "number" ? rawValue : Number(rawValue)
-    const numericFilterValue = Number(filter.value)
+    const numericFilterValue = Number(String(filter.value ?? ""))
 
     switch (filter.op) {
       case "contains":
@@ -208,55 +235,65 @@ function buildFilterFieldOptions(table: Table | null): LemmaFilterFieldOption[] 
     }))
 }
 
-export function LemmaRecordsPage({
-  client,
-  podId,
-  title = "Records Page",
-  description = "Browse, inspect, edit, and relate table rows from one block.",
-  tables,
-  isLoadingTables,
-  tablesError,
-  onRefreshTables,
-  tableName,
-  onTableNameChange,
-  initialTableName = "",
-  initialRecordId = null,
-  recordLimit = 25,
-  showRelatedRecords = true,
-  showReverseRelations = true,
-  showTablePicker = true,
-  showRecordPicker = true,
-  showRecordDetails = true,
-  variant = "workspace",
-  columns,
-  hiddenColumnNames,
-  defaultHiddenColumnNames = [],
-  onHiddenColumnNamesChange,
-  allowColumnVisibility = true,
-  allowCreate = true,
-  allowEdit = true,
-  allowSelection = true,
-  allowBulkDelete = true,
-  allowSearch = true,
-  allowFilters = true,
-  allowSorting = true,
-  allowPageSizeSelect = true,
-  createButtonLabel = "New Record",
-  editButtonLabel = "Edit Selected",
-  rowActions = [],
-  recordIdField = "id",
-  getRecordId,
-  recordFormHiddenFields,
-  recordFormFieldOrder,
-  recordFormFieldLabels,
-  recordFormFieldDescriptions,
-  createFormTitle = "New Record",
-  editFormTitle = "Edit Record",
-  createSubmitLabel = "Create Record",
-  editSubmitLabel = "Update Record",
-  tableTitle = "Records Table",
-  tableDescription = "Click a row to move the form and details panel to that record.",
-}: LemmaRecordsPageProps) {
+export const LemmaRecordsPage = React.forwardRef<HTMLDivElement, LemmaRecordsPageProps>(
+  ({
+    client,
+    podId,
+    title = "Records Page",
+    description = "Browse, inspect, edit, and relate table rows from one block.",
+    tables,
+    isLoadingTables,
+    tablesError,
+    onRefreshTables,
+    tableName,
+    onTableNameChange,
+    initialTableName = "",
+    initialRecordId = null,
+    recordLimit = 25,
+    showRelatedRecords = true,
+    showReverseRelations = true,
+    showTablePicker = true,
+    showRecordPicker = true,
+    showRecordDetails = true,
+    recordDetailsVariant = "card",
+    recordDetailsSide = "right",
+    variant = "workspace",
+    allowCreate = true,
+    allowEdit = true,
+    allowSelection = true,
+    allowBulkDelete = true,
+    editButtonLabel = "Edit Selected",
+    table: tableOptions,
+    recordForm: recordFormOptions,
+    filtersBar: filtersBarOptions,
+    className,
+    ...props
+  }, ref) => {
+  const columns = tableOptions?.columns
+  const hiddenColumnNames = tableOptions?.hiddenColumnNames
+  const defaultHiddenColumnNames = tableOptions?.defaultHiddenColumnNames ?? []
+  const onHiddenColumnNamesChange = tableOptions?.onHiddenColumnNamesChange
+  const allowColumnVisibility = tableOptions?.allowColumnVisibility ?? true
+  const createButtonLabel = tableOptions?.createButtonLabel ?? "New Record"
+  const rowActions = tableOptions?.rowActions ?? []
+  const recordIdField = tableOptions?.recordIdField ?? "id"
+  const getRecordId = tableOptions?.getRecordId
+  const tableTitle = tableOptions?.tableTitle ?? "Records Table"
+  const tableDescription = tableOptions?.tableDescription ?? "Click a row to move the form and details panel to that record."
+  const recordFormHiddenFields = recordFormOptions?.hiddenFields
+  const recordFormFieldOrder = recordFormOptions?.fieldOrder
+  const recordFormFieldLabels = recordFormOptions?.fieldLabels
+  const recordFormFieldDescriptions = recordFormOptions?.fieldDescriptions
+  const createFormTitle = recordFormOptions?.createFormTitle ?? "New Record"
+  const editFormTitle = recordFormOptions?.editFormTitle ?? "Edit Record"
+  const createSubmitLabel = recordFormOptions?.createSubmitLabel ?? "Create Record"
+  const editSubmitLabel = recordFormOptions?.editSubmitLabel ?? "Update Record"
+  const recordFormVariant = recordFormOptions?.variant ?? "sheet"
+  const recordFormSide = recordFormOptions?.side ?? "right"
+  const allowSearch = filtersBarOptions?.allowSearch ?? true
+  const allowFilters = filtersBarOptions?.allowFilters ?? true
+  const allowSorting = filtersBarOptions?.allowSorting ?? true
+  const allowPageSizeSelect = filtersBarOptions?.allowPageSizeSelect ?? true
   const hasExternalTables = typeof tables !== "undefined"
   const [internalSelectedTableName, setInternalSelectedTableName] = React.useState(initialTableName)
   const [selectedRecordId, setSelectedRecordId] = React.useState(initialRecordId ?? "")
@@ -284,6 +321,10 @@ export function LemmaRecordsPage({
   const showCreateAction = variant === "workspace" && allowCreate
   const showEditAction = variant === "workspace" && allowEdit
   const showSelectionControls = variant === "workspace" && allowSelection
+  const showInlineRecordDetails = showRecordDetails && recordDetailsVariant === "card"
+  const showSheetRecordDetails = showRecordDetails && recordDetailsVariant === "sheet"
+  const showInlineRecordForm = variant === "workspace" && isRecordFormOpen && recordFormVariant === "card"
+  const showSheetRecordForm = variant === "workspace" && isRecordFormOpen && recordFormVariant === "sheet"
 
   const setResolvedHiddenColumns = React.useCallback((nextHiddenColumnNames: string[]) => {
     if (typeof hiddenColumnNames === "undefined") {
@@ -353,6 +394,7 @@ export function LemmaRecordsPage({
     setSelectedReverseRelationKey("")
     setSearch("")
     setFilters([])
+    setIsRecordFormOpen(false)
     setOffset(0)
     setSortBy("")
     setSortOrder("asc")
@@ -424,6 +466,10 @@ export function LemmaRecordsPage({
     () => buildFilterFieldOptions(recordSchema.table),
     [recordSchema.table],
   )
+  const selectedTable = React.useMemo(
+    () => effectiveTables.find((tableEntry) => tableEntry.name === selectedTableName) ?? null,
+    [effectiveTables, selectedTableName],
+  )
 
   const pageIndex = Math.floor(offset / Math.max(pageSize, 1))
   const hasActiveClientFiltering = resolvedSearch.trim().length > 0 || resolvedFilters.length > 0
@@ -469,13 +515,31 @@ export function LemmaRecordsPage({
   ])
 
   return (
-    <div className="grid min-w-0 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
+    <div ref={ref} className={cn("grid min-w-0 gap-6", className)} {...props}>
+      <Card className={DATA_PANEL_CARD_CLASS_NAME}>
+        <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+          <DataWorkspaceHeader
+            description={description}
+            eyebrow="Records Workspace"
+            meta={(
+              <>
+                {selectedTable ? (
+                  <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("primary"))} variant="outline">
+                    {selectedTable.name}
+                  </Badge>
+                ) : null}
+                <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                  {recordsState.total} total row{recordsState.total === 1 ? "" : "s"}
+                </Badge>
+                <Badge className={cn("rounded-full border px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em]", dataWorkspaceMetaBadgeClassName("default"))} variant="outline">
+                  {recordSchema.editableFields.length} editable field{recordSchema.editableFields.length === 1 ? "" : "s"}
+                </Badge>
+              </>
+            )}
+            title={title}
+          />
         </CardHeader>
-        <CardContent className="grid gap-4">
+        <CardContent className={cn("grid gap-4", DATA_PANEL_CONTENT_CLASS_NAME)}>
           {showTablePicker ? (
             <LemmaTablePicker
               client={client}
@@ -531,6 +595,7 @@ export function LemmaRecordsPage({
                 void handleDeleteSelected()
               }}
               selectedCount={selectedRecordIds.length}
+              selectedIds={selectedRecordIds}
             />
           ) : null}
 
@@ -559,10 +624,11 @@ export function LemmaRecordsPage({
               ) : null}
 
               {showEditAction ? (
-                <div className="grid gap-2">
-                  <p className="text-sm font-medium text-[color:var(--resource-text)]">Actions</p>
+                <div className={cn("grid gap-3 p-4", DATA_PANEL_SECTION_CLASS_NAME)}>
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">Actions</div>
                   <div className="grid gap-2">
                     <Button
+                      className={DATA_SUBTLE_ACTION_CLASS_NAME}
                       disabled={!selectedRecordId}
                       onClick={() => {
                         if (!selectedRecordId) return
@@ -570,7 +636,7 @@ export function LemmaRecordsPage({
                         setIsRecordFormOpen(true)
                       }}
                       type="button"
-                      variant="outline"
+                      variant="ghost"
                     >
                       {editButtonLabel}
                     </Button>
@@ -625,33 +691,30 @@ export function LemmaRecordsPage({
         totalCount={resolvedVisibleTotalCount}
       />
 
-      {showRecordDetails ? (
-        <div className="grid min-w-0 gap-6">
-          <LemmaRecordDetailsCard
-            client={client}
-            key={`${selectedTableName}:${selectedRecordId}:${recordDetailsVersion}`}
-            description={selectedRecordId ? "Inspect the current row." : "Select a row to inspect it in detail."}
-            podId={podId}
-            recordId={selectedRecordId || null}
-            tableName={selectedTableName}
-            title="Record Details"
-          />
-        </div>
-      ) : null}
-
-      {variant === "workspace" && isRecordFormOpen ? (
-        <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/20 px-4 py-6 backdrop-blur-[1px]">
-          <div className="h-[calc(100vh-3rem)] w-full max-w-4xl overflow-hidden rounded-[8px] border border-[color:var(--resource-border)] bg-[var(--resource-surface)] shadow-[0_28px_90px_-40px_var(--resource-shadow-lg)]">
+      {showInlineRecordDetails || showInlineRecordForm ? (
+        <div
+          className={cn(
+            "grid min-w-0 gap-6",
+            showInlineRecordDetails && showInlineRecordForm
+              ? "xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.95fr)]"
+              : undefined,
+          )}
+        >
+          {showInlineRecordForm ? (
             <LemmaRecordForm
-              appearance="modal"
               client={client}
               description={
                 selectedTableName
                   ? `Schema-aware form for ${selectedTableName}. ${recordSchema.editableFields.length} editable fields available.`
                   : "Select a table to start editing records."
               }
+              fieldDescriptions={recordFormFieldDescriptions}
+              fieldLabels={recordFormFieldLabels}
+              fieldOrder={recordFormFieldOrder}
+              hiddenFields={recordFormHiddenFields}
               mode={recordMode}
               onCancel={() => setIsRecordFormOpen(false)}
+              onOpenChange={setIsRecordFormOpen}
               onSubmitted={(record) => {
                 const nextRecordId = readRecordId(record, recordIdField, getRecordId)
                 void recordsState.refresh({
@@ -667,39 +730,122 @@ export function LemmaRecordsPage({
                 setIsRecordFormOpen(false)
                 setRecordDetailsVersion((current) => current + 1)
               }}
-              fieldDescriptions={recordFormFieldDescriptions}
-              fieldLabels={recordFormFieldLabels}
-              fieldOrder={recordFormFieldOrder}
-              hiddenFields={recordFormHiddenFields}
               podId={podId}
               recordId={recordMode === "update" ? selectedRecordId || null : null}
+              side={recordFormSide}
               submitLabel={recordMode === "update" ? editSubmitLabel : createSubmitLabel}
               tableName={selectedTableName}
               title={recordMode === "update" ? editFormTitle : createFormTitle}
+              variant="card"
             />
-          </div>
+          ) : null}
+
+          {showInlineRecordDetails ? (
+            <div className="grid min-w-0 gap-6">
+              <LemmaRecordDetailsCard
+                client={client}
+                key={`${selectedTableName}:${selectedRecordId}:${recordDetailsVersion}`}
+                description={selectedRecordId ? "Inspect the current row." : "Select a row to inspect it in detail."}
+                podId={podId}
+                recordId={selectedRecordId || null}
+                side={recordDetailsSide}
+                tableName={selectedTableName}
+                title="Record Details"
+                variant="card"
+              />
+            </div>
+          ) : null}
         </div>
+      ) : null}
+
+      {showSheetRecordDetails ? (
+        <div className="grid min-w-0 gap-6">
+          <LemmaRecordDetailsCard
+            client={client}
+            key={`${selectedTableName}:${selectedRecordId}:${recordDetailsVersion}`}
+            description={selectedRecordId ? "Inspect the current row." : "Select a row to inspect it in detail."}
+            onOpenChange={(nextOpen) => {
+              if (!nextOpen && recordDetailsVariant === "sheet") {
+                setSelectedRecordId("")
+                setRecordMode("create")
+              }
+            }}
+            open={recordDetailsVariant === "sheet" ? Boolean(selectedRecordId) : undefined}
+            podId={podId}
+            recordId={selectedRecordId || null}
+            side={recordDetailsSide}
+            tableName={selectedTableName}
+            title="Record Details"
+            variant={recordDetailsVariant}
+          />
+        </div>
+      ) : null}
+
+      {showSheetRecordForm ? (
+        <LemmaRecordForm
+          client={client}
+          description={
+            selectedTableName
+              ? `Schema-aware form for ${selectedTableName}. ${recordSchema.editableFields.length} editable fields available.`
+              : "Select a table to start editing records."
+          }
+          fieldDescriptions={recordFormFieldDescriptions}
+          fieldLabels={recordFormFieldLabels}
+          fieldOrder={recordFormFieldOrder}
+          hiddenFields={recordFormHiddenFields}
+          mode={recordMode}
+          onCancel={() => setIsRecordFormOpen(false)}
+          onOpenChange={setIsRecordFormOpen}
+          onSubmitted={(record) => {
+            const nextRecordId = readRecordId(record, recordIdField, getRecordId)
+            void recordsState.refresh({
+              limit: pageSize,
+              offset,
+              sortBy: resolvedSortBy || undefined,
+              order: resolvedSortBy ? resolvedSortOrder : undefined,
+            })
+            if (nextRecordId) {
+              setSelectedRecordId(nextRecordId)
+            }
+            setRecordMode("update")
+            setIsRecordFormOpen(false)
+            setRecordDetailsVersion((current) => current + 1)
+          }}
+          open={recordFormVariant === "sheet" ? isRecordFormOpen : undefined}
+          podId={podId}
+          recordId={recordMode === "update" ? selectedRecordId || null : null}
+          side={recordFormSide}
+          submitLabel={recordMode === "update" ? editSubmitLabel : createSubmitLabel}
+          tableName={selectedTableName}
+          title={recordMode === "update" ? editFormTitle : createFormTitle}
+          variant="sheet"
+        />
       ) : null}
 
       {showRelatedRecords ? (
         <div className="grid gap-4">
           {relationFields.length > 1 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Forward Relation Picker</CardTitle>
-                <CardDescription>Choose which foreign-key relationship to preview from the active table.</CardDescription>
+            <Card className={DATA_PANEL_CARD_CLASS_NAME}>
+              <CardHeader className={DATA_PANEL_HEADER_CLASS_NAME}>
+                <DataWorkspaceHeader
+                  description="Choose which foreign-key relationship to preview from the active table."
+                  eyebrow="Relations"
+                  title="Forward Relation Picker"
+                />
               </CardHeader>
-              <CardContent>
+              <CardContent className={DATA_PANEL_CONTENT_CLASS_NAME}>
                 <Select value={selectedRelationFieldName} onValueChange={setSelectedRelationFieldName}>
-                  <SelectTrigger id="lemma-records-page-relation">
+                  <SelectTrigger className={DATA_INPUT_CLASS_NAME} id="lemma-records-page-relation">
                     <SelectValue placeholder="Select a relation" />
                   </SelectTrigger>
                   <SelectContent>
-                    {relationFields.map((field) => (
-                      <SelectItem key={field.name} value={field.name}>
-                        {field.foreignKey ? `${field.name} -> ${field.foreignKey.table}` : field.name}
-                      </SelectItem>
-                    ))}
+                    <SelectGroup>
+                      {relationFields.map((field) => (
+                        <SelectItem key={field.name} value={field.name}>
+                          {field.foreignKey ? `${field.name} -> ${field.foreignKey.table}` : field.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </CardContent>
@@ -744,4 +890,5 @@ export function LemmaRecordsPage({
       ) : null}
     </div>
   )
-}
+})
+LemmaRecordsPage.displayName = "LemmaRecordsPage"

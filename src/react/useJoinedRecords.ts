@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import { buildJoinedRecordsQuery, type JoinedRecordsQueryDefinition } from "../datastore-query.js";
+import { normalizeError, resolvePodId, stringifyComparable } from "./utils.js";
 
 export interface UseJoinedRecordsOptions {
   client: LemmaClient;
@@ -19,27 +20,6 @@ export interface UseJoinedRecordsResult<TRecord extends Record<string, unknown> 
   refresh: () => Promise<TRecord[]>;
 }
 
-function resolvePodId(client: LemmaClient, podId?: string): string {
-  const resolved = podId ?? client.podId;
-  if (!resolved) {
-    throw new Error("podId is required. Pass podId or set it on LemmaClient.");
-  }
-  return resolved;
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
-
-function stringifyComparable(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
 export function useJoinedRecords<TRecord extends Record<string, unknown> = Record<string, unknown>>({
   client,
   podId,
@@ -56,7 +36,7 @@ export function useJoinedRecords<TRecord extends Record<string, unknown> = Recor
   const stableQuery = useMemo(() => query, [queryKey]);
   const sql = useMemo(() => buildJoinedRecordsQuery(stableQuery), [stableQuery]);
 
-  const refresh = useCallback(async (): Promise<TRecord[]> => {
+  const refresh = useCallback(async (signal?: AbortSignal): Promise<TRecord[]> => {
     if (!enabled) {
       setRecords([]);
       setTotal(0);
@@ -72,16 +52,18 @@ export function useJoinedRecords<TRecord extends Record<string, unknown> = Recor
       const resolvedPodId = resolvePodId(client, podId);
       const scopedClient = resolvedPodId === client.podId ? client : client.withPod(resolvedPodId);
       const response = await scopedClient.datastore.query(sql);
+      if (signal?.aborted) return [];
       const nextRecords = (response.items ?? []) as TRecord[];
       setRecords(nextRecords);
       setTotal(response.total ?? nextRecords.length);
       return nextRecords;
     } catch (refreshError) {
+      if (signal?.aborted) return [];
       const normalized = normalizeError(refreshError, "Failed to load joined records.");
       setError(normalized);
       return [];
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, enabled, podId, sql]);
 
@@ -95,7 +77,21 @@ export function useJoinedRecords<TRecord extends Record<string, unknown> = Recor
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh(controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load joined records."), "Failed to load joined records."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, enabled, refresh]);
 
   return useMemo(() => ({

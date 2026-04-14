@@ -16,8 +16,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { LemmaAgentMessages } from "@/components/lemma/lemma-agent-messages"
 import { LemmaAgentOutputCard } from "@/components/lemma/lemma-agent-output-card"
 import { LemmaSchemaForm } from "@/components/lemma/lemma-schema-form"
+import { cn } from "@/lib/utils"
 
-export interface LemmaAgentRunPanelProps {
+export interface LemmaAgentRunPanelProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError"> {
   client: LemmaClient
   podId?: string
   agentName: string
@@ -25,17 +26,22 @@ export interface LemmaAgentRunPanelProps {
   title?: string
   description?: string
   onStarted?: (task: Task) => void
+  onError?: (error: Error) => void
 }
 
-export function LemmaAgentRunPanel({
-  client,
-  podId,
-  agentName,
-  inputSchema,
-  title = "Agent Runner",
-  description = "Start an agent with schema-aware input, then inspect status, output, and messages.",
-  onStarted,
-}: LemmaAgentRunPanelProps) {
+export const LemmaAgentRunPanel = React.forwardRef<HTMLDivElement, LemmaAgentRunPanelProps>(
+  ({
+    client,
+    podId,
+    agentName,
+    inputSchema,
+    title = "Agent Runner",
+    description = "Start an agent with schema-aware input, then inspect status, output, and messages.",
+    onStarted,
+    onError,
+    className,
+    ...props
+  }, ref) => {
   const [followUp, setFollowUp] = React.useState("")
   const [followUpError, setFollowUpError] = React.useState<string | null>(null)
   const schemaState = useAgentInputSchema({
@@ -53,30 +59,42 @@ export function LemmaAgentRunPanel({
   })
   const schema = inputSchema ?? schemaState.inputSchema
 
+  React.useEffect(() => {
+    if (schemaState.error) {
+      onError?.(schemaState.error)
+    }
+  }, [schemaState.error, onError])
+
+  React.useEffect(() => {
+    if (run.error) {
+      onError?.(run.error)
+    }
+  }, [run.error, onError])
+
   return (
-    <div className="grid gap-4">
+    <div ref={ref} className={cn("grid gap-4", className)} {...props}>
       <Card>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3">
+        <CardContent className="flex flex-col gap-4">
           {schemaState.error ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {schemaState.error.message}
             </div>
           ) : null}
           {run.error ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {run.error.message}
             </div>
           ) : null}
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
               <div className="text-muted-foreground">Status</div>
               <div className="font-medium">{run.status ?? "idle"}</div>
             </div>
-            <div className="rounded-md border border-border bg-muted/30 p-3 text-sm">
+            <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
               <div className="text-muted-foreground">Task ID</div>
               <div className="truncate font-medium">{run.taskId ?? "none"}</div>
             </div>
@@ -102,9 +120,9 @@ export function LemmaAgentRunPanel({
             <CardTitle>Follow-up Input</CardTitle>
             <CardDescription>This run is waiting for a response before it can continue.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3">
+          <CardContent className="flex flex-col gap-4">
             {followUpError ? (
-              <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
                 {followUpError}
               </div>
             ) : null}
@@ -125,7 +143,9 @@ export function LemmaAgentRunPanel({
                   await run.submitInput(followUp)
                   setFollowUp("")
                 } catch (error) {
-                  setFollowUpError(error instanceof Error ? error.message : "Failed to submit follow-up input.")
+                  const errorMsg = error instanceof Error ? error.message : "Failed to submit follow-up input."
+                  setFollowUpError(errorMsg)
+                  onError?.(error instanceof Error ? error : new Error(errorMsg))
                 }
               }}
             >
@@ -139,4 +159,5 @@ export function LemmaAgentRunPanel({
       <LemmaAgentMessages client={client} podId={podId} taskId={run.taskId} />
     </div>
   )
-}
+})
+LemmaAgentRunPanel.displayName = "LemmaAgentRunPanel"

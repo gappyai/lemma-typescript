@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import type { LemmaClient } from "lemma-sdk"
 import { useFunctionRuns } from "lemma-sdk/react"
 import { Button } from "@/components/ui/button"
@@ -10,8 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 
-export interface LemmaFunctionRunHistoryProps {
+export interface LemmaFunctionRunHistoryProps extends React.HTMLAttributes<HTMLDivElement> {
   client: LemmaClient
   podId?: string
   functionName: string
@@ -20,14 +22,17 @@ export interface LemmaFunctionRunHistoryProps {
   onRunSelect?: (runId: string | null) => void
 }
 
-export function LemmaFunctionRunHistory({
-  client,
-  podId,
-  functionName,
-  title = "Function Run History",
-  description = "Recent runs for the selected function.",
-  onRunSelect,
-}: LemmaFunctionRunHistoryProps) {
+export const LemmaFunctionRunHistory = React.forwardRef<HTMLDivElement, LemmaFunctionRunHistoryProps>(
+  ({
+    client,
+    podId,
+    functionName,
+    title = "Function Run History",
+    description = "Recent runs for the selected function.",
+    onRunSelect,
+    className,
+    ...props
+  }, ref) => {
   const history = useFunctionRuns({
     client,
     podId,
@@ -36,7 +41,7 @@ export function LemmaFunctionRunHistory({
   })
 
   return (
-    <Card>
+    <Card ref={ref} className={cn("", className)} {...props}>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div className="grid gap-1">
@@ -54,20 +59,20 @@ export function LemmaFunctionRunHistory({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-3">
+      <CardContent className="flex flex-col gap-4">
         {history.error ? (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
             {history.error.message}
           </div>
         ) : null}
         {history.runs.length === 0 ? (
-          <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-6 text-sm text-muted-foreground">
+          <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground">
             No function runs loaded.
           </div>
         ) : (
           history.runs.map((run) => (
             <button
-              className="rounded-md border border-border bg-muted/30 p-3 text-left text-sm transition-colors hover:bg-muted data-[selected=true]:border-primary"
+              className="rounded-md border border-border bg-muted/30 p-4 text-left text-sm transition-colors hover:bg-muted data-[selected=true]:border-primary"
               data-selected={run.id === history.effectiveSelectedRunId}
               key={run.id}
               onClick={() => {
@@ -78,9 +83,9 @@ export function LemmaFunctionRunHistory({
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="font-medium">{run.status}</span>
-                <span className="text-xs text-muted-foreground">{run.created_at}</span>
+                <span className="text-sm text-muted-foreground">{run.created_at}</span>
               </div>
-              <div className="mt-1 truncate text-xs text-muted-foreground">{run.id}</div>
+              <div className="mt-1 truncate text-sm text-muted-foreground">{run.id}</div>
             </button>
           ))
         )}
@@ -98,4 +103,5 @@ export function LemmaFunctionRunHistory({
       </CardContent>
     </Card>
   )
-}
+})
+LemmaFunctionRunHistory.displayName = "LemmaFunctionRunHistory"

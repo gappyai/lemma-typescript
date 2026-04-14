@@ -5,8 +5,13 @@
   "title": "Lemma Records Page",
   "description": "A practical records workspace with table picker, filters, bulk actions, record picker, records table, details, form, and forward plus reverse relations.",
   "dependencies": ["lemma-sdk"],
-  "registryDependencies": ["button", "card", "input", "select", "textarea", "checkbox", "label"],
+  "registryDependencies": ["badge", "button", "card", "checkbox", "input", "label", "select", "sheet", "table", "textarea"],
   "files": [
+    {
+      "path": "registry/default/shared/components/registry-data-workspace.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/registry-data-workspace.tsx"
+    },
     {
       "path": "registry/default/lemma-bulk-actions-bar/components/lemma-bulk-actions-bar.tsx",
       "type": "registry:component",

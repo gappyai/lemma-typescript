@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
+import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseRecordOptions {
   client: LemmaClient;
@@ -17,15 +18,7 @@ export interface UseRecordResult<TRecord extends Record<string, unknown> = Recor
   refresh: (overrides?: { recordId?: string | null }) => Promise<TRecord | null>;
 }
 
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
 
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
 
 export function useRecord<TRecord extends Record<string, unknown> = Record<string, unknown>>({
   client,
@@ -45,6 +38,7 @@ export function useRecord<TRecord extends Record<string, unknown> = Record<strin
 
   const refresh = useCallback(async (
     overrides: { recordId?: string | null } = {},
+    signal?: AbortSignal,
   ): Promise<TRecord | null> => {
     const nextRecordId = typeof overrides.recordId === "string"
       ? overrides.recordId.trim()
@@ -63,15 +57,17 @@ export function useRecord<TRecord extends Record<string, unknown> = Record<strin
     try {
       const scopedClient = resolvePodClient(client, podId);
       const response = await scopedClient.records.get(trimmedTableName, nextRecordId);
+      if (signal?.aborted) return null;
       const nextRecord = (response.data ?? null) as TRecord | null;
       setRecord(nextRecord);
       return nextRecord;
     } catch (refreshError) {
+      if (signal?.aborted) return null;
       const normalized = normalizeError(refreshError, "Failed to load record.");
       setError(normalized);
       return null;
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [client, enabled, podId, trimmedRecordId, trimmedTableName]);
 
@@ -84,7 +80,21 @@ export function useRecord<TRecord extends Record<string, unknown> = Record<strin
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh({}, controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load record."), "Failed to load record."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, isEnabled, refresh]);
 
   return useMemo(() => ({

@@ -10,10 +10,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 const EMPTY_VALUE = "__lemma_empty__"
 
-export interface LemmaForeignKeySelectProps {
+export interface LemmaForeignKeySelectProps extends React.HTMLAttributes<HTMLDivElement> {
   client: LemmaClient
   podId?: string
   tableName: string
@@ -30,22 +31,25 @@ export interface LemmaForeignKeySelectProps {
   search?: string
 }
 
-export function LemmaForeignKeySelect({
-  client,
-  podId,
-  tableName,
-  columnName,
-  value,
-  onValueChange,
-  placeholder = "Select an option",
-  disabled,
-  allowEmpty = true,
-  emptyLabel = "None",
-  labelField,
-  labelFields,
-  limit,
-  search,
-}: LemmaForeignKeySelectProps) {
+export const LemmaForeignKeySelect = React.forwardRef<HTMLDivElement, LemmaForeignKeySelectProps>(
+  ({
+    client,
+    podId,
+    tableName,
+    columnName,
+    value,
+    onValueChange,
+    placeholder = "Select an option",
+    disabled,
+    allowEmpty = true,
+    emptyLabel = "None",
+    labelField,
+    labelFields,
+    limit,
+    search,
+    className,
+    ...props
+  }, ref) => {
   const { options, isLoading, error } = useForeignKeyOptions({
     client,
     podId,
@@ -61,33 +65,36 @@ export function LemmaForeignKeySelect({
   const isDisabled = disabled || isLoading || !!error
 
   return (
-    <Select
-      disabled={isDisabled}
-      value={resolvedValue}
-      onValueChange={(nextValue) => onValueChange?.(nextValue === EMPTY_VALUE ? "" : nextValue)}
-    >
-      <SelectTrigger>
-        <SelectValue
-          placeholder={
-            error
-              ? "Failed to load options"
-              : isLoading
-                ? "Loading options..."
-                : placeholder
-          }
-        />
-      </SelectTrigger>
-      <SelectContent>
-        {allowEmpty ? <SelectItem value={EMPTY_VALUE}>{emptyLabel}</SelectItem> : null}
-        {options.map((option) => {
-          const optionValue = String(option.value)
-          return (
-            <SelectItem key={optionValue} value={optionValue}>
-              {option.label}
-            </SelectItem>
-          )
-        })}
-      </SelectContent>
-    </Select>
+    <div ref={ref} className={cn("", className)} {...props}>
+      <Select
+        disabled={isDisabled}
+        value={resolvedValue}
+        onValueChange={(nextValue) => onValueChange?.(nextValue === EMPTY_VALUE ? "" : nextValue)}
+      >
+        <SelectTrigger>
+          <SelectValue
+            placeholder={
+              error
+                ? "Failed to load options"
+                : isLoading
+                  ? "Loading options..."
+                  : placeholder
+            }
+          />
+        </SelectTrigger>
+        <SelectContent>
+          {allowEmpty ? <SelectItem value={EMPTY_VALUE}>{emptyLabel}</SelectItem> : null}
+          {options.map((option) => {
+            const optionValue = String(option.value)
+            return (
+              <SelectItem key={optionValue} value={optionValue}>
+                {option.label}
+              </SelectItem>
+            )
+          })}
+        </SelectContent>
+      </Select>
+    </div>
   )
-}
+})
+LemmaForeignKeySelect.displayName = "LemmaForeignKeySelect"

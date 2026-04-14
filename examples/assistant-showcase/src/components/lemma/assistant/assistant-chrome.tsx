@@ -1,12 +1,16 @@
 import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type {
   AssistantConversationListItem,
   AssistantConversationRenderArgs,
 } from "./assistant-types.js";
-
-function cx(...values: Array<string | false | null | undefined>): string {
-  return values.filter(Boolean).join(" ");
-}
 
 export type AssistantSurfaceTone = "default" | "subtle" | "flat";
 export type AssistantThemeMode = "auto" | "light" | "dark";
@@ -16,30 +20,30 @@ export interface AssistantThemeScopeProps extends ComponentPropsWithoutRef<"div"
   theme?: AssistantThemeMode;
 }
 
-export function AssistantThemeScope({
+export const AssistantThemeScope = forwardRef<HTMLDivElement, AssistantThemeScopeProps>(function AssistantThemeScope({
   className,
   children,
   theme = "auto",
   ...props
-}: AssistantThemeScopeProps) {
+}, ref) {
   return (
     <div
+      ref={ref}
       data-lemma-theme={theme}
-      className={cx("lemma-assistant-theme", className)}
+      className={cn("lemma-assistant-theme", className)}
       {...props}
     >
       {children}
     </div>
   );
-}
+});
 
-export interface AssistantHeaderProps {
+export interface AssistantHeaderProps extends Omit<ComponentPropsWithoutRef<"div">, "title"> {
   title: ReactNode;
   subtitle?: ReactNode;
   badge?: ReactNode;
   controls?: ReactNode;
   tone?: AssistantSurfaceTone;
-  className?: string;
 }
 
 export interface AssistantMessageViewportProps extends ComponentPropsWithoutRef<"div"> {
@@ -56,58 +60,65 @@ export const AssistantMessageViewport = forwardRef<HTMLDivElement, AssistantMess
   return (
     <div
       ref={ref}
-      className={cx("lemma-assistant-viewport", className)}
+      className={cn("lemma-assistant-viewport", className)}
       {...props}
     >
-      <div className={cx("lemma-assistant-viewport-inner", innerClassName)}>
+      <div className={cn("lemma-assistant-viewport-inner", innerClassName)}>
         {children}
       </div>
     </div>
   );
 });
 
-export interface AssistantShellLayoutProps {
+export interface AssistantShellLayoutProps extends ComponentPropsWithoutRef<"div"> {
   sidebar?: ReactNode;
   sidebarVisible?: boolean;
   main: ReactNode;
-  className?: string;
 }
 
-export function AssistantShellLayout({
+export const AssistantShellLayout = forwardRef<HTMLDivElement, AssistantShellLayoutProps>(function AssistantShellLayout({
   sidebar,
   sidebarVisible = false,
   main,
   className,
-}: AssistantShellLayoutProps) {
+  ...props
+}, ref) {
   const hasSidebar = !!sidebar;
 
   return (
-    <div className={cx(
-      "lemma-assistant-shell",
-      hasSidebar && "lemma-assistant-shell--with-sidebar",
-      hasSidebar && sidebarVisible && "lemma-assistant-shell--sidebar-visible",
-      className,
-    )}>
+    <div
+      ref={ref}
+      className={cn(
+        "lemma-assistant-shell",
+        hasSidebar && "lemma-assistant-shell--with-sidebar",
+        hasSidebar && sidebarVisible && "lemma-assistant-shell--sidebar-visible",
+        className,
+      )}
+      {...props}
+    >
       {sidebar && sidebarVisible ? (
         <div className="lemma-assistant-shell-sidebar">{sidebar}</div>
       ) : null}
       {main}
     </div>
   );
-}
+});
 
-export function AssistantHeader({
+export const AssistantHeader = forwardRef<HTMLDivElement, AssistantHeaderProps>(function AssistantHeader({
   title,
   subtitle,
   badge,
   controls,
   tone = "subtle",
   className,
-}: AssistantHeaderProps) {
+  ...props
+}, ref) {
   return (
     <div
+      ref={ref}
       data-tone={tone}
-      className={cx("lemma-assistant-header", className)}
+      className={cn("lemma-assistant-header", className)}
+      {...props}
     >
       <div className="lemma-assistant-header-copy">
         {badge ? (
@@ -127,9 +138,9 @@ export function AssistantHeader({
       ) : null}
     </div>
   );
-}
+});
 
-export interface AssistantConversationListProps {
+export interface AssistantConversationListProps extends Omit<ComponentPropsWithoutRef<"aside">, "title"> {
   conversations: AssistantConversationListItem[];
   activeConversationId: string | null;
   onSelectConversation: (conversationId: string) => void;
@@ -137,10 +148,9 @@ export interface AssistantConversationListProps {
   renderConversationLabel?: (args: AssistantConversationRenderArgs) => ReactNode;
   title?: ReactNode;
   newLabel?: ReactNode;
-  className?: string;
 }
 
-export function AssistantConversationList({
+export const AssistantConversationList = forwardRef<HTMLElement, AssistantConversationListProps>(function AssistantConversationList({
   conversations,
   activeConversationId,
   onSelectConversation,
@@ -149,9 +159,10 @@ export function AssistantConversationList({
   title = "Conversations",
   newLabel = "New",
   className,
-}: AssistantConversationListProps) {
+  ...props
+}, ref) {
   return (
-    <aside className={cx("lemma-assistant-conversation-list", className)}>
+    <aside ref={ref} className={cn("lemma-assistant-conversation-list", className)} {...props}>
       <div className="lemma-assistant-conversation-list-header">
         <div className="lemma-assistant-conversation-list-header-row">
           <div className="lemma-assistant-conversation-list-copy">
@@ -179,7 +190,8 @@ export function AssistantConversationList({
               key={conversation.id}
               type="button"
               onClick={() => onSelectConversation(conversation.id)}
-              className={cx(
+              aria-selected={isActive}
+              className={cn(
                 "lemma-assistant-conversation-list-item",
                 isActive && "lemma-assistant-conversation-list-item-active",
               )}
@@ -198,19 +210,18 @@ export function AssistantConversationList({
       </div>
     </aside>
   );
-}
+});
 
-export interface AssistantModelPickerProps<TValue extends string = string> {
+export interface AssistantModelPickerProps<TValue extends string = string> extends Omit<ComponentPropsWithoutRef<"div">, "onChange"> {
   value: TValue | null;
   options: TValue[];
   disabled?: boolean;
   autoLabel?: ReactNode;
   getOptionLabel?: (value: TValue) => ReactNode;
   onChange: (value: TValue | null) => void;
-  className?: string;
 }
 
-export function AssistantModelPicker<TValue extends string = string>({
+export const AssistantModelPicker = forwardRef<HTMLDivElement, AssistantModelPickerProps<string>>(function AssistantModelPicker({
   value,
   options,
   disabled,
@@ -218,29 +229,37 @@ export function AssistantModelPicker<TValue extends string = string>({
   getOptionLabel,
   onChange,
   className,
-}: AssistantModelPickerProps<TValue>) {
+  ...props
+}, ref) {
   const autoValue = "__AUTO__";
 
   return (
-    <select
-      value={value ?? autoValue}
-      onChange={(event) => onChange(event.target.value === autoValue ? null : (event.target.value as TValue))}
-      disabled={disabled}
-      className={cx("lemma-assistant-model-picker", className)}
-      aria-label="Conversation model"
-      title="Conversation model"
-    >
-      <option value={autoValue}>{autoLabel}</option>
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {getOptionLabel ? getOptionLabel(option) : option}
-        </option>
-      ))}
-    </select>
+    <div ref={ref} className={className} {...props}>
+      <Select
+        value={value ?? autoValue}
+        onValueChange={(val) => onChange(val === autoValue ? null : val)}
+        disabled={disabled}
+      >
+        <SelectTrigger
+          className="lemma-assistant-model-picker"
+          aria-label="Conversation model"
+        >
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={autoValue}>{autoLabel}</SelectItem>
+          {options.map((option) => (
+            <SelectItem key={option} value={option}>
+              {getOptionLabel ? getOptionLabel(option) : option}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
-}
+});
 
-export interface AssistantAskOverlayProps {
+export interface AssistantAskOverlayProps extends ComponentPropsWithoutRef<"div"> {
   questionNumber: number;
   totalQuestions: number;
   question: ReactNode;
@@ -254,7 +273,7 @@ export interface AssistantAskOverlayProps {
   mode?: "single_select" | "multi_select" | "rank_priorities";
 }
 
-export function AssistantAskOverlay({
+export const AssistantAskOverlay = forwardRef<HTMLDivElement, AssistantAskOverlayProps>(function AssistantAskOverlay({
   questionNumber,
   totalQuestions,
   question,
@@ -266,9 +285,11 @@ export function AssistantAskOverlay({
   onContinue,
   onSkip,
   mode = "single_select",
-}: AssistantAskOverlayProps) {
+  className,
+  ...props
+}, ref) {
   return (
-    <div className="lemma-assistant-ask-overlay">
+    <div ref={ref} className={cn("lemma-assistant-ask-overlay", className)} {...props}>
       <div className="lemma-assistant-ask-overlay-header">
         <div className="lemma-assistant-ask-overlay-copy">
           <div className="lemma-assistant-ask-overlay-kicker">
@@ -301,7 +322,7 @@ export function AssistantAskOverlay({
               key={`${option}-${optionIndex}`}
               type="button"
               onClick={() => onSelectOption(option)}
-              className={cx(
+              className={cn(
                 "lemma-assistant-ask-overlay-option",
                 isSelected && "lemma-assistant-ask-overlay-option-selected",
               )}
@@ -313,7 +334,7 @@ export function AssistantAskOverlay({
                   </span>
                 ) : (
                   <span
-                    className={cx(
+                    className={cn(
                       "lemma-assistant-ask-overlay-option-indicator",
                       isSelected && "lemma-assistant-ask-overlay-option-indicator-selected",
                     )}
@@ -332,7 +353,7 @@ export function AssistantAskOverlay({
             type="button"
             onClick={onContinue}
             disabled={!canContinue}
-            className={cx(
+            className={cn(
               "lemma-assistant-ask-overlay-continue",
               canContinue && "lemma-assistant-ask-overlay-continue-enabled",
             )}
@@ -343,38 +364,39 @@ export function AssistantAskOverlay({
       ) : null}
     </div>
   );
-}
+});
 
-export interface AssistantPendingFileChipProps {
+export interface AssistantPendingFileChipProps extends ComponentPropsWithoutRef<"span"> {
   label: ReactNode;
   onRemove?: () => void;
-  className?: string;
 }
 
-export interface AssistantComposerProps {
+export interface AssistantComposerProps extends ComponentPropsWithoutRef<"div"> {
   floating?: ReactNode;
   status?: ReactNode;
   pendingFiles?: ReactNode;
   children: ReactNode;
   tone?: AssistantSurfaceTone;
-  className?: string;
 }
 
-export function AssistantComposer({
+export const AssistantComposer = forwardRef<HTMLDivElement, AssistantComposerProps>(function AssistantComposer({
   floating,
   status,
   pendingFiles,
   children,
   tone = "subtle",
   className,
-}: AssistantComposerProps) {
+  ...props
+}, ref) {
   return (
     <div
+      ref={ref}
       data-tone={tone}
       data-has-status={status ? "true" : "false"}
       data-has-pending-files={pendingFiles ? "true" : "false"}
       data-has-floating={floating ? "true" : "false"}
-      className={cx("lemma-assistant-composer", className)}
+      className={cn("lemma-assistant-composer", className)}
+      {...props}
     >
       {floating ? (
         <div className="lemma-assistant-composer-floating">
@@ -399,18 +421,19 @@ export function AssistantComposer({
       <div className="lemma-assistant-composer-body">{children}</div>
     </div>
   );
-}
+});
 
-export function AssistantPendingFileChip({
+export const AssistantPendingFileChip = forwardRef<HTMLSpanElement, AssistantPendingFileChipProps>(function AssistantPendingFileChip({
   label,
   onRemove,
   className,
-}: AssistantPendingFileChipProps) {
+  ...props
+}, ref) {
   return (
-    <span className={cx(
+    <span ref={ref} className={cn(
       "lemma-assistant-pending-file-chip",
       className,
-    )}>
+    )} {...props}>
       <span className="lemma-assistant-pending-file-chip-label">{label}</span>
       {onRemove ? (
         <button
@@ -424,25 +447,29 @@ export function AssistantPendingFileChip({
       ) : null}
     </span>
   );
-}
+});
 
-export interface AssistantStatusPillProps {
+export interface AssistantStatusPillProps extends ComponentPropsWithoutRef<"div"> {
   label: ReactNode;
   subtle?: boolean;
-  className?: string;
 }
 
-export function AssistantStatusPill({
+export const AssistantStatusPill = forwardRef<HTMLDivElement, AssistantStatusPillProps>(function AssistantStatusPill({
   label,
   subtle = false,
   className,
-}: AssistantStatusPillProps) {
+  ...props
+}, ref) {
   return (
-    <div className={cx(
-      "lemma-assistant-status-pill",
-      subtle && "lemma-assistant-status-pill-subtle",
-      className,
-    )}>
+    <div
+      ref={ref}
+      className={cn(
+        "lemma-assistant-status-pill",
+        subtle && "lemma-assistant-status-pill-subtle",
+        className,
+      )}
+      {...props}
+    >
       <span className="lemma-assistant-status-pill-dot">
         <span className="lemma-assistant-status-pill-dot-ping" />
         <span className="lemma-assistant-status-pill-dot-core" />
@@ -450,4 +477,4 @@ export function AssistantStatusPill({
       <span className="lemma-assistant-status-pill-label">{label}</span>
     </div>
   );
-}
+});

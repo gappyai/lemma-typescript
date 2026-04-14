@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import { normalizeRunStatus } from "../run-utils.js";
 import type {
@@ -8,6 +8,7 @@ import type {
   Workflow,
   WorkflowRunInputs,
 } from "../types.js";
+import { normalizeError, resolvePodClient } from "./utils.js";
 import {
   useFlowSession,
   type UseFlowSessionResult,
@@ -38,16 +39,6 @@ export interface UseWorkflowStartResult
   refreshWorkflow: () => Promise<Workflow | null>;
   listHistory: (options?: { limit?: number; pageToken?: string }) => Promise<FlowRun[]>;
   start: (inputs?: WorkflowRunInputs, options?: { forceResume?: boolean }) => Promise<FlowRun>;
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
-
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
 }
 
 function findFirstFormNode(workflow: Workflow | null): FormNodeResponse | null {
@@ -202,21 +193,23 @@ export function useWorkflowStart({
     }
   }, [hasWorkflowName, refreshWorkflow, session, workflow, workflowName]);
 
-  const formNode = findFirstFormNode(workflow);
-  const startType = workflow?.start?.type ?? "MANUAL";
-  const error = workflowError ?? session.error;
+  return useMemo(() => {
+    const formNode = findFirstFormNode(workflow);
+    const startType = workflow?.start?.type ?? "MANUAL";
+    const error = workflowError ?? session.error;
 
-  return {
-    ...session,
-    workflow,
-    startType,
-    inputSchema: formNode?.config.input_schema ?? null,
-    inputUiSchema: formNode?.config.ui_schema ?? null,
-    isLoadingWorkflow,
-    isStarting,
-    error,
-    refreshWorkflow,
-    listHistory,
-    start,
-  };
+    return {
+      ...session,
+      workflow,
+      startType,
+      inputSchema: formNode?.config.input_schema ?? null,
+      inputUiSchema: formNode?.config.ui_schema ?? null,
+      isLoadingWorkflow,
+      isStarting,
+      error,
+      refreshWorkflow,
+      listHistory,
+      start,
+    };
+  }, [isStarting, isLoadingWorkflow, listHistory, refreshWorkflow, session, start, workflow, workflowError]);
 }

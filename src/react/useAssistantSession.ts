@@ -12,6 +12,7 @@ import {
   extractConversationMessageText,
   getLatestAssistantMessage,
 } from "./assistant-output.js";
+import { normalizeError } from "./utils.js";
 
 interface ConversationScope {
   podId?: string | null;
@@ -105,16 +106,12 @@ export interface UseAssistantSessionResult {
   clearMessages: () => void;
 }
 
-function resolveOptionalPodId(client: LemmaClient, podId?: string | null): string | undefined {
-  return podId ?? client.podId;
-}
-
-function applyPodScope(client: LemmaClient, podId?: string | null): string | undefined {
-  const resolvedPodId = resolveOptionalPodId(client, podId);
-  if (resolvedPodId) {
-    client.setPodId(resolvedPodId);
+function applyPodScope(client: LemmaClient, podId?: string | null): LemmaClient {
+  const resolvedPodId = podId ?? client.podId;
+  if (resolvedPodId && resolvedPodId !== client.podId) {
+    return client.withPod(resolvedPodId);
   }
-  return resolvedPodId;
+  return client;
 }
 
 function requireConversationId(conversationId?: string | null): string {
@@ -122,11 +119,6 @@ function requireConversationId(conversationId?: string | null): string {
     throw new Error("conversationId is required.");
   }
   return conversationId;
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
 }
 
 function normalizeScope(
@@ -294,9 +286,9 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     setError(null);
     try {
       const scope = normalizeScope(client, defaultScope, input.scope);
-      applyPodScope(client, scope.podId);
+      const scopedClient = applyPodScope(client, scope.podId);
 
-      const response = await client.conversations.list({
+      const response = await scopedClient.conversations.list({
         pod_id: scope.podId ?? undefined,
         assistant_name: scope.assistantName ?? scope.assistantId ?? undefined,
         organization_id: scope.organizationId ?? undefined,
@@ -308,6 +300,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
         items: response.items ?? [],
         limit: response.limit ?? input.limit ?? 20,
         next_page_token: response.next_page_token,
+        total: (response as { total?: number }).total,
       };
     } catch (listError) {
       const normalized = normalizeError(listError, "Failed to list conversations.");
@@ -324,11 +317,11 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   const createConversation = useCallback(async (input: CreateConversationInput = {}): Promise<Conversation> => {
     setError(null);
     try {
-      applyPodScope(client, input.podId ?? defaultPodId ?? null);
+      const scopedClient = applyPodScope(client, input.podId ?? defaultPodId ?? null);
 
       const payload = {
         title: input.title ?? undefined,
-        pod_id: input.podId ?? defaultPodId ?? client.podId ?? undefined,
+        pod_id: input.podId ?? defaultPodId ?? scopedClient.podId ?? undefined,
         assistant_name: input.assistantName
           ?? input.assistantId
           ?? defaultAssistantName
@@ -340,7 +333,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
           : (input.model as unknown as never),
       };
 
-      const created = await client.conversations.create(payload);
+      const created = await scopedClient.conversations.create(payload);
 
       if (input.setActive !== false) {
         setConversationIdState(created.id);
@@ -375,9 +368,9 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     setError(null);
     try {
       const scope = normalizeScope(client, defaultScope);
-      applyPodScope(client, scope.podId);
+      const scopedClient = applyPodScope(client, scope.podId);
 
-      const nextConversation = await client.conversations.get(id, {
+      const nextConversation = await scopedClient.conversations.get(id, {
         pod_id: scope.podId ?? undefined,
       });
 
@@ -567,9 +560,9 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       abortRef.current = controller;
 
       const scope = normalizeScope(client, defaultScope, input.createConversation);
-      applyPodScope(client, scope.podId);
+      const scopedClient = applyPodScope(client, scope.podId);
 
-      const stream = await client.conversations.sendMessageStream(
+      const stream = await scopedClient.conversations.sendMessageStream(
         resolvedConversationId,
         { content },
         {
@@ -609,9 +602,9 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       abortRef.current = controller;
 
       const scope = normalizeScope(client, defaultScope);
-      applyPodScope(client, scope.podId);
+      const scopedClient = applyPodScope(client, scope.podId);
 
-      const stream = await client.conversations.resumeStream(id, {
+      const stream = await scopedClient.conversations.resumeStream(id, {
         pod_id: scope.podId ?? undefined,
         signal: controller.signal,
       });
@@ -672,9 +665,9 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       const id = requireConversationId(explicitConversationId ?? conversationId);
 
       const scope = normalizeScope(client, defaultScope);
-      applyPodScope(client, scope.podId);
+      const scopedClient = applyPodScope(client, scope.podId);
 
-      await client.conversations.stopRun(id, {
+      await scopedClient.conversations.stopRun(id, {
         pod_id: scope.podId ?? undefined,
       });
       setConversationStatus("WAITING");
@@ -706,6 +699,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       return;
     }
 
+    const controller = new AbortController();
     let cancelled = false;
 
     const bootstrapConversation = async () => {
@@ -724,6 +718,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     void bootstrapConversation();
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [autoLoad, autoResume, conversationId, loadMessages, refreshConversation, resumeIfRunning]);
 

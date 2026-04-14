@@ -12,8 +12,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { LemmaSchemaForm } from "@/components/lemma/lemma-schema-form"
+import { cn } from "@/lib/utils"
 
-export interface LemmaWorkflowStartFormProps {
+export interface LemmaWorkflowStartFormProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError" | "onSubmit"> {
   client: LemmaClient
   podId?: string
   workflowName: string
@@ -22,18 +23,23 @@ export interface LemmaWorkflowStartFormProps {
   submitLabel?: string
   initialValues?: Record<string, unknown>
   onStarted?: (run: FlowRun) => void
+  onError?: (error: Error) => void
 }
 
-export function LemmaWorkflowStartForm({
-  client,
-  podId,
-  workflowName,
-  title = "Start Workflow",
-  description = "Launch a workflow with a schema-aware form when input is required.",
-  submitLabel = "Start workflow",
-  initialValues,
-  onStarted,
-}: LemmaWorkflowStartFormProps) {
+export const LemmaWorkflowStartForm = React.forwardRef<HTMLDivElement, LemmaWorkflowStartFormProps>(
+  ({
+    client,
+    podId,
+    workflowName,
+    title = "Start Workflow",
+    description = "Launch a workflow with a schema-aware form when input is required.",
+    submitLabel = "Start workflow",
+    initialValues,
+    onStarted,
+    onError,
+    className,
+    ...props
+  }, ref) => {
   const hasWorkflowName = workflowName.trim().length > 0
 
   const workflow = useWorkflowStart({
@@ -42,14 +48,24 @@ export function LemmaWorkflowStartForm({
     workflowName,
   })
 
+  React.useEffect(() => {
+    if (workflow.error) {
+      onError?.(workflow.error)
+    }
+  }, [workflow.error, onError])
+
   const handleStart = React.useCallback(async (data: Record<string, unknown>) => {
-    const run = await workflow.start(data)
-    onStarted?.(run)
-  }, [onStarted, workflow])
+    try {
+      const run = await workflow.start(data)
+      onStarted?.(run)
+    } catch (err) {
+      onError?.(err instanceof Error ? err : new Error(String(err)))
+    }
+  }, [onStarted, onError, workflow])
 
   if (!hasWorkflowName) {
     return (
-      <Card>
+      <Card ref={ref} className={cn("", className)} {...props}>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
@@ -60,7 +76,7 @@ export function LemmaWorkflowStartForm({
 
   if (!workflow.workflow && workflow.isLoadingWorkflow) {
     return (
-      <Card>
+      <Card ref={ref} className={cn("", className)} {...props}>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>Loading workflow definition…</CardDescription>
@@ -71,14 +87,14 @@ export function LemmaWorkflowStartForm({
 
   if (!workflow.inputSchema || Object.keys(workflow.inputSchema).length === 0) {
     return (
-      <Card>
+      <Card ref={ref} className={cn("", className)} {...props}>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
           {workflow.error ? (
-            <div className="rounded-md border border-[color:var(--resource-danger-border)] bg-[var(--resource-danger-soft)] px-3 py-2 text-sm text-[color:var(--resource-danger)]">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {workflow.error.message}
             </div>
           ) : null}
@@ -100,6 +116,8 @@ export function LemmaWorkflowStartForm({
 
   return (
     <LemmaSchemaForm
+      ref={ref}
+      className={className}
       description={description}
       disabled={workflow.isStarting}
       initialValues={initialValues}
@@ -108,6 +126,8 @@ export function LemmaWorkflowStartForm({
       submitLabel={workflow.isStarting ? "Starting…" : submitLabel}
       title={title}
       uiSchema={workflow.inputUiSchema}
+      {...props}
     />
   )
-}
+})
+LemmaWorkflowStartForm.displayName = "LemmaWorkflowStartForm"

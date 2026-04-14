@@ -17,13 +17,14 @@ import {
 } from "@/components/ui/select"
 import { LemmaFunctionRunHistory } from "@/components/lemma/lemma-function-run-history"
 import { LemmaFunctionRunPanel } from "@/components/lemma/lemma-function-run-panel"
+import { cn } from "@/lib/utils"
 
 export interface LemmaFunctionSummary {
   name: string
   input_schema?: Record<string, unknown> | null
 }
 
-export interface LemmaFunctionRunnerPageProps {
+export interface LemmaFunctionRunnerPageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError"> {
   client: LemmaClient
   podId?: string
   functions?: LemmaFunctionSummary[]
@@ -31,17 +32,22 @@ export interface LemmaFunctionRunnerPageProps {
   onFunctionNameChange?: (functionName: string) => void
   title?: string
   description?: string
+  onError?: (error: Error) => void
 }
 
-export function LemmaFunctionRunnerPage({
-  client,
-  podId,
-  functions = [],
-  functionName,
-  onFunctionNameChange,
-  title = "Function Runner",
-  description = "Choose a function, run it, and inspect recent run history.",
-}: LemmaFunctionRunnerPageProps) {
+export const LemmaFunctionRunnerPage = React.forwardRef<HTMLDivElement, LemmaFunctionRunnerPageProps>(
+  ({
+    client,
+    podId,
+    functions = [],
+    functionName,
+    onFunctionNameChange,
+    title = "Function Runner",
+    description = "Choose a function, run it, and inspect recent run history.",
+    onError,
+    className,
+    ...props
+  }, ref) => {
   const [internalFunctionName, setInternalFunctionName] = React.useState(functionName ?? functions[0]?.name ?? "")
   const selectedFunctionName = functionName ?? internalFunctionName
   const selectedFunction = functions.find((item) => item.name === selectedFunctionName) ?? null
@@ -59,7 +65,7 @@ export function LemmaFunctionRunnerPage({
   }, [functionName, onFunctionNameChange])
 
   return (
-    <div className="grid gap-4">
+    <div ref={ref} className={cn("grid gap-4", className)} {...props}>
       <Card>
         <CardHeader>
           <CardTitle>{title}</CardTitle>
@@ -87,6 +93,7 @@ export function LemmaFunctionRunnerPage({
             client={client}
             functionName={selectedFunctionName}
             inputSchema={selectedFunction?.input_schema ?? null}
+            onError={onError}
             podId={podId}
           />
           <LemmaFunctionRunHistory
@@ -105,4 +112,5 @@ export function LemmaFunctionRunnerPage({
       )}
     </div>
   )
-}
+})
+LemmaFunctionRunnerPage.displayName = "LemmaFunctionRunnerPage"

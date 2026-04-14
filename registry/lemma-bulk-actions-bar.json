@@ -8,6 +8,11 @@
   "registryDependencies": ["button"],
   "files": [
     {
+      "path": "registry/default/shared/components/registry-data-workspace.tsx",
+      "type": "registry:component",
+      "target": "components/lemma/registry-data-workspace.tsx"
+    },
+    {
       "path": "registry/default/lemma-bulk-actions-bar/components/lemma-bulk-actions-bar.tsx",
       "type": "registry:component",
       "target": "components/lemma/lemma-bulk-actions-bar.tsx"

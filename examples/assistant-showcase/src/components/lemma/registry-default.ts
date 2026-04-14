@@ -64,6 +64,11 @@ export {
 } from "../../../../../registry/default/lemma-table-picker/components/lemma-table-picker.tsx"
 
 export {
+  LemmaTableSchemaCard,
+  type LemmaTableSchemaCardProps,
+} from "../../../../../registry/default/lemma-table-schema-card/components/lemma-table-schema-card.tsx"
+
+export {
   LemmaWorkflowStartForm,
   type LemmaWorkflowStartFormProps,
 } from "../../../../../registry/default/lemma-workflow-start-form/components/lemma-workflow-start-form.tsx"

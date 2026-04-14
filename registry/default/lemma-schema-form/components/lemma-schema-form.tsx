@@ -22,8 +22,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 
-export interface LemmaSchemaFormProps {
+export interface LemmaSchemaFormProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onSubmit"> {
   schema?: JsonSchemaLike | null
   uiSchema?: Record<string, unknown> | null
   initialValues?: Record<string, unknown>
@@ -31,21 +32,34 @@ export interface LemmaSchemaFormProps {
   description?: string
   submitLabel?: string
   disabled?: boolean
-  onSubmit?: (data: Record<string, unknown>) => Promise<unknown> | unknown
+  onSubmit?: (data: Record<string, unknown>) => Promise<void> | void
   onSubmitted?: (data: Record<string, unknown>) => void
+  showReset?: boolean
+  resetLabel?: string
+  hiddenFields?: string[]
+  fieldLabels?: Record<string, string>
+  fieldDescriptions?: Record<string, string>
 }
 
-export function LemmaSchemaForm({
-  schema,
-  uiSchema,
-  initialValues,
-  title = "Schema Form",
-  description = "Generated from JSON Schema.",
-  submitLabel = "Submit",
-  disabled = false,
-  onSubmit,
-  onSubmitted,
-}: LemmaSchemaFormProps) {
+export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormProps>(
+  ({
+    schema,
+    uiSchema,
+    initialValues,
+    title = "Schema Form",
+    description = "Generated from JSON Schema.",
+    submitLabel = "Submit",
+    disabled = false,
+    onSubmit,
+    onSubmitted,
+    showReset = true,
+    resetLabel = "Reset",
+    hiddenFields = [],
+    fieldLabels,
+    fieldDescriptions,
+    className,
+    ...props
+  }, ref) => {
   const form = useSchemaForm({
     schema,
     uiSchema,
@@ -64,7 +78,7 @@ export function LemmaSchemaForm({
   }, [form])
 
   return (
-    <Card>
+    <Card ref={ref} className={cn("", className)} {...props}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
@@ -72,35 +86,39 @@ export function LemmaSchemaForm({
       <CardContent>
         <form className="grid gap-4" onSubmit={handleSubmit}>
           {form.error ? (
-            <div className="rounded-md border border-[color:var(--resource-danger-border)] bg-[var(--resource-danger-soft)] px-3 py-2 text-sm text-[color:var(--resource-danger)]">
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {form.error.message}
             </div>
           ) : null}
 
           {!hasFields ? (
-            <div className="rounded-md border border-dashed border-[color:var(--resource-border)] bg-[var(--resource-surface-alt)] px-3 py-6 text-sm text-[color:var(--resource-muted)]">
+            <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground">
               This schema does not define any editable fields.
             </div>
           ) : null}
 
-          {form.fields.map((field) => {
+          {form.fields
+            .filter((field) => !hiddenFields.includes(field.name))
+            .map((field) => {
             const value = form.values[field.name]
             const error = form.fieldErrors[field.name]
+            const resolvedLabel = fieldLabels?.[field.name] ?? field.label
+            const resolvedDescription = fieldDescriptions?.[field.name] ?? field.description
             const commonLabel = (
               <div className="grid gap-1.5">
                 <Label htmlFor={field.name}>
-                  {field.label}
+                  {resolvedLabel}
                   {field.required ? " *" : ""}
                 </Label>
-                {field.description ? (
-                  <p className="text-sm text-[color:var(--resource-muted)]">{field.description}</p>
+                {resolvedDescription ? (
+                  <p className="text-sm text-muted-foreground">{resolvedDescription}</p>
                 ) : null}
               </div>
             )
 
             if (field.kind === "boolean") {
               return (
-                <div key={field.name} className="grid gap-2 rounded-lg border border-[color:var(--resource-border)] bg-[var(--resource-surface-alt)] p-3">
+                <div key={field.name} className="grid gap-2 rounded-lg border border-border bg-muted/30 p-4">
                   {commonLabel}
                   <label className="flex items-center gap-3 text-sm">
                     <Checkbox
@@ -109,7 +127,7 @@ export function LemmaSchemaForm({
                     />
                     <span>{Boolean(value) ? "Enabled" : "Disabled"}</span>
                   </label>
-                  {error ? <p className="text-sm text-[color:var(--resource-danger)]">{error}</p> : null}
+                  {error ? <p className="text-sm text-destructive">{error}</p> : null}
                 </div>
               )
             }
@@ -133,7 +151,7 @@ export function LemmaSchemaForm({
                       ))}
                     </SelectContent>
                   </Select>
-                  {error ? <p className="text-sm text-[color:var(--resource-danger)]">{error}</p> : null}
+                  {error ? <p className="text-sm text-destructive">{error}</p> : null}
                 </div>
               )
             }
@@ -148,7 +166,7 @@ export function LemmaSchemaForm({
                     value={typeof value === "string" ? value : ""}
                     onChange={(event) => form.setValue(field.name, event.target.value)}
                   />
-                  {error ? <p className="text-sm text-[color:var(--resource-danger)]">{error}</p> : null}
+                  {error ? <p className="text-sm text-destructive">{error}</p> : null}
                 </div>
               )
             }
@@ -172,7 +190,7 @@ export function LemmaSchemaForm({
                   value={typeof value === "string" ? value : value ? String(value) : ""}
                   onChange={(event) => form.setValue(field.name, event.target.value)}
                 />
-                {error ? <p className="text-sm text-[color:var(--resource-danger)]">{error}</p> : null}
+                {error ? <p className="text-sm text-destructive">{error}</p> : null}
               </div>
             )
           })}
@@ -181,17 +199,20 @@ export function LemmaSchemaForm({
             <Button disabled={disabled || form.isSubmitting} type="submit">
               {form.isSubmitting ? "Submitting…" : submitLabel}
             </Button>
-            <Button
-              disabled={disabled || form.isSubmitting}
-              onClick={() => form.reset()}
-              type="button"
-              variant="outline"
-            >
-              Reset
-            </Button>
+            {showReset ? (
+              <Button
+                disabled={disabled || form.isSubmitting}
+                onClick={() => form.reset()}
+                type="button"
+                variant="outline"
+              >
+                {resetLabel}
+              </Button>
+            ) : null}
           </div>
         </form>
       </CardContent>
     </Card>
   )
-}
+})
+LemmaSchemaForm.displayName = "LemmaSchemaForm"

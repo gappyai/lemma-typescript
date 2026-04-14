@@ -12,7 +12,21 @@
       "dependencies": [
         "lemma-sdk",
         "react-markdown",
-        "remark-gfm"
+        "remark-gfm",
+        "clsx",
+        "tailwind-merge",
+        "radix-ui"
+      ],
+      "cssVars": {
+        "theme": {
+          "assistant-shell-radius": "calc(var(--radius) + 0.125rem)",
+          "assistant-item-radius": "var(--radius)",
+          "assistant-bubble-radius": "var(--radius)",
+          "assistant-inline-radius": "calc(var(--radius) - 0.125rem)"
+        }
+      },
+      "registryDependencies": [
+        "select"
       ],
       "files": [
         {
@@ -46,21 +60,35 @@
       "dependencies": [
         "lemma-sdk",
         "react-markdown",
-        "remark-gfm"
+        "remark-gfm",
+        "clsx",
+        "tailwind-merge",
+        "radix-ui"
+      ],
+      "cssVars": {
+        "theme": {
+          "assistant-shell-radius": "calc(var(--radius) + 0.125rem)",
+          "assistant-item-radius": "var(--radius)",
+          "assistant-bubble-radius": "var(--radius)",
+          "assistant-inline-radius": "calc(var(--radius) - 0.125rem)"
+        }
+      },
+      "registryDependencies": [
+        "select"
       ],
       "files": [
         {
-          "path": "registry/default/lemma-assistant-embedded/components/assistant-types.ts",
+          "path": "registry/default/lemma-assistant-experience/components/assistant-types.ts",
           "type": "registry:component",
           "target": "components/lemma/assistant/assistant-types.ts"
         },
         {
-          "path": "registry/default/lemma-assistant-embedded/components/assistant-chrome.tsx",
+          "path": "registry/default/lemma-assistant-experience/components/assistant-chrome.tsx",
           "type": "registry:component",
           "target": "components/lemma/assistant/assistant-chrome.tsx"
         },
         {
-          "path": "registry/default/lemma-assistant-embedded/components/assistant-experience.tsx",
+          "path": "registry/default/lemma-assistant-experience/components/assistant-experience.tsx",
           "type": "registry:component",
           "target": "components/lemma/assistant/assistant-experience.tsx"
         },
@@ -132,11 +160,19 @@
         "lemma-sdk"
       ],
       "registryDependencies": [
+        "badge",
         "button",
         "card",
-        "checkbox"
+        "checkbox",
+        "sheet",
+        "table"
       ],
       "files": [
+        {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
         {
           "path": "registry/default/lemma-records-table/components/lemma-records-table.tsx",
           "type": "registry:component",
@@ -154,15 +190,49 @@
         "lemma-sdk"
       ],
       "registryDependencies": [
+        "badge",
         "button",
         "card",
         "select"
       ],
       "files": [
         {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
+        {
           "path": "registry/default/lemma-table-picker/components/lemma-table-picker.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-table-picker.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-table-schema-card",
+      "type": "registry:component",
+      "title": "Lemma Table Schema Card",
+      "description": "A schema inspector for table columns, constraints, and foreign-key metadata.",
+      "dependencies": [
+        "lemma-sdk"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "table"
+      ],
+      "files": [
+        {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
+        {
+          "path": "registry/default/lemma-table-schema-card/components/lemma-table-schema-card.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-table-schema-card.tsx"
         }
       ]
     },
@@ -176,12 +246,18 @@
         "lemma-sdk"
       ],
       "registryDependencies": [
+        "badge",
         "button",
         "card",
         "input",
         "select"
       ],
       "files": [
+        {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
         {
           "path": "registry/default/lemma-record-picker/components/lemma-record-picker.tsx",
           "type": "registry:component",
@@ -201,9 +277,15 @@
       "registryDependencies": [
         "button",
         "input",
-        "select"
+        "select",
+        "sheet"
       ],
       "files": [
+        {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
         {
           "path": "registry/default/lemma-record-filters-bar/components/lemma-record-filters-bar.tsx",
           "type": "registry:component",
@@ -225,6 +307,11 @@
       ],
       "files": [
         {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
+        {
           "path": "registry/default/lemma-bulk-actions-bar/components/lemma-bulk-actions-bar.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-bulk-actions-bar.tsx"
@@ -241,8 +328,10 @@
         "lemma-sdk"
       ],
       "registryDependencies": [
+        "badge",
         "button",
-        "card"
+        "card",
+        "sheet"
       ],
       "files": [
         {
@@ -262,15 +351,23 @@
         "lemma-sdk"
       ],
       "registryDependencies": [
+        "badge",
         "button",
         "card",
-        "input",
-        "select",
-        "textarea",
         "checkbox",
-        "label"
+        "input",
+        "label",
+        "select",
+        "sheet",
+        "table",
+        "textarea"
       ],
       "files": [
+        {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
         {
           "path": "registry/default/lemma-bulk-actions-bar/components/lemma-bulk-actions-bar.tsx",
           "type": "registry:component",
@@ -287,7 +384,7 @@
           "target": "components/lemma/lemma-record-filters-bar.tsx"
         },
         {
-          "path": "registry/default/lemma-record-form/components/lemma-foreign-key-select.tsx",
+          "path": "registry/default/lemma-foreign-key-select/components/lemma-foreign-key-select.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-foreign-key-select.tsx"
         },
@@ -338,10 +435,17 @@
         "lemma-sdk"
       ],
       "registryDependencies": [
+        "badge",
         "button",
-        "card"
+        "card",
+        "table"
       ],
       "files": [
+        {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
         {
           "path": "registry/default/lemma-related-records-table/components/lemma-related-records-table.tsx",
           "type": "registry:component",
@@ -359,11 +463,18 @@
         "lemma-sdk"
       ],
       "registryDependencies": [
+        "badge",
         "button",
         "card",
-        "select"
+        "select",
+        "table"
       ],
       "files": [
+        {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
         {
           "path": "registry/default/lemma-reverse-related-records-table/components/lemma-reverse-related-records-table.tsx",
           "type": "registry:component",
@@ -381,17 +492,19 @@
         "lemma-sdk"
       ],
       "registryDependencies": [
+        "badge",
         "button",
         "card",
         "checkbox",
         "input",
         "label",
         "select",
+        "sheet",
         "textarea"
       ],
       "files": [
         {
-          "path": "registry/default/lemma-record-form/components/lemma-foreign-key-select.tsx",
+          "path": "registry/default/lemma-foreign-key-select/components/lemma-foreign-key-select.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-foreign-key-select.tsx"
         },
@@ -422,7 +535,7 @@
       ],
       "files": [
         {
-          "path": "registry/default/lemma-workflow-start-form/components/lemma-schema-form.tsx",
+          "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-schema-form.tsx"
         },
@@ -642,7 +755,7 @@
       ],
       "files": [
         {
-          "path": "registry/default/lemma-workflow-start-form/components/lemma-schema-form.tsx",
+          "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-schema-form.tsx"
         },
@@ -683,10 +796,17 @@
         "lemma-sdk"
       ],
       "registryDependencies": [
+        "badge",
         "button",
-        "card"
+        "card",
+        "table"
       ],
       "files": [
+        {
+          "path": "registry/default/shared/components/registry-data-workspace.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/registry-data-workspace.tsx"
+        },
         {
           "path": "registry/default/lemma-members-table/components/lemma-members-table.tsx",
           "type": "registry:component",

@@ -4,6 +4,7 @@ import { parseSSEJson, readSSE, type SseRawEvent } from "../streams.js";
 import { isTerminalTaskStatus, normalizeRunStatus } from "../run-utils.js";
 import { parseTaskStreamEvent, upsertTaskMessage } from "../task-events.js";
 import type { Task, TaskMessage } from "../types.js";
+import { normalizeError, resolvePodClient, resolvePodId } from "./utils.js";
 
 export interface CreateTaskInput {
   agentName: string;
@@ -37,24 +38,6 @@ export interface UseTaskSessionResult {
   disconnect: () => void;
   stop: () => Promise<Task | null>;
   clearMessages: () => void;
-}
-
-function resolvePodId(client: LemmaClient, podId?: string): string {
-  const resolved = podId ?? client.podId;
-  if (!resolved) {
-    throw new Error("podId is required. Pass podId or set it on LemmaClient.");
-  }
-  return resolved;
-}
-
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
-
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
 }
 
 function sleep(ms: number): Promise<void> {

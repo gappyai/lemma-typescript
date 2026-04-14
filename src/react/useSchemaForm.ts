@@ -5,6 +5,7 @@ import {
   buildSchemaFormPayload,
   buildSchemaFormValues,
 } from "../schema-form.js";
+import { normalizeError, stringifyComparable } from "./utils.js";
 
 export interface UseSchemaFormOptions {
   schema?: JsonSchemaLike | null;
@@ -30,18 +31,7 @@ export interface UseSchemaFormResult {
   submit: () => Promise<Record<string, unknown> | null>;
 }
 
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
 
-function stringifyComparable(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
 
 const EMPTY_VALUES: Record<string, unknown> = {};
 

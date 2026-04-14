@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { ListRecordsOptions } from "../types.js";
+import { normalizeError, resolvePodClient, stringifyComparable } from "./utils.js";
 
 export interface UseRecordsOptions extends ListRecordsOptions {
   client: LemmaClient;
@@ -15,27 +16,14 @@ export interface UseRecordsResult<TRecord extends Record<string, unknown> = Reco
   total: number;
   nextPageToken: string | null;
   isLoading: boolean;
+  isLoadingMore: boolean;
   error: Error | null;
   refresh: (overrides?: Partial<ListRecordsOptions>) => Promise<TRecord[]>;
+  loadMore: (overrides?: Partial<ListRecordsOptions>) => Promise<TRecord[]>;
 }
 
-function resolvePodClient(client: LemmaClient, podId?: string): LemmaClient {
-  if (!podId || podId === client.podId) return client;
-  return client.withPod(podId);
-}
 
-function normalizeError(error: unknown, fallback: string): Error {
-  if (error instanceof Error) return error;
-  return new Error(fallback);
-}
 
-function stringifyComparable(value: unknown): string {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
 
 export function useRecords<TRecord extends Record<string, unknown> = Record<string, unknown>>({
   client,
@@ -56,6 +44,7 @@ export function useRecords<TRecord extends Record<string, unknown> = Record<stri
   const [total, setTotal] = useState(0);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const trimmedTableName = tableName.trim();
@@ -67,7 +56,7 @@ export function useRecords<TRecord extends Record<string, unknown> = Record<stri
   const stableSort = useMemo(() => sort, [sortKey]);
   const stableParams = useMemo(() => params, [paramsKey]);
 
-  const refresh = useCallback(async (overrides: Partial<ListRecordsOptions> = {}): Promise<TRecord[]> => {
+  const refresh = useCallback(async (overrides: Partial<ListRecordsOptions> = {}, signal?: AbortSignal): Promise<TRecord[]> => {
     if (!isEnabled) {
       setRecords([]);
       setTotal(0);
@@ -93,17 +82,19 @@ export function useRecords<TRecord extends Record<string, unknown> = Record<stri
         params: overrides.params ?? stableParams,
       });
 
+      if (signal?.aborted) return [];
       const nextRecords = (response.items ?? []) as TRecord[];
       setRecords(nextRecords);
       setTotal(response.total ?? nextRecords.length);
       setNextPageToken(response.next_page_token ?? null);
       return nextRecords;
     } catch (refreshError) {
+      if (signal?.aborted) return [];
       const normalized = normalizeError(refreshError, "Failed to load records.");
       setError(normalized);
       return [];
     } finally {
-      setIsLoading(false);
+      if (!signal?.aborted) setIsLoading(false);
     }
   }, [
     client,
@@ -120,6 +111,40 @@ export function useRecords<TRecord extends Record<string, unknown> = Record<stri
     trimmedTableName,
   ]);
 
+  const loadMore = useCallback(async (overrides: Partial<ListRecordsOptions> = {}): Promise<TRecord[]> => {
+    if (!isEnabled || !nextPageToken || isLoading || isLoadingMore) {
+      return [];
+    }
+
+    setIsLoadingMore(true);
+    setError(null);
+
+    try {
+      const scopedClient = resolvePodClient(client, podId);
+      const response = await scopedClient.records.list(trimmedTableName, {
+        filters: stableFilters,
+        sort: stableSort,
+        limit: overrides.limit ?? limit,
+        pageToken: nextPageToken,
+        offset: overrides.offset,
+        sortBy: overrides.sortBy ?? sortBy,
+        order: overrides.order ?? order,
+        params: overrides.params ?? stableParams,
+      });
+      const moreRecords = (response.items ?? []) as TRecord[];
+      setRecords((previous) => [...previous, ...moreRecords]);
+      setTotal((response as { total?: number }).total ?? records.length + moreRecords.length);
+      setNextPageToken(response.next_page_token ?? null);
+      return moreRecords;
+    } catch (loadError) {
+      const normalized = normalizeError(loadError, "Failed to load more records.");
+      setError(normalized);
+      return [];
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [client, isEnabled, isLoading, isLoadingMore, limit, nextPageToken, offset, order, podId, records.length, sortBy, stableFilters, stableParams, stableSort, trimmedTableName]);
+
   useEffect(() => {
     if (!isEnabled) {
       setRecords([]);
@@ -127,11 +152,26 @@ export function useRecords<TRecord extends Record<string, unknown> = Record<stri
       setNextPageToken(null);
       setError(null);
       setIsLoading(false);
+      setIsLoadingMore(false);
       return;
     }
 
     if (!autoLoad) return;
-    void refresh();
+    const controller = new AbortController();
+    let cancelled = false;
+    (async () => {
+      try {
+        await refresh({}, controller.signal);
+      } catch {
+        if (!cancelled) {
+          setError(normalizeError(new Error("Failed to load records."), "Failed to load records."));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [autoLoad, isEnabled, refresh]);
 
   return useMemo(() => ({
@@ -139,7 +179,9 @@ export function useRecords<TRecord extends Record<string, unknown> = Record<stri
     total,
     nextPageToken,
     isLoading,
+    isLoadingMore,
     error,
     refresh,
-  }), [error, isLoading, nextPageToken, records, refresh, total]);
+    loadMore,
+  }), [error, isLoading, isLoadingMore, loadMore, nextPageToken, records, refresh, total]);
 }

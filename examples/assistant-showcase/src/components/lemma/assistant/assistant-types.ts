@@ -28,7 +28,7 @@ export interface AssistantControllerView {
   hasOlderMessages: boolean;
   isUploadingFiles: boolean;
   pendingFiles: File[];
-  error: string | null;
+  error: Error | string | null;
   pendingActions: unknown[];
   completedActions: unknown[];
   selectConversation(conversationId: string | null): void;
