@@ -7,6 +7,23 @@ import {
   type UseFunctionSessionResult,
 } from "./useFunctionSession.js";
 
+/**
+ * React hook for running a pod function and tracking its output.
+ * Wraps `useFunctionSession` with a simpler API — call `start(input)`
+ * from an event handler, read `output` / `finalOutput`.
+ *
+ * @example Run a function on button click
+ * ```tsx
+ * const { start, output, isFinished, isPolling } = useFunctionRun({
+ *   client,
+ *   functionName: "update-issue-status",
+ * });
+ *
+ * <button onClick={() => start({ issue_id: "123", status: "closed" })}>
+ *   Close issue
+ * </button>
+ * ```
+ */
 export interface UseFunctionRunOptions
   extends UseFunctionSessionOptions {}
 

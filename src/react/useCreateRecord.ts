@@ -1,14 +1,44 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
-import type { RecordResponse } from "../types.js";
+import type { FunctionRun, RecordResponse } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
+/**
+ * React hook for creating a single record. Manages loading/error state and
+ * exposes a `create` function you can call from event handlers.
+ *
+ * Supports two modes:
+ * - `"direct"` (default): calls `records.create` directly.
+ * - `"function"`: calls `functions.runs.create`, routing the create through
+ *   a pod function that may enforce business logic.
+ *
+ * @example Direct create
+ * ```tsx
+ * const { create, isSubmitting } = useCreateRecord({ client, tableName: "comments" });
+ * await create({ body: "Hello", issue_id: "123" });
+ * ```
+ *
+ * @example Function-backed create
+ * ```tsx
+ * const { create, isSubmitting } = useCreateRecord({
+ *   client,
+ *   tableName: "issues",
+ *   createVia: "function",
+ *   createFunctionName: "create-issue",
+ * });
+ * await create({ title: "Bug", team_id: "team_1" });
+ * ```
+ */
 export interface UseCreateRecordOptions {
   client: LemmaClient;
   podId?: string;
   tableName: string;
   enabled?: boolean;
-  onSuccess?: (record: Record<string, unknown>, response: RecordResponse) => void;
+  /** How the record is created. `"direct"` calls `records.create`. `"function"` calls `functions.runs.create`. */
+  createVia?: "direct" | "function";
+  /** Function name to run when `createVia` is `"function"`. Falls back to `tableName` if omitted. */
+  createFunctionName?: string;
+  onSuccess?: (record: Record<string, unknown>, response: RecordResponse | FunctionRun) => void;
   onError?: (error: unknown) => void;
 }
 
@@ -25,6 +55,8 @@ export function useCreateRecord<TRecord extends Record<string, unknown> = Record
   podId,
   tableName,
   enabled = true,
+  createVia = "direct",
+  createFunctionName,
   onSuccess,
   onError,
 }: UseCreateRecordOptions): UseCreateRecordResult<TRecord> {
@@ -51,6 +83,18 @@ export function useCreateRecord<TRecord extends Record<string, unknown> = Record
 
     try {
       const scopedClient = resolvePodClient(client, podId);
+
+      if (createVia === "function") {
+        const functionName = createFunctionName ?? trimmedTableName;
+        const run = await scopedClient.functions.runs.create(functionName, { input: data });
+        const nextRecord = ((run.output_data as Record<string, unknown> | undefined) ?? { id: run.id, ...data }) as TRecord | null;
+        setCreatedRecord(nextRecord);
+        if (nextRecord) {
+          onSuccessRef.current?.(nextRecord, run);
+        }
+        return nextRecord;
+      }
+
       const response = await scopedClient.records.create(trimmedTableName, data);
       const nextRecord = (response.data ?? null) as TRecord | null;
       setCreatedRecord(nextRecord);
@@ -66,7 +110,7 @@ export function useCreateRecord<TRecord extends Record<string, unknown> = Record
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, isEnabled, podId, trimmedTableName]);
+  }, [client, createFunctionName, createVia, isEnabled, podId, trimmedTableName]);
 
   const reset = useCallback(() => {
     setCreatedRecord(null);

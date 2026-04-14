@@ -2,6 +2,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
+/**
+ * React hook for fetching a single record by ID. Unwraps `.data`
+ * automatically so `record` is the plain object, not the API envelope.
+ *
+ * Perfect for detail panels — pair with `useRecords` for the list.
+ *
+ * @example
+ * ```tsx
+ * const { record, isLoading } = useRecord({
+ *   client,
+ *   tableName: "issues",
+ *   recordId: selectedId,
+ * });
+ * // record is the issue object directly (or null)
+ * ```
+ */
 export interface UseRecordOptions {
   client: LemmaClient;
   podId?: string;

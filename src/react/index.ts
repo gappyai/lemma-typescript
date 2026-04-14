@@ -66,7 +66,11 @@ export type { UseDeleteRecordOptions, UseDeleteRecordResult } from "./useDeleteR
 export { useBulkRecords } from "./useBulkRecords.js";
 export type { UseBulkRecordsOptions, UseBulkRecordsResult } from "./useBulkRecords.js";
 export { useJoinedRecords } from "./useJoinedRecords.js";
-export type { UseJoinedRecordsOptions, UseJoinedRecordsResult } from "./useJoinedRecords.js";
+export type {
+  JoinedRecordsShorthandJoin,
+  UseJoinedRecordsOptions,
+  UseJoinedRecordsResult,
+} from "./useJoinedRecords.js";
 export { useRelatedRecords } from "./useRelatedRecords.js";
 export type {
   RelatedRecordsColumn,
@@ -83,6 +87,12 @@ export type {
   UseReverseRelatedRecordsOptions,
   UseReverseRelatedRecordsResult,
 } from "./useReverseRelatedRecords.js";
+export { useReferencingRecords } from "./useReferencingRecords.js";
+export type {
+  ReferencingRecordsColumn,
+  UseReferencingRecordsOptions,
+  UseReferencingRecordsResult,
+} from "./useReferencingRecords.js";
 export { useForeignKeyOptions } from "./useForeignKeyOptions.js";
 export type {
   ForeignKeyOption,

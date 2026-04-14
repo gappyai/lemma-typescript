@@ -4,6 +4,24 @@ import { parseForeignKeyReference, type ForeignKeyReference } from "../datastore
 import type { ColumnSchema, Table } from "../types.js";
 import { normalizeError, resolvePodId } from "./utils.js";
 
+/**
+ * React hook that resolves a foreign-key column into dropdown options.
+ * Reads the FK metadata from the table schema, fetches records from the
+ * referenced table, and returns `{ value, label, record }` options ready
+ * for `<Select>` components.
+ *
+ * Auto-detects the best label field (name > title > label > email > slug).
+ *
+ * @example
+ * ```tsx
+ * const { options, isLoading } = useForeignKeyOptions({
+ *   client,
+ *   tableName: "issues",
+ *   columnName: "team_id",
+ * });
+ * // options = [{ value: "team_1", label: "Engineering", record: {...} }, ...]
+ * ```
+ */
 export interface ForeignKeyOption {
   value: unknown;
   label: string;

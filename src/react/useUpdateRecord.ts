@@ -1,15 +1,46 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
-import type { RecordResponse } from "../types.js";
+import type { FunctionRun, RecordResponse } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
+/**
+ * React hook for updating a single record. Manages loading/error state and
+ * exposes an `update` function you can call from event handlers.
+ *
+ * Supports two modes:
+ * - `"direct"` (default): calls `records.update` directly.
+ * - `"function"`: calls `functions.runs.create`, routing the update through
+ *   a pod function (e.g. for status transitions that log history).
+ *
+ * @example Direct update
+ * ```tsx
+ * const { update, isSubmitting } = useUpdateRecord({ client, tableName: "issues", recordId: "123" });
+ * await update({ status: "closed" });
+ * ```
+ *
+ * @example Function-backed update
+ * ```tsx
+ * const { update, isSubmitting } = useUpdateRecord({
+ *   client,
+ *   tableName: "issues",
+ *   recordId: "123",
+ *   updateVia: "function",
+ *   updateFunctionName: "update-issue-status",
+ * });
+ * await update({ status: "in_progress" });
+ * ```
+ */
 export interface UseUpdateRecordOptions {
   client: LemmaClient;
   podId?: string;
   tableName: string;
   recordId?: string | null;
   enabled?: boolean;
-  onSuccess?: (record: Record<string, unknown>, response: RecordResponse) => void;
+  /** How the record is updated. `"direct"` calls `records.update`. `"function"` calls `functions.runs.create`. */
+  updateVia?: "direct" | "function";
+  /** Function name to run when `updateVia` is `"function"`. Falls back to `tableName` if omitted. */
+  updateFunctionName?: string;
+  onSuccess?: (record: Record<string, unknown>, response: RecordResponse | FunctionRun) => void;
   onError?: (error: unknown) => void;
 }
 
@@ -30,6 +61,8 @@ export function useUpdateRecord<TRecord extends Record<string, unknown> = Record
   tableName,
   recordId = null,
   enabled = true,
+  updateVia = "direct",
+  updateFunctionName,
   onSuccess,
   onError,
 }: UseUpdateRecordOptions): UseUpdateRecordResult<TRecord> {
@@ -64,6 +97,19 @@ export function useUpdateRecord<TRecord extends Record<string, unknown> = Record
 
     try {
       const scopedClient = resolvePodClient(client, podId);
+
+      if (updateVia === "function") {
+        const functionName = updateFunctionName ?? trimmedTableName;
+        const input = { ...data, id: nextRecordId, record_id: nextRecordId };
+        const run = await scopedClient.functions.runs.create(functionName, { input });
+        const nextRecord = ((run.output_data as Record<string, unknown> | undefined) ?? { id: nextRecordId, ...data }) as TRecord | null;
+        setUpdatedRecord(nextRecord);
+        if (nextRecord) {
+          onSuccessRef.current?.(nextRecord, run);
+        }
+        return nextRecord;
+      }
+
       const response = await scopedClient.records.update(trimmedTableName, nextRecordId, data);
       const nextRecord = (response.data ?? null) as TRecord | null;
       setUpdatedRecord(nextRecord);
@@ -79,7 +125,7 @@ export function useUpdateRecord<TRecord extends Record<string, unknown> = Record
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, isEnabled, podId, trimmedRecordId, trimmedTableName]);
+  }, [client, isEnabled, podId, trimmedRecordId, trimmedTableName, updateFunctionName, updateVia]);
 
   const reset = useCallback(() => {
     setUpdatedRecord(null);

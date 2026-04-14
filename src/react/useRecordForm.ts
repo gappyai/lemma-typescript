@@ -5,7 +5,7 @@ import {
   buildRecordPayload,
   type RecordSchemaField,
 } from "../record-form.js";
-import type { RecordResponse } from "../types.js";
+import type { FunctionRun, RecordResponse } from "../types.js";
 import { normalizeError, resolvePodClient, stringifyComparable } from "./utils.js";
 import {
   useRecordSchema,
@@ -14,6 +14,35 @@ import {
 
 const EMPTY_VALUES: Record<string, unknown> = {};
 
+/**
+ * React hook for schema-driven record forms with validation, dirty tracking,
+ * and create/update auto-detection.
+ *
+ * Supports two submit modes:
+ * - `"direct"` (default): persists via `records.create` / `records.update`.
+ * - `"function"`: persists via `functions.runs.create`, routing the form
+ *   payload through a pod function that may enforce business logic
+ *   (e.g. auto-generating identifiers, logging history).
+ *
+ * @example Direct create/update form
+ * ```tsx
+ * const form = useRecordForm({ client, tableName: "issues" });
+ * // form.fields → all schema fields, form.editableFields → user-fillable fields
+ * await form.submit(); // calls records.create or records.update
+ * ```
+ *
+ * @example Function-backed form
+ * ```tsx
+ * const form = useRecordForm({
+ *   client,
+ *   tableName: "issues",
+ *   submitVia: "function",
+ *   submitFunctionName: "create-issue",
+ *   hiddenFields: ["identifier", "created_at"],
+ * });
+ * await form.submit(); // calls functions.runs.create("create-issue", { input: payload })
+ * ```
+ */
 export interface UseRecordFormOptions {
   client: LemmaClient;
   podId?: string;
@@ -23,7 +52,17 @@ export interface UseRecordFormOptions {
   mode?: "auto" | "create" | "update";
   enabled?: boolean;
   autoLoad?: boolean;
-  onSubmitSuccess?: (record: Record<string, unknown>, response: RecordResponse) => void;
+  /** Field names to include in `fields` and `editableFields`. Takes precedence over `hiddenFields`. */
+  visibleFields?: string[];
+  /** Field names to exclude from `fields` and `editableFields`. Ignored for any field also listed in `visibleFields`. */
+  hiddenFields?: string[];
+  /** How the form persists data. `"direct"` calls `records.create`/`records.update`. `"function"` calls `functions.runs.create`. */
+  submitVia?: "direct" | "function";
+  /** Function name to run when `submitVia` is `"function"`. Required when `submitVia` is `"function"`. */
+  submitFunctionName?: string;
+  /** Transforms the form payload before passing it as function input. Receives the validated payload, returns the function input object. */
+  submitFunctionInput?: (payload: Record<string, unknown>) => Record<string, unknown>;
+  onSubmitSuccess?: (record: Record<string, unknown>, response: RecordResponse | FunctionRun) => void;
   onError?: (error: unknown) => void;
 }
 
@@ -63,6 +102,11 @@ export function useRecordForm({
   mode = "auto",
   enabled = true,
   autoLoad = true,
+  visibleFields,
+  hiddenFields,
+  submitVia = "direct",
+  submitFunctionName,
+  submitFunctionInput,
   onSubmitSuccess,
   onError,
 }: UseRecordFormOptions): UseRecordFormResult {
@@ -73,6 +117,27 @@ export function useRecordForm({
     enabled,
     autoLoad,
   });
+
+  const visibleSet = useMemo(() => visibleFields ? new Set(visibleFields) : null, [visibleFields]);
+  const hiddenSet = useMemo(() => hiddenFields ? new Set(hiddenFields) : null, [hiddenFields]);
+
+  const filteredFields = useMemo(() => {
+    if (!visibleSet && !hiddenSet) return schema.fields;
+    return schema.fields.filter((field) => {
+      if (visibleSet) return visibleSet.has(field.name);
+      if (hiddenSet) return !hiddenSet.has(field.name);
+      return true;
+    });
+  }, [hiddenSet, schema.fields, visibleSet]);
+
+  const filteredEditableFields = useMemo(() => {
+    if (!visibleSet && !hiddenSet) return schema.editableFields;
+    return schema.editableFields.filter((field) => {
+      if (visibleSet) return visibleSet.has(field.name);
+      if (hiddenSet) return !hiddenSet.has(field.name);
+      return true;
+    });
+  }, [hiddenSet, schema.editableFields, visibleSet]);
 
   const [record, setRecord] = useState<Record<string, unknown> | null>(null);
   const [values, setValuesState] = useState<Record<string, unknown>>({});
@@ -225,6 +290,21 @@ export function useRecordForm({
 
     try {
       const scopedClient = resolvePodClient(client, podId);
+
+      if (submitVia === "function") {
+        const functionName = submitFunctionName ?? tableName;
+        const functionInput = submitFunctionInput ? submitFunctionInput(payload.data) : payload.data;
+        const run = await scopedClient.functions.runs.create(functionName, { input: functionInput });
+        const nextRecord = (run.output_data as Record<string, unknown> | undefined) ?? { id: run.id, ...functionInput };
+        setRecord(nextRecord);
+        hydrateValues({
+          ...(nextRecord ?? {}),
+          ...stableInitialValues,
+        });
+        onSubmitSuccess?.(nextRecord ?? {}, run);
+        return nextRecord;
+      }
+
       const response = resolvedMode === "update" && recordId
         ? await scopedClient.records.update(tableName, recordId, payload.data)
         : await scopedClient.records.create(tableName, payload.data);
@@ -244,7 +324,7 @@ export function useRecordForm({
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, hydrateValues, mode, onError, onSubmitSuccess, podId, recordId, schemaTable, stableInitialValues, tableName, values]);
+  }, [client, hydrateValues, mode, onError, onSubmitSuccess, podId, recordId, schemaTable, stableInitialValues, submitFunctionInput, submitFunctionName, submitVia, tableName, values]);
 
   const isDirty = useMemo(() => {
     return stringifyComparable(values) !== stringifyComparable(baselineValues);
@@ -252,8 +332,8 @@ export function useRecordForm({
 
   return useMemo(() => ({
     table: schema.table,
-    fields: schema.fields,
-    editableFields: schema.editableFields,
+    fields: filteredFields,
+    editableFields: filteredEditableFields,
     defaults: schema.defaults,
     values,
     baselineValues,
@@ -275,6 +355,8 @@ export function useRecordForm({
   }), [
     baselineValues,
     fieldErrors,
+    filteredEditableFields,
+    filteredFields,
     isDirty,
     isLoadingRecord,
     isSubmitting,
@@ -284,9 +366,7 @@ export function useRecordForm({
     refreshRecord,
     reset,
     schema.defaults,
-    schema.editableFields,
     schema.error,
-    schema.fields,
     schema.isLoading,
     schema.refresh,
     schema.table,

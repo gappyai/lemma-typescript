@@ -106,982 +106,6 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-schema-form",
-      "type": "registry:component",
-      "title": "Lemma Schema Form",
-      "description": "A generic schema-driven form powered by useSchemaForm from lemma-sdk/react.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "checkbox",
-        "input",
-        "label",
-        "select",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-schema-form.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-foreign-key-select",
-      "type": "registry:component",
-      "title": "Lemma Foreign Key Select",
-      "description": "A stock shadcn/ui Select wired to useForeignKeyOptions from lemma-sdk/react.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "select"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-foreign-key-select/components/lemma-foreign-key-select.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-foreign-key-select.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-records-table",
-      "type": "registry:component",
-      "title": "Lemma Records Table",
-      "description": "A lightweight records preview table powered by useRecords and useTable.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "checkbox",
-        "sheet",
-        "table"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-records-table/components/lemma-records-table.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-records-table.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-table-picker",
-      "type": "registry:component",
-      "title": "Lemma Table Picker",
-      "description": "A table selector powered by useTables.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "select"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-table-picker/components/lemma-table-picker.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-table-picker.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-table-schema-card",
-      "type": "registry:component",
-      "title": "Lemma Table Schema Card",
-      "description": "A schema inspector for table columns, constraints, and foreign-key metadata.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "table"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-table-schema-card/components/lemma-table-schema-card.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-table-schema-card.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-record-picker",
-      "type": "registry:component",
-      "title": "Lemma Record Picker",
-      "description": "A searchable record selector powered by useRecords.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "input",
-        "select"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-record-picker/components/lemma-record-picker.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-record-picker.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-record-filters-bar",
-      "type": "registry:component",
-      "title": "Lemma Record Filters Bar",
-      "description": "A lightweight records search, sort, page-size, and refresh toolbar.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "button",
-        "input",
-        "select",
-        "sheet"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-record-filters-bar/components/lemma-record-filters-bar.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-record-filters-bar.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-bulk-actions-bar",
-      "type": "registry:component",
-      "title": "Lemma Bulk Actions Bar",
-      "description": "A stock bulk-actions bar for selected records, including bulk delete status.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "button"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-bulk-actions-bar/components/lemma-bulk-actions-bar.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-bulk-actions-bar.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-record-details-card",
-      "type": "registry:component",
-      "title": "Lemma Record Details Card",
-      "description": "A selected-record details card powered by useRecord.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "sheet"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-record-details-card/components/lemma-record-details-card.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-record-details-card.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-records-page",
-      "type": "registry:block",
-      "title": "Lemma Records Page",
-      "description": "A practical records workspace with table picker, filters, bulk actions, record picker, records table, details, form, and forward plus reverse relations.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "checkbox",
-        "input",
-        "label",
-        "select",
-        "sheet",
-        "table",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-bulk-actions-bar/components/lemma-bulk-actions-bar.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-bulk-actions-bar.tsx"
-        },
-        {
-          "path": "registry/default/lemma-record-details-card/components/lemma-record-details-card.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-record-details-card.tsx"
-        },
-        {
-          "path": "registry/default/lemma-record-filters-bar/components/lemma-record-filters-bar.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-record-filters-bar.tsx"
-        },
-        {
-          "path": "registry/default/lemma-foreign-key-select/components/lemma-foreign-key-select.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-foreign-key-select.tsx"
-        },
-        {
-          "path": "registry/default/lemma-record-form/components/lemma-record-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-record-form.tsx"
-        },
-        {
-          "path": "registry/default/lemma-record-picker/components/lemma-record-picker.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-record-picker.tsx"
-        },
-        {
-          "path": "registry/default/lemma-records-table/components/lemma-records-table.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-records-table.tsx"
-        },
-        {
-          "path": "registry/default/lemma-records-page/components/lemma-records-page.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-records-page.tsx"
-        },
-        {
-          "path": "registry/default/lemma-related-records-table/components/lemma-related-records-table.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-related-records-table.tsx"
-        },
-        {
-          "path": "registry/default/lemma-reverse-related-records-table/components/lemma-reverse-related-records-table.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-reverse-related-records-table.tsx"
-        },
-        {
-          "path": "registry/default/lemma-table-picker/components/lemma-table-picker.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-table-picker.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-related-records-table",
-      "type": "registry:component",
-      "title": "Lemma Related Records Table",
-      "description": "A relation-first joined records table powered by useRelatedRecords.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "table"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-related-records-table/components/lemma-related-records-table.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-related-records-table.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-reverse-related-records-table",
-      "type": "registry:component",
-      "title": "Lemma Reverse Related Records Table",
-      "description": "A reverse-relation browser that finds child rows pointing back to the selected record.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "select",
-        "table"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-reverse-related-records-table/components/lemma-reverse-related-records-table.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-reverse-related-records-table.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-record-form",
-      "type": "registry:block",
-      "title": "Lemma Record Form",
-      "description": "A schema-aware record form for Lemma datastore tables, including enum and foreign-key fields.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "checkbox",
-        "input",
-        "label",
-        "select",
-        "sheet",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-foreign-key-select/components/lemma-foreign-key-select.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-foreign-key-select.tsx"
-        },
-        {
-          "path": "registry/default/lemma-record-form/components/lemma-record-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-record-form.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-workflow-start-form",
-      "type": "registry:block",
-      "title": "Lemma Workflow Start Form",
-      "description": "A schema-aware launcher for manual or input-driven workflows using useWorkflowStart.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "checkbox",
-        "input",
-        "label",
-        "select",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-schema-form.tsx"
-        },
-        {
-          "path": "registry/default/lemma-workflow-start-form/components/lemma-workflow-start-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-workflow-start-form.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-agent-output-card",
-      "type": "registry:component",
-      "title": "Lemma Agent Output Card",
-      "description": "A compact agent task output card for status, task ID, and structured output.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "card"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-agent-output-card/components/lemma-agent-output-card.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-agent-output-card.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-agent-messages",
-      "type": "registry:component",
-      "title": "Lemma Agent Messages",
-      "description": "A task message inspector powered by useAgentRun.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-agent-messages/components/lemma-agent-messages.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-agent-messages.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-agent-run-panel",
-      "type": "registry:block",
-      "title": "Lemma Agent Run Panel",
-      "description": "A schema-aware agent runner with output and message inspection.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "checkbox",
-        "input",
-        "label",
-        "select",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-schema-form.tsx"
-        },
-        {
-          "path": "registry/default/lemma-agent-output-card/components/lemma-agent-output-card.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-agent-output-card.tsx"
-        },
-        {
-          "path": "registry/default/lemma-agent-messages/components/lemma-agent-messages.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-agent-messages.tsx"
-        },
-        {
-          "path": "registry/default/lemma-agent-run-panel/components/lemma-agent-run-panel.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-agent-run-panel.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-agent-runner-page",
-      "type": "registry:block",
-      "title": "Lemma Agent Runner Page",
-      "description": "A complete agent runner page with agent selection, schema input, output, and messages.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "checkbox",
-        "input",
-        "label",
-        "select",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-schema-form.tsx"
-        },
-        {
-          "path": "registry/default/lemma-agent-output-card/components/lemma-agent-output-card.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-agent-output-card.tsx"
-        },
-        {
-          "path": "registry/default/lemma-agent-messages/components/lemma-agent-messages.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-agent-messages.tsx"
-        },
-        {
-          "path": "registry/default/lemma-agent-run-panel/components/lemma-agent-run-panel.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-agent-run-panel.tsx"
-        },
-        {
-          "path": "registry/default/lemma-agent-runner-page/components/lemma-agent-runner-page.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-agent-runner-page.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-workflow-run-status",
-      "type": "registry:component",
-      "title": "Lemma Workflow Run Status",
-      "description": "A workflow run status card for current node and waiting state.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "card"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-workflow-run-status/components/lemma-workflow-run-status.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-workflow-run-status.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-workflow-run-details",
-      "type": "registry:component",
-      "title": "Lemma Workflow Run Details",
-      "description": "A workflow run details inspector for execution context and step history.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "card"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-workflow-run-details/components/lemma-workflow-run-details.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-workflow-run-details.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-workflow-history",
-      "type": "registry:component",
-      "title": "Lemma Workflow History",
-      "description": "A paginated recent workflow runs list powered by useWorkflowRuns.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-workflow-history/components/lemma-workflow-history.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-workflow-history.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-workflow-launcher-page",
-      "type": "registry:block",
-      "title": "Lemma Workflow Launcher Page",
-      "description": "A workflow launcher page with start form, status, details, and history.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "checkbox",
-        "input",
-        "label",
-        "select",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-schema-form.tsx"
-        },
-        {
-          "path": "registry/default/lemma-workflow-start-form/components/lemma-workflow-start-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-workflow-start-form.tsx"
-        },
-        {
-          "path": "registry/default/lemma-workflow-run-status/components/lemma-workflow-run-status.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-workflow-run-status.tsx"
-        },
-        {
-          "path": "registry/default/lemma-workflow-run-details/components/lemma-workflow-run-details.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-workflow-run-details.tsx"
-        },
-        {
-          "path": "registry/default/lemma-workflow-history/components/lemma-workflow-history.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-workflow-history.tsx"
-        },
-        {
-          "path": "registry/default/lemma-workflow-launcher-page/components/lemma-workflow-launcher-page.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-workflow-launcher-page.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-members-table",
-      "type": "registry:component",
-      "title": "Lemma Members Table",
-      "description": "A read-only pod members table powered by useMembers.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "table"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-members-table/components/lemma-members-table.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-members-table.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-member-picker",
-      "type": "registry:component",
-      "title": "Lemma Member Picker",
-      "description": "A pod member picker powered by useMembers.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "card",
-        "select"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-member-picker/components/lemma-member-picker.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-member-picker.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-org-member-picker",
-      "type": "registry:component",
-      "title": "Lemma Org Member Picker",
-      "description": "An organization member picker powered by useOrganizationMembers.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "card",
-        "select"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-org-member-picker/components/lemma-org-member-picker.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-org-member-picker.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-pod-access-card",
-      "type": "registry:component",
-      "title": "Lemma Pod Access Card",
-      "description": "A pod access status and request card powered by usePodAccess.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-pod-access-card/components/lemma-pod-access-card.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-pod-access-card.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-function-run-panel",
-      "type": "registry:block",
-      "title": "Lemma Function Run Panel",
-      "description": "A schema-aware function runner with status and output.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "checkbox",
-        "input",
-        "label",
-        "select",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-schema-form.tsx"
-        },
-        {
-          "path": "registry/default/lemma-function-run-panel/components/lemma-function-run-panel.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-function-run-panel.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-function-run-history",
-      "type": "registry:component",
-      "title": "Lemma Function Run History",
-      "description": "A paginated recent function runs list powered by useFunctionRuns.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-function-run-history/components/lemma-function-run-history.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-function-run-history.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-function-runner-page",
-      "type": "registry:block",
-      "title": "Lemma Function Runner Page",
-      "description": "A function runner page with function selection, run panel, and run history.",
-      "dependencies": [
-        "lemma-sdk"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "checkbox",
-        "input",
-        "label",
-        "select",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/shared/components/registry-data-workspace.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/registry-data-workspace.tsx"
-        },
-        {
-          "path": "registry/default/lemma-schema-form/components/lemma-schema-form.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-schema-form.tsx"
-        },
-        {
-          "path": "registry/default/lemma-function-run-panel/components/lemma-function-run-panel.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-function-run-panel.tsx"
-        },
-        {
-          "path": "registry/default/lemma-function-run-history/components/lemma-function-run-history.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-function-run-history.tsx"
-        },
-        {
-          "path": "registry/default/lemma-function-runner-page/components/lemma-function-runner-page.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-function-runner-page.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "lemma-dashboard",
       "type": "registry:block",
       "title": "Lemma Dashboard",
@@ -1117,6 +141,133 @@
           "path": "registry/default/lemma-dashboard/components/lemma-dashboard.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-dashboard.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-records-view",
+      "type": "registry:block",
+      "title": "Lemma Records View",
+      "description": "A business-grade records workspace with grid/list/grouped views, inline editing, filter builder, detail sheet with reverse lookups, and schema-aware create form. For operators, not admins.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "checkbox",
+        "dialog",
+        "dropdown-menu",
+        "input",
+        "label",
+        "select",
+        "separator",
+        "sheet",
+        "table",
+        "textarea"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-records-view/components/records-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/records-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-records-view/components/records-editable-cell.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/records-editable-cell.tsx"
+        },
+        {
+          "path": "registry/default/lemma-records-view/components/records-filter-builder.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/records-filter-builder.tsx"
+        },
+        {
+          "path": "registry/default/lemma-records-view/components/records-detail-sheet.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/records-detail-sheet.tsx"
+        },
+        {
+          "path": "registry/default/lemma-records-view/components/records-list-view.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/records-list-view.tsx"
+        },
+        {
+          "path": "registry/default/lemma-records-view/components/records-grouped-view.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/records-grouped-view.tsx"
+        },
+        {
+          "path": "registry/default/lemma-records-view/components/records-form-sheet.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/records-form-sheet.tsx"
+        },
+        {
+          "path": "registry/default/lemma-records-view/components/lemma-records-view.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-records-view.tsx"
+        },
+        {
+          "path": "registry/default/lemma-records-view/styles/lemma-records-view.css",
+          "type": "registry:file",
+          "target": "styles/lemma-records-view.css"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-record-form",
+      "type": "registry:block",
+      "title": "Lemma Record Form",
+      "description": "A schema-aware record form that hides system fields and renders FK selects, enum badges, and type-appropriate inputs. Supports inline, modal, and sheet modes, plus function-backed submissions.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react"
+      ],
+      "registryDependencies": [
+        "button",
+        "checkbox",
+        "dialog",
+        "input",
+        "label",
+        "select",
+        "separator",
+        "sheet",
+        "textarea"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-record-form/components/lemma-record-form.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-record-form.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-insights",
+      "type": "registry:block",
+      "title": "Lemma Insights",
+      "description": "Dashboard-style stat cards and charts driven by table queries or function outputs. Supports count/sum/avg stat cards and bar/line/pie charts. Built on recharts.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "recharts"
+      ],
+      "registryDependencies": [
+        "button",
+        "card"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-insights/components/lemma-insights.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-insights.tsx"
         }
       ]
     }

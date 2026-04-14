@@ -4,6 +4,27 @@ import { parseForeignKeyReference } from "../datastore-query.js";
 import type { Table } from "../types.js";
 import { normalizeError, resolvePodClient, stringifyComparable } from "./utils.js";
 
+/**
+ * React hook for finding records in *other* tables that reference a given
+ * record. Starts from the parent table, discovers all tables with FK
+ * columns pointing back to it, and fetches the referencing rows.
+ *
+ * For the simpler case where you already know the referencing table and
+ * FK column, prefer `useReferencingRecords` — it has a more intuitive API.
+ *
+ * @example All comments and history entries for an issue
+ * ```tsx
+ * const { relations, records, isLoading } = useReverseRelatedRecords({
+ *   client,
+ *   tableName: "issues",
+ *   recordId: "issue_123",
+ *   relation: { tableName: "comments", foreignKey: "issue_id" },
+ * });
+ * ```
+ *
+ * @see useReferencingRecords — flipped-perspective alias for the common
+ *   "show me all rows in table X where FK = Y" pattern.
+ */
 export interface ReverseRelationSelector {
   tableName: string;
   foreignKey: string;

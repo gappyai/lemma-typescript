@@ -1,451 +1,341 @@
 "use client"
 
 import * as React from "react"
-import type { LemmaClient } from "lemma-sdk"
-import { useRecordForm } from "lemma-sdk/react"
-import { Badge } from "@/components/ui/badge"
+import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
 import { Textarea } from "@/components/ui/textarea"
-import { LemmaForeignKeySelect } from "@/components/lemma/lemma-foreign-key-select"
-import {
-  DataWorkspaceHeader,
-  DataWorkspaceState,
-  dataWorkspaceTypeBadgeClassName,
-  dataWorkspaceMetaBadgeClassName,
-} from "@/components/lemma/registry-data-workspace"
-import { cn } from "@/lib/utils"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { useRecordForm, useForeignKeyOptions } from "lemma-sdk/react"
+import type { LemmaClient } from "lemma-sdk"
 
-type LemmaRecordFormVariant = "card" | "sheet"
-type LemmaRecordFormSide = "top" | "right" | "bottom" | "left"
-
-export interface LemmaRecordFormProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError"> {
+export interface LemmaRecordFormProps {
   client: LemmaClient
   podId?: string
   tableName: string
-  recordId?: string | null
-  initialValues?: Record<string, unknown>
-  mode?: "auto" | "create" | "update"
-  title?: string
-  description?: string
-  submitLabel?: string
+  recordId?: string
+
+  mode?: "inline" | "modal" | "sheet"
+  submitVia?: "direct" | "function"
+  submitFunctionName?: string
+  submitFunctionInput?: (payload: Record<string, unknown>) => Record<string, unknown>
   hiddenFields?: string[]
+  visibleFields?: string[]
   fieldOrder?: string[]
-  onSubmitted?: (record: Record<string, unknown>) => void
-  onCancel?: () => void
-  appearance?: "card" | "modal"
-  variant?: LemmaRecordFormVariant
-  side?: LemmaRecordFormSide
-  open?: boolean
-  onOpenChange?: (open: boolean) => void
-  fieldLabels?: Record<string, string>
-  fieldDescriptions?: Record<string, string>
-  showReset?: boolean
-  resetLabel?: string
-  cancelLabel?: string
-  onError?: (error: Error) => void
+  fieldGroups?: Array<{ label: string; fields: string[] }>
+
+  initialValues?: Record<string, unknown>
+  onSuccess?: (record: Record<string, unknown>) => void
+  onClose?: () => void
 }
 
-function orderFields(
-  fields: Array<ReturnType<typeof useRecordForm>["editableFields"][number]>,
-  fieldOrder?: string[],
-) {
-  if (!fieldOrder?.length) return fields
-
-  const indexByName = new Map(fieldOrder.map((name, index) => [name, index]))
-
-  return [...fields].sort((left, right) => {
-    const leftIndex = indexByName.get(left.name)
-    const rightIndex = indexByName.get(right.name)
-
-    if (typeof leftIndex === "number" && typeof rightIndex === "number") {
-      return leftIndex - rightIndex
-    }
-
-    if (typeof leftIndex === "number") return -1
-    if (typeof rightIndex === "number") return 1
-    return left.label.localeCompare(right.label)
-  })
-}
-
-function defaultFieldLabel(name: string): string {
-  return name.replace(/\./g, "_").toUpperCase()
-}
-
-function buildPlaceholder(label: string, kind: string): string {
-  if (kind === "select") return `Select ${label.toLowerCase()}`
-  if (kind === "foreign-key") return `Choose ${label.toLowerCase()}`
-  return `Enter ${label.toLowerCase()}...`
-}
-
-export const LemmaRecordForm = React.forwardRef<HTMLDivElement, LemmaRecordFormProps>(
-  ({
+export function LemmaRecordForm({
+  client,
+  podId,
+  tableName,
+  recordId,
+  mode = "inline",
+  submitVia = "direct",
+  submitFunctionName,
+  submitFunctionInput,
+  hiddenFields = [],
+  visibleFields,
+  fieldOrder,
+  fieldGroups,
+  initialValues,
+  onSuccess,
+  onClose,
+}: LemmaRecordFormProps) {
+  const form = useRecordForm({
     client,
     podId,
     tableName,
-    recordId,
+    recordId: recordId || null,
+    hiddenFields: [...hiddenFields, "id", "created_at", "updated_at", "creator_user_id", "sort_order"],
+    visibleFields,
+    submitVia,
+    submitFunctionName,
+    submitFunctionInput,
+    onSubmitSuccess: (record) => onSuccess?.(record),
     initialValues,
-    mode = "auto",
-    title,
-    description,
-    submitLabel = recordId ? "Save changes" : "Create record",
-    hiddenFields = [],
-    fieldOrder,
-    onSubmitted,
-    onCancel,
-    appearance = "card",
-    variant,
-    side = "right",
-    open,
-    onOpenChange,
-    fieldLabels,
-    fieldDescriptions,
-    showReset = true,
-    resetLabel = "Reset",
-    cancelLabel = "Cancel",
-    onError,
-    className,
-    ...props
-  }, ref) => {
-    const hasTableName = tableName.trim().length > 0
-    const formId = React.useId()
-    const resolvedVariant = variant ?? (appearance === "modal" ? "sheet" : "card")
-    const [internalOpen, setInternalOpen] = React.useState(open ?? true)
+  })
 
-    const form = useRecordForm({
-      client,
-      podId,
-      tableName,
-      recordId,
-      initialValues,
-      mode,
-      onSubmitSuccess: (record) => onSubmitted?.(record),
-    })
+  const isEdit = !!recordId
+  const title = isEdit ? "Edit Record" : "New Record"
 
-    React.useEffect(() => {
-      if (form.error) {
-        onError?.(form.error)
-      }
-    }, [form.error, onError])
-
-    React.useEffect(() => {
-      if (typeof open === "boolean") {
-        setInternalOpen(open)
-      }
-    }, [open])
-
-    const fields = React.useMemo(() => {
-      const visibleFields = form.editableFields.filter((field) => !hiddenFields.includes(field.name))
-      return orderFields(visibleFields, fieldOrder)
-    }, [fieldOrder, form.editableFields, hiddenFields])
-
-    const handleSubmit = React.useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault()
-      await form.submit()
-    }, [form])
-
-    const handleSheetOpenChange = React.useCallback((nextOpen: boolean) => {
-      if (typeof open !== "boolean") {
-        setInternalOpen(nextOpen)
-      }
-      onOpenChange?.(nextOpen)
-      if (!nextOpen) {
-        onCancel?.()
-      }
-    }, [onCancel, onOpenChange, open])
-
-    if (!hasTableName) {
-      return (
-        <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
-          <CardHeader className="p-6">
-            <DataWorkspaceHeader
-              description={description ?? "Select a table to render the generated record form."}
-              title={title ?? "Registry Record Form"}
-            />
-          </CardHeader>
-        </div>
-      )
+  const orderedFields = React.useMemo(() => {
+    let fields = form.editableFields
+    if (fieldOrder) {
+      const ordered = fieldOrder.map((n) => fields.find((f) => f.name === n)).filter((f): f is typeof fields[number] => f !== undefined)
+      const remaining = fields.filter((f) => !fieldOrder.includes(f.name))
+      fields = [...ordered, ...remaining]
     }
+    return fields
+  }, [form.editableFields, fieldOrder])
 
-    const resolvedTitle = title ?? `${recordId ? "Edit" : "Create"} ${tableName}`
-    const resolvedDescription = description ?? "Schema-aware form powered by lemma-sdk/react."
-    const meta = (
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge
-          className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName(recordId ? "success" : "primary"))}
-          variant="outline"
-        >
-          {recordId ? "Update" : "Create"}
-        </Badge>
-        <Badge
-          className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))}
-          variant="outline"
-        >
-          {fields.length} field{fields.length === 1 ? "" : "s"}
-        </Badge>
-        <Badge
-          className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceMetaBadgeClassName("default"))}
-          variant="outline"
-        >
-          {tableName}
-        </Badge>
-      </div>
-    )
+  const inner = (
+    <div className="flex h-full flex-col">
+      {(mode === "modal" || mode === "sheet") && (
+        <div className="shrink-0 border-b border-border/50 px-6 py-4">
+          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">{tableName}</p>
+        </div>
+      )}
 
-    const body = (
-      <form className="flex flex-col gap-5" id={formId} onSubmit={handleSubmit}>
-        {form.error ? (
-          <DataWorkspaceState description={form.error.message} heading="Submission failed" tone="danger" />
-        ) : null}
-
-        {form.isLoadingSchema || form.isLoadingRecord ? (
-          <DataWorkspaceState description="Loading form\u2026" />
-        ) : null}
-
-        {!form.isLoadingSchema && !form.isLoadingRecord && fields.length === 0 ? (
-          <DataWorkspaceState description="No editable fields were found for this table." />
-        ) : null}
-
-        {fields.map((field) => {
-          const value = form.values[field.name]
-          const error = form.fieldErrors[field.name]
-          const resolvedLabel = fieldLabels?.[field.name] ?? defaultFieldLabel(field.name)
-          const resolvedFieldDescription = fieldDescriptions?.[field.name] ?? field.column.description
-          const placeholder = buildPlaceholder(resolvedLabel, field.kind)
-          const fieldHeader = (
-            <div className="flex flex-wrap items-center gap-3">
-              <Label className="text-sm font-medium text-muted-foreground" htmlFor={field.name}>
-                {resolvedLabel}
-                {field.required ? " *" : ""}
-              </Label>
-              <Badge
-                className={cn("rounded-full border px-2 py-0.5 text-xs", dataWorkspaceTypeBadgeClassName(field.kind))}
-                variant="outline"
-              >
-                {field.column.type.toLowerCase()}
-              </Badge>
-            </div>
-          )
-
-          if (field.kind === "boolean") {
-            return (
-              <div key={field.name} className="grid gap-3">
-                {fieldHeader}
-                {resolvedFieldDescription ? (
-                  <p className="text-sm leading-6 text-muted-foreground">{resolvedFieldDescription}</p>
-                ) : null}
-                <label className="rounded-lg border bg-muted/50 flex items-center gap-3 p-4 text-sm">
-                  <Checkbox
-                    checked={Boolean(value)}
-                    onCheckedChange={(checked) => form.setValue(field.name, checked === true)}
-                  />
-                  <span className="font-medium text-foreground">{Boolean(value) ? "Yes" : "No"}</span>
-                </label>
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      <div className="flex-1 overflow-y-auto px-6 py-4">
+        {form.isLoadingSchema ? (
+          <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading schema…
+          </div>
+        ) : fieldGroups ? (
+          <div className="space-y-6">
+            {fieldGroups.map((group, gi) => (
+              <div key={gi}>
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
+                  {group.label}
+                </p>
+                <div className="space-y-4">
+                  {group.fields
+                    .map((n) => orderedFields.find((f) => f.name === n))
+                    .filter((f): f is typeof orderedFields[number] => f !== undefined)
+                    .map((field) => (
+                      <FormField
+                        key={field.name}
+                        name={field.name}
+                        label={field.label}
+                        kind={field.kind}
+                        column={field.column}
+                        required={field.required}
+                        options={field.options}
+                        value={form.values[field.name]}
+                        error={form.fieldErrors[field.name]}
+                        onChange={(v) => form.setValue(field.name, v)}
+                        client={client}
+                        podId={podId}
+                        tableName={tableName}
+                      />
+                    ))}
+                </div>
+                {gi < fieldGroups.length - 1 && <Separator className="mt-6 bg-border/30" />}
               </div>
-            )
-          }
-
-          if (field.kind === "select") {
-            return (
-              <div key={field.name} className="grid gap-2">
-                {fieldHeader}
-                {resolvedFieldDescription ? (
-                  <p className="text-sm leading-6 text-muted-foreground">{resolvedFieldDescription}</p>
-                ) : null}
-                <Select
-                  value={typeof value === "string" ? value : ""}
-                  onValueChange={(nextValue) => form.setValue(field.name, nextValue)}
-                >
-                  <SelectTrigger className="h-10 w-full" id={field.name}>
-                    <SelectValue placeholder={placeholder} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {field.options.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {option}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              </div>
-            )
-          }
-
-          if (field.kind === "foreign-key") {
-            return (
-              <div key={field.name} className="grid gap-2">
-                {fieldHeader}
-                {resolvedFieldDescription ? (
-                  <p className="text-sm leading-6 text-muted-foreground">{resolvedFieldDescription}</p>
-                ) : null}
-                <LemmaForeignKeySelect
-                  client={client}
-                  columnName={field.name}
-                  onValueChange={(nextValue: string) => form.setValue(field.name, nextValue)}
-                  podId={podId}
-                  tableName={tableName}
-                  value={typeof value === "string" ? value : value ? String(value) : ""}
-                />
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              </div>
-            )
-          }
-
-          if (field.kind === "json" || field.kind === "textarea") {
-            return (
-              <div key={field.name} className="grid gap-2">
-                {fieldHeader}
-                {resolvedFieldDescription ? (
-                  <p className="text-sm leading-6 text-muted-foreground">{resolvedFieldDescription}</p>
-                ) : null}
-                <Textarea
-                  className="min-h-24"
-                  id={field.name}
-                  onChange={(event) => form.setValue(field.name, event.target.value)}
-                  placeholder={placeholder}
-                  rows={field.kind === "json" ? 6 : 3}
-                  value={typeof value === "string" ? value : ""}
-                />
-                {error ? <p className="text-sm text-destructive">{error}</p> : null}
-              </div>
-            )
-          }
-
-          return (
-            <div key={field.name} className="grid gap-2">
-              {fieldHeader}
-              {resolvedFieldDescription ? (
-                <p className="text-sm leading-6 text-muted-foreground">{resolvedFieldDescription}</p>
-              ) : null}
-              <Input
-                className="h-10"
-                id={field.name}
-                onChange={(event) => form.setValue(field.name, event.target.value)}
-                placeholder={placeholder}
-                type={
-                  field.kind === "number"
-                    ? "number"
-                    : field.kind === "date"
-                      ? "date"
-                      : field.kind === "datetime"
-                        ? "datetime-local"
-                        : "text"
-                }
-                value={typeof value === "string" ? value : value ? String(value) : ""}
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {orderedFields.map((field) => (
+              <FormField
+                key={field.name}
+                name={field.name}
+                label={field.label}
+                kind={field.kind}
+                column={field.column}
+                required={field.required}
+                options={field.options}
+                value={form.values[field.name]}
+                error={form.fieldErrors[field.name]}
+                onChange={(v) => form.setValue(field.name, v)}
+                client={client}
+                podId={podId}
+                tableName={tableName}
               />
-              {error ? <p className="text-sm text-destructive">{error}</p> : null}
-            </div>
-          )
-        })}
+            ))}
+          </div>
+        )}
 
-        {resolvedVariant === "card" ? (
-          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border/60 pt-5">
-            {showReset ? (
-              <Button
-                disabled={form.isSubmitting}
-                onClick={() => form.reset()}
-                type="button"
-                variant="outline"
-              >
-                {resetLabel}
+        {form.error && (
+          <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {form.error.message}
+          </p>
+        )}
+      </div>
+
+      {(mode === "modal" || mode === "sheet") && (
+        <div className="shrink-0 border-t border-border/50 bg-muted/30 px-6 py-3">
+          <div className="flex items-center justify-end gap-3">
+            {onClose && (
+              <Button variant="ghost" onClick={onClose}>
+                Cancel
               </Button>
-            ) : null}
-            <Button onClick={onCancel} type="button" variant="ghost">
-              {cancelLabel}
-            </Button>
+            )}
             <Button
-              disabled={form.isSubmitting || form.isLoadingSchema || form.isLoadingRecord}
-              type="submit"
+              onClick={() => form.submit()}
+              disabled={form.isSubmitting || form.isLoadingSchema}
             >
-              {form.isSubmitting ? "Saving\u2026" : submitLabel}
+              {form.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isEdit ? "Save Changes" : "Create"}
             </Button>
           </div>
-        ) : null}
-      </form>
-    )
+        </div>
+      )}
+    </div>
+  )
 
-    if (resolvedVariant === "sheet") {
-      return (
-        <Sheet open={open ?? internalOpen} onOpenChange={handleSheetOpenChange}>
-          <SheetContent className="flex w-full flex-col gap-0 p-0 sm:max-w-3xl" side={side}>
-            <SheetHeader className="p-6 text-left">
-              <SheetTitle className="text-lg font-semibold leading-tight tracking-[-0.01em] md:text-xl">
-                {resolvedTitle}
-              </SheetTitle>
-              <SheetDescription className="text-sm leading-6 text-muted-foreground">
-                {resolvedDescription}
-              </SheetDescription>
-              {meta}
-            </SheetHeader>
-            <div ref={ref} className={cn("min-h-0 flex-1 overflow-y-auto p-6 pt-0", className)} {...props}>
-              {body}
-            </div>
-            <SheetFooter className="border-t border-border/60 px-5 py-4 sm:justify-between md:px-6">
-              <div className="flex flex-wrap items-center gap-2">
-                {showReset ? (
-                  <Button
-                    disabled={form.isSubmitting}
-                    onClick={() => form.reset()}
-                    type="button"
-                    variant="outline"
-                  >
-                    {resetLabel}
-                  </Button>
-                ) : null}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button onClick={onCancel} type="button" variant="ghost">
-                  {cancelLabel}
-                </Button>
-                <Button
-                  disabled={form.isSubmitting || form.isLoadingSchema || form.isLoadingRecord}
-                  form={formId}
-                  type="submit"
-                >
-                  {form.isSubmitting ? "Saving\u2026" : submitLabel}
-                </Button>
-              </div>
-            </SheetFooter>
-          </SheetContent>
-        </Sheet>
-      )
-    }
-
+  if (mode === "sheet") {
     return (
-      <div ref={ref} className={cn("rounded-lg border bg-card text-card-foreground shadow-sm", className)} {...props}>
-        <CardHeader className="p-6">
-          <DataWorkspaceHeader
-            description={resolvedDescription}
-            meta={meta}
-            title={resolvedTitle}
-          />
-        </CardHeader>
-        <CardContent className="p-6 pt-0">{body}</CardContent>
-      </div>
+      <Sheet open onOpenChange={(open) => !open && onClose?.()}>
+        <SheetContent className="w-full sm:max-w-lg p-0 gap-0">{inner}</SheetContent>
+      </Sheet>
     )
-  },
-)
-LemmaRecordForm.displayName = "LemmaRecordForm"
+  }
+
+  if (mode === "modal") {
+    return (
+      <Dialog open onOpenChange={(open) => !open && onClose?.()}>
+        <DialogContent className="max-w-lg p-0 gap-0">{inner}</DialogContent>
+      </Dialog>
+    )
+  }
+
+  return <div className="rounded-xl border border-border/50 bg-card">{inner}</div>
+}
+
+function FormField({
+  name,
+  label,
+  kind,
+  column,
+  required,
+  options,
+  value,
+  error,
+  onChange,
+  client,
+  podId,
+  tableName,
+}: {
+  name: string
+  label: string
+  kind: string
+  column: import("lemma-sdk").ColumnSchema
+  required?: boolean
+  options?: string[]
+  value: unknown
+  error?: string
+  onChange: (v: unknown) => void
+  client: LemmaClient
+  podId?: string
+  tableName: string
+}) {
+  const fkOptions = useForeignKeyOptions({
+    client,
+    podId,
+    tableName,
+    columnName: name,
+    enabled: kind === "foreign-key",
+  })
+
+  const displayLabel = label || name.replace(/_/g, " ")
+  const strVal = value == null ? "" : String(value)
+
+  const typeTints: Record<string, { bg: string; text: string }> = {
+    TEXT: { bg: "bg-muted/45", text: "text-muted-foreground" },
+    INTEGER: { bg: "bg-emerald-500/10", text: "text-emerald-700 dark:text-emerald-300" },
+    FLOAT: { bg: "bg-blue-500/10", text: "text-blue-700 dark:text-blue-300" },
+    BOOLEAN: { bg: "bg-primary/10", text: "text-primary" },
+    DATE: { bg: "bg-amber-500/10", text: "text-amber-700 dark:text-amber-300" },
+    DATETIME: { bg: "bg-amber-500/10", text: "text-amber-700 dark:text-amber-300" },
+    ENUM: { bg: "bg-violet-500/10", text: "text-violet-700 dark:text-violet-300" },
+    JSON: { bg: "bg-rose-500/10", text: "text-rose-700 dark:text-rose-300" },
+    UUID: { bg: "bg-sky-500/10", text: "text-sky-700 dark:text-sky-300" },
+  }
+  const tint = column.foreign_key
+    ? { bg: "bg-sky-500/10", text: "text-sky-700 dark:text-sky-300" }
+    : typeTints[column.type] ?? typeTints.TEXT
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {displayLabel}
+          {required && <span className="ml-0.5 text-destructive">*</span>}
+        </Label>
+        <span className={`rounded-full border border-border/50 ${tint.bg} px-1.5 py-0.5 text-[9px] font-medium normal-case ${tint.text}`}>
+          {column.foreign_key ? "ref" : column.type.toLowerCase()}
+        </span>
+      </div>
+
+      {kind === "foreign-key" && fkOptions.options.length > 0 ? (
+        <Select value={String(value ?? "")} onValueChange={(v) => onChange(v)}>
+          <SelectTrigger className="h-9">
+            <SelectValue placeholder="Select…" />
+          </SelectTrigger>
+          <SelectContent>
+            {fkOptions.options.map((opt) => (
+              <SelectItem key={String(opt.value)} value={String(opt.value)}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : kind === "select" && options?.length ? (
+        <Select value={strVal || undefined} onValueChange={(v) => onChange(v)}>
+          <SelectTrigger className="h-9">
+            <SelectValue placeholder="Select…" />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((opt) => (
+              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : kind === "boolean" ? (
+        <div className="flex items-center gap-2 h-9">
+          <Checkbox checked={Boolean(value)} onCheckedChange={(c) => onChange(c === true)} />
+          <span className="text-sm text-muted-foreground">{value ? "Yes" : "No"}</span>
+        </div>
+      ) : kind === "textarea" ? (
+        <Textarea
+          value={strVal}
+          onChange={(e) => onChange(e.target.value)}
+          rows={3}
+          className="resize-none border-border bg-background placeholder:text-muted-foreground focus-ring"
+        />
+      ) : kind === "number" ? (
+        <Input
+          type="number"
+          value={strVal}
+          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+          className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+        />
+      ) : kind === "date" ? (
+        <Input
+          type="date"
+          value={strVal}
+          onChange={(e) => onChange(e.target.value || null)}
+          className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+        />
+      ) : kind === "datetime" ? (
+        <Input
+          type="datetime-local"
+          value={strVal}
+          onChange={(e) => onChange(e.target.value || null)}
+          className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+        />
+      ) : kind === "json" ? (
+        <Textarea
+          value={strVal}
+          onChange={(e) => onChange(e.target.value)}
+          rows={4}
+          className="font-mono text-xs resize-none border-border bg-background placeholder:text-muted-foreground focus-ring"
+          placeholder="{}"
+        />
+      ) : (
+        <Input
+          type="text"
+          value={strVal}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+          placeholder={displayLabel}
+        />
+      )}
+
+      {error && <p className="text-xs text-destructive">{error}</p>}
+    </div>
+  )
+}

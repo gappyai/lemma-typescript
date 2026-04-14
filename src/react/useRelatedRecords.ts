@@ -4,6 +4,23 @@ import { buildJoinedRecordsQuery, parseForeignKeyReference } from "../datastore-
 import type { Table } from "../types.js";
 import { normalizeError, resolvePodClient, stringifyComparable } from "./utils.js";
 
+/**
+ * React hook for fetching base-table rows with their FK-related data
+ * joined in a single query. You specify which FK columns to include and
+ * the hook auto-resolves the referenced table and join columns.
+ *
+ * The result has nested objects: `{ id, name, team: { id, name } }`.
+ *
+ * @example Issues with their team
+ * ```tsx
+ * const { records, isLoading } = useRelatedRecords({
+ *   client,
+ *   tableName: "issues",
+ *   include: [{ foreignKey: "team_id" }],
+ * });
+ * // records[0] = { id: "1", title: "Bug", team: { id: "t1", name: "Eng" } }
+ * ```
+ */
 export interface RelatedRecordsInclude {
   foreignKey: string;
   as?: string;
