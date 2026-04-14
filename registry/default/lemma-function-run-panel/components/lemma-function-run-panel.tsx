@@ -3,14 +3,16 @@
 import * as React from "react"
 import type { JsonSchemaLike, LemmaClient, FunctionRun } from "lemma-sdk"
 import { useFunctionRun } from "lemma-sdk/react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { LemmaSchemaForm } from "@/components/lemma/lemma-schema-form"
+import {
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_PANEL_SECTION_CLASS_NAME,
+  DATA_CODE_BLOCK_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaFunctionRunPanelProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError"> {
@@ -68,41 +70,41 @@ export const LemmaFunctionRunPanel = React.forwardRef<HTMLDivElement, LemmaFunct
           onStarted?.(created)
         }}
         schema={inputSchema}
-        submitLabel={run.isPolling ? "Running..." : "Run function"}
+        submitLabel={run.isPolling ? "Running\u2026" : "Run function"}
         title={title}
       />
-      <Card>
-        <CardHeader>
-          <CardTitle>Function Run</CardTitle>
-          <CardDescription>Latest run status and output.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {run.error ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {run.error.message}
+      <div className={DATA_PANEL_CARD_CLASS_NAME}>
+        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+          <DataWorkspaceHeader
+            description="Latest run status and output."
+            title="Function Run"
+          />
+        </div>
+        <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+          <div className="flex flex-col gap-4">
+            {run.error ? (
+              <DataWorkspaceState description={run.error.message} heading="Run error" tone="danger" />
+            ) : null}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Status</div>
+                <div className="font-medium">{run.status ?? "idle"}</div>
+              </div>
+              <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Run ID</div>
+                <div className="truncate font-medium">{run.runId ?? "none"}</div>
+              </div>
             </div>
-          ) : null}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
-              <div className="text-muted-foreground">Status</div>
-              <div className="font-medium">{run.status ?? "idle"}</div>
-            </div>
-            <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
-              <div className="text-muted-foreground">Run ID</div>
-              <div className="truncate font-medium">{run.runId ?? "none"}</div>
-            </div>
+            {run.output ? (
+              <pre className={DATA_CODE_BLOCK_CLASS_NAME}>
+                {formatJson(run.output)}
+              </pre>
+            ) : (
+              <DataWorkspaceState description="Run the function to inspect output." />
+            )}
           </div>
-          {run.output ? (
-            <pre className="max-h-[360px] overflow-auto rounded-md border border-border bg-muted/40 p-4 text-sm leading-6">
-              {formatJson(run.output)}
-            </pre>
-          ) : (
-            <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground">
-              Run the function to inspect output.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 })

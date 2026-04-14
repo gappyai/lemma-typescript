@@ -4,19 +4,20 @@ import * as React from "react"
 import type { LemmaClient } from "lemma-sdk"
 import { useOrganizationMembers } from "lemma-sdk/react"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_INPUT_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaOrgMemberPickerProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -45,32 +46,32 @@ export const LemmaOrgMemberPicker = React.forwardRef<HTMLDivElement, LemmaOrgMem
     enabled: organizationId.trim().length > 0,
   })
 
+  const selector = (
+    <Select value={value} onValueChange={onValueChange}>
+      <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "min-w-[240px]")}>
+        <SelectValue placeholder={state.isLoading ? "Loading members\u2026" : "Select a member"} />
+      </SelectTrigger>
+      <SelectContent>
+        {state.members.map((member) => (
+          <SelectItem key={member.user_id} value={member.user_id}>
+            {member.user?.first_name || member.user?.email || member.user_id}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+
   return (
-    <Card ref={ref} className={cn("", className)} {...props}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <DataWorkspaceHeader actions={selector} description={description} title={title} />
+      </div>
+      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
         {state.error ? (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {state.error.message}
-          </div>
+          <DataWorkspaceState description={state.error.message} heading="Failed to load members" tone="danger" />
         ) : null}
-        <Select value={value} onValueChange={onValueChange}>
-          <SelectTrigger>
-            <SelectValue placeholder={state.isLoading ? "Loading members..." : "Select a member"} />
-          </SelectTrigger>
-          <SelectContent>
-            {state.members.map((member) => (
-              <SelectItem key={member.user_id} value={member.user_id}>
-                {member.user?.first_name || member.user?.email || member.user_id}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 })
 LemmaOrgMemberPicker.displayName = "LemmaOrgMemberPicker"

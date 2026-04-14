@@ -5,12 +5,14 @@ import type { LemmaClient } from "lemma-sdk"
 import { usePodAccess } from "lemma-sdk/react"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_PANEL_SECTION_CLASS_NAME,
+  DATA_SUBTLE_ACTION_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaPodAccessCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -35,49 +37,54 @@ export const LemmaPodAccessCard = React.forwardRef<HTMLDivElement, LemmaPodAcces
     enabled: !!(podId ?? client.podId),
   })
 
+  const actions = (
+    <Button
+      className={DATA_SUBTLE_ACTION_CLASS_NAME}
+      disabled={access.isLoading}
+      onClick={() => {
+        void access.refresh()
+      }}
+      type="button"
+      variant="outline"
+    >
+      {access.isLoading ? "Checking\u2026" : "Refresh"}
+    </Button>
+  )
+
   return (
-    <Card ref={ref} className={cn("", className)} {...props}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {access.error ? (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {access.error.message}
+    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <DataWorkspaceHeader actions={actions} description={description} title={title} />
+      </div>
+      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+        <div className="flex flex-col gap-4">
+          {access.error ? (
+            <DataWorkspaceState description={access.error.message} heading="Access check failed" tone="danger" />
+          ) : null}
+          <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Status</div>
+            <div className="font-medium">{access.status}</div>
           </div>
-        ) : null}
-        <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
-          <div className="text-muted-foreground">Status</div>
-          <div className="font-medium">{access.status}</div>
+          {access.member ? (
+            <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "p-4 text-sm")}>
+              <div className="font-medium">{access.member.user_name || access.member.user_email}</div>
+              <div className="text-muted-foreground">{access.member.role}</div>
+            </div>
+          ) : null}
+          {access.status === "missing" ? (
+            <Button
+              className="rounded-xl"
+              disabled={access.isRequestingAccess}
+              onClick={() => {
+                void access.requestAccess()
+              }}
+            >
+              {access.isRequestingAccess ? "Requesting\u2026" : "Request access"}
+            </Button>
+          ) : null}
         </div>
-        {access.member ? (
-          <div className="rounded-md border border-border bg-muted/30 p-4 text-sm">
-            <div className="font-medium">{access.member.user_name || access.member.user_email}</div>
-            <div className="text-muted-foreground">{access.member.role}</div>
-          </div>
-        ) : null}
-        {access.status === "missing" ? (
-          <Button
-            disabled={access.isRequestingAccess}
-            onClick={() => {
-              void access.requestAccess()
-            }}
-          >
-            {access.isRequestingAccess ? "Requesting..." : "Request access"}
-          </Button>
-        ) : null}
-        <Button
-          disabled={access.isLoading}
-          onClick={() => {
-            void access.refresh()
-          }}
-          variant="outline"
-        >
-          {access.isLoading ? "Checking..." : "Refresh"}
-        </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 })
 LemmaPodAccessCard.displayName = "LemmaPodAccessCard"

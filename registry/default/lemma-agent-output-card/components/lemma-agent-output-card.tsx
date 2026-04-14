@@ -3,12 +3,14 @@
 import * as React from "react"
 import type { Task } from "lemma-sdk"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_PANEL_SECTION_CLASS_NAME,
+  DATA_CODE_BLOCK_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaAgentOutputCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -46,29 +48,28 @@ export const LemmaAgentOutputCard = React.forwardRef<HTMLDivElement, LemmaAgentO
   const visibleOutput = finalOnly && !isFinal ? null : resolvedOutput
 
   return (
-    <Card ref={ref} className={cn("", className)} {...props}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {task ? (
-          <div className="grid gap-2 rounded-md border border-border bg-muted/40 p-4 text-sm">
-            <div className="font-medium">Status: {task.status}</div>
-            <div className="truncate text-sm text-muted-foreground">Task ID: {task.id}</div>
-          </div>
-        ) : null}
-        {visibleOutput ? (
-          <pre className="max-h-[420px] overflow-auto rounded-md border border-border bg-muted/40 p-4 text-sm leading-6">
-            {formatJson(visibleOutput)}
-          </pre>
-        ) : (
-          <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground">
-            {emptyText}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <DataWorkspaceHeader description={description} title={title} />
+      </div>
+      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+        <div className="flex flex-col gap-4">
+          {task ? (
+            <div className={cn(DATA_PANEL_SECTION_CLASS_NAME, "grid gap-2 p-4 text-sm")}>
+              <div className="font-medium">Status: {task.status}</div>
+              <div className="truncate text-sm text-muted-foreground">Task ID: {task.id}</div>
+            </div>
+          ) : null}
+          {visibleOutput ? (
+            <pre className={DATA_CODE_BLOCK_CLASS_NAME}>
+              {formatJson(visibleOutput)}
+            </pre>
+          ) : (
+            <DataWorkspaceState description={emptyText} />
+          )}
+        </div>
+      </div>
+    </div>
   )
 })
 LemmaAgentOutputCard.displayName = "LemmaAgentOutputCard"

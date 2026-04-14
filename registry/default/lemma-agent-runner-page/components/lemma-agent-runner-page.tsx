@@ -4,13 +4,6 @@ import * as React from "react"
 import type { Agent, LemmaClient } from "lemma-sdk"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -18,6 +11,14 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { LemmaAgentRunPanel } from "@/components/lemma/lemma-agent-run-panel"
+import {
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_INPUT_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaAgentRunnerPageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError"> {
@@ -59,46 +60,42 @@ export const LemmaAgentRunnerPage = React.forwardRef<HTMLDivElement, LemmaAgentR
     onAgentNameChange?.(nextAgentName)
   }, [agentName, onAgentNameChange])
 
+  const selectorActions = (
+    <>
+      <Select value={selectedAgentName} onValueChange={setSelectedAgentName}>
+        <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "min-w-[240px]")}>
+          <SelectValue placeholder="Select an agent" />
+        </SelectTrigger>
+        <SelectContent>
+          {agents.map((agent) => (
+            <SelectItem key={agent.name} value={agent.name}>
+              {agent.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </>
+  )
+
   return (
     <div ref={ref} className={cn("grid gap-4", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-          <Select value={selectedAgentName} onValueChange={setSelectedAgentName}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select an agent" />
-            </SelectTrigger>
-            <SelectContent>
-              {agents.map((agent) => (
-                <SelectItem key={agent.name} value={agent.name}>
-                  {agent.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            onClick={() => {
-              if (selectedAgentName) setSelectedAgentName(selectedAgentName)
-            }}
-            variant="outline"
-          >
-            Use selected agent
-          </Button>
-        </CardContent>
-      </Card>
+      <div className={DATA_PANEL_CARD_CLASS_NAME}>
+        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+          <DataWorkspaceHeader actions={selectorActions} description={description} title={title} />
+        </div>
+      </div>
 
       {selectedAgentName ? (
         <LemmaAgentRunPanel client={client} podId={podId} agentName={selectedAgentName} onError={onError} />
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Agent Selected</CardTitle>
-            <CardDescription>Pass agents or an agentName to render the runner.</CardDescription>
-          </CardHeader>
-        </Card>
+        <div className={DATA_PANEL_CARD_CLASS_NAME}>
+          <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+            <DataWorkspaceHeader description="Pass agents or an agentName to render the runner." title="No Agent Selected" />
+          </div>
+          <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+            <DataWorkspaceState description="Select an agent from the list above to get started." />
+          </div>
+        </div>
       )}
     </div>
   )

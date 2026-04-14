@@ -3,12 +3,6 @@
 import * as React from "react"
 import type { LemmaClient } from "lemma-sdk"
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -17,6 +11,14 @@ import {
 } from "@/components/ui/select"
 import { LemmaFunctionRunHistory } from "@/components/lemma/lemma-function-run-history"
 import { LemmaFunctionRunPanel } from "@/components/lemma/lemma-function-run-panel"
+import {
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_INPUT_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaFunctionSummary {
@@ -64,28 +66,28 @@ export const LemmaFunctionRunnerPage = React.forwardRef<HTMLDivElement, LemmaFun
     onFunctionNameChange?.(nextFunctionName)
   }, [functionName, onFunctionNameChange])
 
+  const selectorActions = (
+    <Select value={selectedFunctionName} onValueChange={setSelectedFunctionName}>
+      <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "min-w-[240px]")}>
+        <SelectValue placeholder="Select a function" />
+      </SelectTrigger>
+      <SelectContent>
+        {functions.map((item) => (
+          <SelectItem key={item.name} value={item.name}>
+            {item.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+
   return (
     <div ref={ref} className={cn("grid gap-4", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <div className="px-6 pb-6">
-          <Select value={selectedFunctionName} onValueChange={setSelectedFunctionName}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a function" />
-            </SelectTrigger>
-            <SelectContent>
-              {functions.map((item) => (
-                <SelectItem key={item.name} value={item.name}>
-                  {item.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className={DATA_PANEL_CARD_CLASS_NAME}>
+        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+          <DataWorkspaceHeader actions={selectorActions} description={description} title={title} />
         </div>
-      </Card>
+      </div>
 
       {selectedFunctionName ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
@@ -103,12 +105,14 @@ export const LemmaFunctionRunnerPage = React.forwardRef<HTMLDivElement, LemmaFun
           />
         </div>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Function Selected</CardTitle>
-            <CardDescription>Pass functions or a functionName to render the runner.</CardDescription>
-          </CardHeader>
-        </Card>
+        <div className={DATA_PANEL_CARD_CLASS_NAME}>
+          <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+            <DataWorkspaceHeader description="Pass functions or a functionName to render the runner." title="No Function Selected" />
+          </div>
+          <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+            <DataWorkspaceState description="Select a function from the list above to get started." />
+          </div>
+        </div>
       )}
     </div>
   )

@@ -3,12 +3,13 @@
 import * as React from "react"
 import type { FlowRun } from "lemma-sdk"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_CODE_BLOCK_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaWorkflowRunDetailsProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -39,40 +40,35 @@ export const LemmaWorkflowRunDetails = React.forwardRef<HTMLDivElement, LemmaWor
     ...props
   }, ref) => {
   return (
-    <Card ref={ref} className={cn("", className)} {...props}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {error ? (
-          <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            {error.message}
-          </div>
-        ) : null}
-        {isLoading ? (
-          <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground animate-pulse">
-            Loading run details…
-          </div>
-        ) : !run ? (
-          <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground">
-            Select a workflow run to inspect details.
-          </div>
-        ) : (
-          <>
-            <pre className="max-h-[320px] overflow-auto rounded-md border border-border bg-muted/40 p-4 text-sm leading-6">
-              {formatJson(run.execution_context ?? {})}
-            </pre>
-            <pre className="max-h-[320px] overflow-auto rounded-md border border-border bg-muted/40 p-4 text-sm leading-6">
-              {formatJson({
-                execution_stack: run.execution_stack ?? [],
-                step_history: run.step_history ?? [],
-              })}
-            </pre>
-          </>
-        )}
-      </CardContent>
-    </Card>
+    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <DataWorkspaceHeader description={description} title={title} />
+      </div>
+      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+        <div className="grid gap-4">
+          {error ? (
+            <DataWorkspaceState description={error.message} heading="Failed to load details" tone="danger" />
+          ) : null}
+          {isLoading ? (
+            <DataWorkspaceState description="Loading run details\u2026" />
+          ) : !run ? (
+            <DataWorkspaceState description="Select a workflow run to inspect details." />
+          ) : (
+            <>
+              <pre className={DATA_CODE_BLOCK_CLASS_NAME}>
+                {formatJson(run.execution_context ?? {})}
+              </pre>
+              <pre className={DATA_CODE_BLOCK_CLASS_NAME}>
+                {formatJson({
+                  execution_stack: run.execution_stack ?? [],
+                  step_history: run.step_history ?? [],
+                })}
+              </pre>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   )
 })
 LemmaWorkflowRunDetails.displayName = "LemmaWorkflowRunDetails"

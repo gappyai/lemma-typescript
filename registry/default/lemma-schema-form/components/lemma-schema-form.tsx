@@ -3,14 +3,8 @@
 import * as React from "react"
 import type { JsonSchemaLike } from "lemma-sdk"
 import { useSchemaForm } from "lemma-sdk/react"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,6 +16,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_PANEL_SECTION_CLASS_NAME,
+  DATA_INPUT_CLASS_NAME,
+  DATA_FIELD_LABEL_CLASS_NAME,
+  DATA_TYPE_BADGE_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+  dataWorkspaceTypeBadgeClassName,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaSchemaFormProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onSubmit"> {
@@ -39,6 +45,17 @@ export interface LemmaSchemaFormProps extends Omit<React.HTMLAttributes<HTMLDivE
   hiddenFields?: string[]
   fieldLabels?: Record<string, string>
   fieldDescriptions?: Record<string, string>
+}
+
+function schemaFieldType(kind: string): string {
+  if (kind === "select") return "select"
+  if (kind === "boolean") return "boolean"
+  if (kind === "json") return "json"
+  if (kind === "number") return "number"
+  if (kind === "date") return "date"
+  if (kind === "datetime") return "datetime"
+  if (kind === "email") return "text"
+  return "text"
 }
 
 export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormProps>(
@@ -71,61 +88,77 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
   })
 
   const hasFields = form.fields.length > 0
+  const visibleFields = form.fields.filter((field) => !hiddenFields.includes(field.name))
 
   const handleSubmit = React.useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     await form.submit()
   }, [form])
 
+  const meta = hasFields ? (
+    <Badge
+      className={cn(DATA_TYPE_BADGE_CLASS_NAME, "border-border/70 bg-background/70 text-muted-foreground")}
+      variant="outline"
+    >
+      {visibleFields.length} field{visibleFields.length === 1 ? "" : "s"}
+    </Badge>
+  ) : null
+
   return (
-    <Card ref={ref} className={cn("", className)} {...props}>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form className="grid gap-4" onSubmit={handleSubmit}>
+    <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+      <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+        <DataWorkspaceHeader
+          description={description}
+          meta={meta}
+          title={title}
+        />
+      </div>
+      <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+        <form className="grid gap-5" onSubmit={handleSubmit}>
           {form.error ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {form.error.message}
-            </div>
+            <DataWorkspaceState description={form.error.message} heading="Submission failed" tone="danger" />
           ) : null}
 
           {!hasFields ? (
-            <div className="rounded-md border border-dashed border-border bg-muted/30 px-4 py-8 text-sm text-muted-foreground">
-              This schema does not define any editable fields.
-            </div>
+            <DataWorkspaceState description="This schema does not define any editable fields." />
           ) : null}
 
-          {form.fields
-            .filter((field) => !hiddenFields.includes(field.name))
-            .map((field) => {
+          {visibleFields.map((field) => {
             const value = form.values[field.name]
             const error = form.fieldErrors[field.name]
             const resolvedLabel = fieldLabels?.[field.name] ?? field.label
             const resolvedDescription = fieldDescriptions?.[field.name] ?? field.description
-            const commonLabel = (
-              <div className="grid gap-1.5">
-                <Label htmlFor={field.name}>
+            const fieldBadge = (
+              <Badge
+                className={cn(DATA_TYPE_BADGE_CLASS_NAME, dataWorkspaceTypeBadgeClassName(schemaFieldType(field.kind)))}
+                variant="outline"
+              >
+                {field.kind}
+              </Badge>
+            )
+            const fieldLabel = (
+              <div className="flex flex-wrap items-center gap-3">
+                <Label className={DATA_FIELD_LABEL_CLASS_NAME} htmlFor={field.name}>
                   {resolvedLabel}
                   {field.required ? " *" : ""}
                 </Label>
-                {resolvedDescription ? (
-                  <p className="text-sm text-muted-foreground">{resolvedDescription}</p>
-                ) : null}
+                {fieldBadge}
               </div>
             )
 
             if (field.kind === "boolean") {
               return (
-                <div key={field.name} className="grid gap-2 rounded-lg border border-border bg-muted/30 p-4">
-                  {commonLabel}
+                <div key={field.name} className={cn(DATA_PANEL_SECTION_CLASS_NAME, "grid gap-3 p-4")}>
+                  {fieldLabel}
+                  {resolvedDescription ? (
+                    <p className="text-sm leading-6 text-muted-foreground">{resolvedDescription}</p>
+                  ) : null}
                   <label className="flex items-center gap-3 text-sm">
                     <Checkbox
                       checked={Boolean(value)}
                       onCheckedChange={(checked) => form.setValue(field.name, checked === true)}
                     />
-                    <span>{Boolean(value) ? "Enabled" : "Disabled"}</span>
+                    <span className="font-medium text-foreground">{Boolean(value) ? "Enabled" : "Disabled"}</span>
                   </label>
                   {error ? <p className="text-sm text-destructive">{error}</p> : null}
                 </div>
@@ -135,12 +168,15 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
             if (field.kind === "select") {
               return (
                 <div key={field.name} className="grid gap-2">
-                  {commonLabel}
+                  {fieldLabel}
+                  {resolvedDescription ? (
+                    <p className="text-sm leading-6 text-muted-foreground">{resolvedDescription}</p>
+                  ) : null}
                   <Select
                     value={typeof value === "string" ? value : ""}
                     onValueChange={(nextValue) => form.setValue(field.name, nextValue)}
                   >
-                    <SelectTrigger id={field.name}>
+                    <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "h-12")} id={field.name}>
                       <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
                     </SelectTrigger>
                     <SelectContent>
@@ -159,8 +195,12 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
             if (field.kind === "json" || field.kind === "textarea") {
               return (
                 <div key={field.name} className="grid gap-2">
-                  {commonLabel}
+                  {fieldLabel}
+                  {resolvedDescription ? (
+                    <p className="text-sm leading-6 text-muted-foreground">{resolvedDescription}</p>
+                  ) : null}
                   <Textarea
+                    className="min-h-24 rounded-xl border-border/70 bg-background px-4 py-3 text-sm shadow-sm"
                     id={field.name}
                     rows={field.kind === "json" ? 8 : 4}
                     value={typeof value === "string" ? value : ""}
@@ -173,8 +213,12 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
 
             return (
               <div key={field.name} className="grid gap-2">
-                {commonLabel}
+                {fieldLabel}
+                {resolvedDescription ? (
+                  <p className="text-sm leading-6 text-muted-foreground">{resolvedDescription}</p>
+                ) : null}
                 <Input
+                  className={cn(DATA_INPUT_CLASS_NAME, "h-12 px-4 text-sm")}
                   id={field.name}
                   type={
                     field.kind === "number"
@@ -195,12 +239,10 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
             )
           })}
 
-          <div className="flex items-center gap-2 pt-2">
-            <Button disabled={disabled || form.isSubmitting} type="submit">
-              {form.isSubmitting ? "Submitting…" : submitLabel}
-            </Button>
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border/60 pt-5">
             {showReset ? (
               <Button
+                className="rounded-xl"
                 disabled={disabled || form.isSubmitting}
                 onClick={() => form.reset()}
                 type="button"
@@ -209,10 +251,17 @@ export const LemmaSchemaForm = React.forwardRef<HTMLDivElement, LemmaSchemaFormP
                 {resetLabel}
               </Button>
             ) : null}
+            <Button
+              className="rounded-xl"
+              disabled={disabled || form.isSubmitting}
+              type="submit"
+            >
+              {form.isSubmitting ? "Submitting\u2026" : submitLabel}
+            </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 })
 LemmaSchemaForm.displayName = "LemmaSchemaForm"

@@ -4,14 +4,14 @@ import * as React from "react"
 import type { FlowRun, LemmaClient } from "lemma-sdk"
 import { useWorkflowStart } from "lemma-sdk/react"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { LemmaSchemaForm } from "@/components/lemma/lemma-schema-form"
+import {
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaWorkflowStartFormProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError" | "onSubmit"> {
@@ -65,52 +65,50 @@ export const LemmaWorkflowStartForm = React.forwardRef<HTMLDivElement, LemmaWork
 
   if (!hasWorkflowName) {
     return (
-      <Card ref={ref} className={cn("", className)} {...props}>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-      </Card>
+      <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+          <DataWorkspaceHeader description={description} title={title} />
+        </div>
+      </div>
     )
   }
 
   if (!workflow.workflow && workflow.isLoadingWorkflow) {
     return (
-      <Card ref={ref} className={cn("", className)} {...props}>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>Loading workflow definition…</CardDescription>
-        </CardHeader>
-      </Card>
+      <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+          <DataWorkspaceHeader description="Loading workflow definition\u2026" title={title} />
+        </div>
+      </div>
     )
   }
 
   if (!workflow.inputSchema || Object.keys(workflow.inputSchema).length === 0) {
     return (
-      <Card ref={ref} className={cn("", className)} {...props}>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          {workflow.error ? (
-            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-              {workflow.error.message}
-            </div>
-          ) : null}
-          <Button
-            disabled={workflow.isStarting}
-            onClick={() => {
-              void workflow.start(initialValues ?? {}).then((run) => {
-                onStarted?.(run)
-              })
-            }}
-            type="button"
-          >
-            {workflow.isStarting ? "Starting…" : submitLabel}
-          </Button>
-        </CardContent>
-      </Card>
+      <div ref={ref} className={cn(DATA_PANEL_CARD_CLASS_NAME, className)} {...props}>
+        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+          <DataWorkspaceHeader description={description} title={title} />
+        </div>
+        <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+          <div className="grid gap-4">
+            {workflow.error ? (
+              <DataWorkspaceState description={workflow.error.message} heading="Workflow error" tone="danger" />
+            ) : null}
+            <Button
+              className="rounded-xl"
+              disabled={workflow.isStarting}
+              onClick={() => {
+                void workflow.start(initialValues ?? {}).then((run) => {
+                  onStarted?.(run)
+                })
+              }}
+              type="button"
+            >
+              {workflow.isStarting ? "Starting\u2026" : submitLabel}
+            </Button>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -123,7 +121,7 @@ export const LemmaWorkflowStartForm = React.forwardRef<HTMLDivElement, LemmaWork
       initialValues={initialValues}
       onSubmit={handleStart}
       schema={workflow.inputSchema}
-      submitLabel={workflow.isStarting ? "Starting…" : submitLabel}
+      submitLabel={workflow.isStarting ? "Starting\u2026" : submitLabel}
       title={title}
       uiSchema={workflow.inputUiSchema}
       {...props}

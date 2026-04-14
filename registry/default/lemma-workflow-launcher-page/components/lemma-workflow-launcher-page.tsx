@@ -3,12 +3,6 @@
 import * as React from "react"
 import type { FlowRun, LemmaClient, Workflow } from "lemma-sdk"
 import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -19,6 +13,14 @@ import { LemmaWorkflowHistory } from "@/components/lemma/lemma-workflow-history"
 import { LemmaWorkflowRunDetails } from "@/components/lemma/lemma-workflow-run-details"
 import { LemmaWorkflowRunStatus } from "@/components/lemma/lemma-workflow-run-status"
 import { LemmaWorkflowStartForm } from "@/components/lemma/lemma-workflow-start-form"
+import {
+  DATA_PANEL_CARD_CLASS_NAME,
+  DATA_PANEL_HEADER_CLASS_NAME,
+  DATA_PANEL_CONTENT_CLASS_NAME,
+  DATA_INPUT_CLASS_NAME,
+  DataWorkspaceHeader,
+  DataWorkspaceState,
+} from "@/components/lemma/registry-data-workspace"
 import { cn } from "@/lib/utils"
 
 export interface LemmaWorkflowLauncherPageProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "onError"> {
@@ -61,32 +63,32 @@ export const LemmaWorkflowLauncherPage = React.forwardRef<HTMLDivElement, LemmaW
     onWorkflowNameChange?.(nextWorkflowName)
   }, [onWorkflowNameChange, workflowName])
 
+  const selectorActions = (
+    <Select value={selectedWorkflowName} onValueChange={setSelectedWorkflowName}>
+      <SelectTrigger className={cn(DATA_INPUT_CLASS_NAME, "min-w-[240px]")}>
+        <SelectValue placeholder="Select a workflow" />
+      </SelectTrigger>
+      <SelectContent>
+        {workflows.map((workflow) => (
+          <SelectItem key={workflow.name} value={workflow.name}>
+            {workflow.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+
   return (
     <div ref={ref} className={cn("grid gap-4", className)} {...props}>
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-          <CardDescription>{description}</CardDescription>
-        </CardHeader>
-        <div className="px-6 pb-6">
-          <Select value={selectedWorkflowName} onValueChange={setSelectedWorkflowName}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a workflow" />
-            </SelectTrigger>
-            <SelectContent>
-              {workflows.map((workflow) => (
-                <SelectItem key={workflow.name} value={workflow.name}>
-                  {workflow.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className={DATA_PANEL_CARD_CLASS_NAME}>
+        <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+          <DataWorkspaceHeader actions={selectorActions} description={description} title={title} />
         </div>
-      </Card>
+      </div>
 
       {selectedWorkflowName ? (
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-    <div>
+          <div className="grid gap-4">
             <LemmaWorkflowStartForm
               client={client}
               onError={onError}
@@ -104,12 +106,14 @@ export const LemmaWorkflowLauncherPage = React.forwardRef<HTMLDivElement, LemmaW
           />
         </div>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Workflow Selected</CardTitle>
-            <CardDescription>Pass workflows or a workflowName to render the launcher.</CardDescription>
-          </CardHeader>
-        </Card>
+        <div className={DATA_PANEL_CARD_CLASS_NAME}>
+          <div className={DATA_PANEL_HEADER_CLASS_NAME}>
+            <DataWorkspaceHeader description="Pass workflows or a workflowName to render the launcher." title="No Workflow Selected" />
+          </div>
+          <div className={DATA_PANEL_CONTENT_CLASS_NAME}>
+            <DataWorkspaceState description="Select a workflow from the list above to get started." />
+          </div>
+        </div>
       )}
     </div>
   )

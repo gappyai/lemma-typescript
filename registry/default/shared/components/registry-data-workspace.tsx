@@ -13,6 +13,12 @@ export const DATA_FLOATING_BAR_CLASS_NAME = "rounded-full border border-border/7
 export const DATA_INPUT_CLASS_NAME = "rounded-xl border border-border/70 bg-background/90 shadow-[0_1px_0_rgba(255,255,255,0.45)] transition-colors hover:border-border focus-visible:border-ring"
 export const DATA_SUBTLE_ACTION_CLASS_NAME = "rounded-xl border border-border/60 bg-background/80 text-muted-foreground transition-colors hover:border-border hover:bg-muted/40 hover:text-foreground"
 export const DATA_DIVIDER_CLASS_NAME = "bg-border/60"
+export const DATA_RUNNER_CARD_CLASS_NAME = "overflow-hidden rounded-[1.25rem] border border-border/70 bg-card/95 shadow-[0_1px_0_rgba(255,255,255,0.55),0_14px_36px_-32px_rgba(15,23,42,0.22)]"
+export const DATA_LIST_ITEM_CLASS_NAME = "rounded-[1rem] border border-border/60 bg-muted/[0.16] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] transition-colors hover:bg-muted/[0.26]"
+export const DATA_STATUS_BOX_CLASS_NAME = "rounded-[1rem] border border-border/60 bg-muted/[0.16] px-4 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
+export const DATA_CODE_BLOCK_CLASS_NAME = "max-h-[360px] overflow-auto rounded-[1rem] border border-border/60 bg-muted/[0.16] p-4 text-sm leading-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
+export const DATA_FIELD_LABEL_CLASS_NAME = "text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
+export const DATA_TYPE_BADGE_CLASS_NAME = "rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em]"
 
 type DataStateTone = "neutral" | "danger" | "success"
 

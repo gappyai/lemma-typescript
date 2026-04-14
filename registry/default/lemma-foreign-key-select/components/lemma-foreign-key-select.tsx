@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { DATA_INPUT_CLASS_NAME } from "@/components/lemma/registry-data-workspace"
 
 const EMPTY_VALUE = "__lemma_empty__"
 
@@ -71,7 +72,7 @@ export const LemmaForeignKeySelect = React.forwardRef<HTMLDivElement, LemmaForei
         value={resolvedValue}
         onValueChange={(nextValue) => onValueChange?.(nextValue === EMPTY_VALUE ? "" : nextValue)}
       >
-        <SelectTrigger>
+        <SelectTrigger className={DATA_INPUT_CLASS_NAME}>
           <SelectValue
             placeholder={
               error
