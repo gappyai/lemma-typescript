@@ -7,12 +7,16 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { useRecordForm, useForeignKeyOptions } from "lemma-sdk/react"
 import type { LemmaClient } from "lemma-sdk"
+import { cn } from "@/lib/utils"
+
+export type LemmaRecordFormAppearance = "default" | "minimal" | "borderless" | "contained"
+export type LemmaRecordFormDensity = "compact" | "comfortable" | "spacious"
 
 export interface LemmaRecordFormProps {
   client: LemmaClient
@@ -21,6 +25,8 @@ export interface LemmaRecordFormProps {
   recordId?: string
 
   mode?: "inline" | "modal" | "sheet"
+  appearance?: LemmaRecordFormAppearance
+  density?: LemmaRecordFormDensity
   submitVia?: "direct" | "function"
   submitFunctionName?: string
   submitFunctionInput?: (payload: Record<string, unknown>) => Record<string, unknown>
@@ -28,6 +34,7 @@ export interface LemmaRecordFormProps {
   visibleFields?: string[]
   fieldOrder?: string[]
   fieldGroups?: Array<{ label: string; fields: string[] }>
+  foreignKeyLabels?: Record<string, string>
 
   initialValues?: Record<string, unknown>
   onSuccess?: (record: Record<string, unknown>) => void
@@ -40,6 +47,8 @@ export function LemmaRecordForm({
   tableName,
   recordId,
   mode = "inline",
+  appearance = "default",
+  density = "comfortable",
   submitVia = "direct",
   submitFunctionName,
   submitFunctionInput,
@@ -47,6 +56,7 @@ export function LemmaRecordForm({
   visibleFields,
   fieldOrder,
   fieldGroups,
+  foreignKeyLabels,
   initialValues,
   onSuccess,
   onClose,
@@ -80,27 +90,34 @@ export function LemmaRecordForm({
 
   const inner = (
     <div className="flex h-full flex-col">
-      {(mode === "modal" || mode === "sheet") && (
-        <div className="shrink-0 border-b border-border/50 px-6 py-4">
-          <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-          <p className="mt-0.5 text-xs text-muted-foreground">{tableName}</p>
-        </div>
+      {mode === "modal" && (
+        <DialogHeader className={cn("shrink-0", formHeaderClassName(appearance, density))}>
+          <DialogTitle className="text-lg font-semibold tracking-tight">{title}</DialogTitle>
+          <DialogDescription>{tableName}</DialogDescription>
+        </DialogHeader>
       )}
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      {mode === "sheet" && (
+        <SheetHeader className={cn("shrink-0", formHeaderClassName(appearance, density))}>
+          <SheetTitle className="text-lg font-semibold tracking-tight">{title}</SheetTitle>
+          <SheetDescription>{tableName}</SheetDescription>
+        </SheetHeader>
+      )}
+
+      <div className={cn("flex-1 overflow-y-auto", formBodyClassName(density))}>
         {form.isLoadingSchema ? (
           <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Loading schema…
           </div>
         ) : fieldGroups ? (
-          <div className="space-y-6">
+          <div className={cn("flex flex-col", density === "compact" ? "gap-4" : density === "spacious" ? "gap-7" : "gap-6")}>
             {fieldGroups.map((group, gi) => (
               <div key={gi}>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                   {group.label}
                 </p>
-                <div className="space-y-4">
+                <div className={cn("flex flex-col", density === "compact" ? "gap-3" : density === "spacious" ? "gap-5" : "gap-4")}>
                   {group.fields
                     .map((n) => orderedFields.find((f) => f.name === n))
                     .filter((f): f is typeof orderedFields[number] => f !== undefined)
@@ -119,6 +136,7 @@ export function LemmaRecordForm({
                         client={client}
                         podId={podId}
                         tableName={tableName}
+                        labelField={foreignKeyLabels?.[field.name]}
                       />
                     ))}
                 </div>
@@ -127,7 +145,7 @@ export function LemmaRecordForm({
             ))}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className={cn("flex flex-col", density === "compact" ? "gap-3" : density === "spacious" ? "gap-5" : "gap-4")}>
             {orderedFields.map((field) => (
               <FormField
                 key={field.name}
@@ -143,6 +161,7 @@ export function LemmaRecordForm({
                 client={client}
                 podId={podId}
                 tableName={tableName}
+                labelField={foreignKeyLabels?.[field.name]}
               />
             ))}
           </div>
@@ -155,31 +174,29 @@ export function LemmaRecordForm({
         )}
       </div>
 
-      {(mode === "modal" || mode === "sheet") && (
-        <div className="shrink-0 border-t border-border/50 bg-muted/30 px-6 py-3">
-          <div className="flex items-center justify-end gap-3">
-            {onClose && (
-              <Button variant="ghost" onClick={onClose}>
-                Cancel
-              </Button>
-            )}
-            <Button
-              onClick={() => form.submit()}
-              disabled={form.isSubmitting || form.isLoadingSchema}
-            >
-              {form.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isEdit ? "Save Changes" : "Create"}
+      <div className={cn("shrink-0", formFooterClassName(appearance, density))}>
+        <div className="flex items-center justify-end gap-3">
+          {onClose && (
+            <Button variant="ghost" onClick={onClose}>
+              Cancel
             </Button>
-          </div>
+          )}
+          <Button
+            onClick={() => form.submit()}
+            disabled={form.isSubmitting || form.isLoadingSchema}
+          >
+            {form.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isEdit ? "Save Changes" : "Create"}
+          </Button>
         </div>
-      )}
+      </div>
     </div>
   )
 
   if (mode === "sheet") {
     return (
       <Sheet open onOpenChange={(open) => !open && onClose?.()}>
-        <SheetContent className="w-full sm:max-w-lg p-0 gap-0">{inner}</SheetContent>
+        <SheetContent className={cn("w-full sm:max-w-lg p-0 gap-0", formSurfaceClassName(appearance))}>{inner}</SheetContent>
       </Sheet>
     )
   }
@@ -187,12 +204,43 @@ export function LemmaRecordForm({
   if (mode === "modal") {
     return (
       <Dialog open onOpenChange={(open) => !open && onClose?.()}>
-        <DialogContent className="max-w-lg p-0 gap-0">{inner}</DialogContent>
+        <DialogContent className={cn("max-w-lg p-0 gap-0", formSurfaceClassName(appearance))}>{inner}</DialogContent>
       </Dialog>
     )
   }
 
-  return <div className="rounded-xl border border-border/50 bg-card">{inner}</div>
+  return <div className={cn(appearance === "minimal" ? "rounded-xl bg-transparent" : "rounded-xl bg-card", formSurfaceClassName(appearance))}>{inner}</div>
+}
+
+function formHeaderClassName(appearance: LemmaRecordFormAppearance, density: LemmaRecordFormDensity) {
+  return cn(
+    appearance === "borderless" ? "border-b-0" : appearance === "minimal" ? "border-b border-border/15" : "border-b border-border/50",
+    density === "compact" ? "px-4 py-3" : density === "spacious" ? "px-7 py-5" : "px-6 py-4",
+  )
+}
+
+function formBodyClassName(density: LemmaRecordFormDensity) {
+  if (density === "compact") return "px-4 py-3"
+  if (density === "spacious") return "px-7 py-6"
+  return "px-6 py-4"
+}
+
+function formFooterClassName(appearance: LemmaRecordFormAppearance, density: LemmaRecordFormDensity) {
+  return cn(
+    appearance === "borderless"
+      ? "border-t-0 bg-transparent"
+      : appearance === "minimal"
+        ? "border-t border-border/15 bg-transparent"
+        : "border-t border-border/50 bg-muted/30",
+    density === "compact" ? "px-4 py-2.5" : density === "spacious" ? "px-7 py-4" : "px-6 py-3",
+  )
+}
+
+function formSurfaceClassName(appearance: LemmaRecordFormAppearance) {
+  if (appearance === "borderless") return "border-0 shadow-none ring-0"
+  if (appearance === "minimal") return "border-0 shadow-none ring-0"
+  if (appearance === "contained") return "border border-border/70 shadow-sm"
+  return "border border-border/50"
 }
 
 function FormField({
@@ -208,6 +256,7 @@ function FormField({
   client,
   podId,
   tableName,
+  labelField,
 }: {
   name: string
   label: string
@@ -221,17 +270,20 @@ function FormField({
   client: LemmaClient
   podId?: string
   tableName: string
+  labelField?: string
 }) {
   const fkOptions = useForeignKeyOptions({
     client,
     podId,
     tableName,
     columnName: name,
+    labelField,
     enabled: kind === "foreign-key",
   })
 
   const displayLabel = label || name.replace(/_/g, " ")
   const strVal = value == null ? "" : String(value)
+  const selectedForeignKeyLabel = fkOptions.options.find((opt) => String(opt.value) === strVal)?.label
 
   const typeTints: Record<string, { bg: string; text: string }> = {
     TEXT: { bg: "bg-muted/45", text: "text-muted-foreground" },
@@ -260,17 +312,21 @@ function FormField({
         </span>
       </div>
 
-      {kind === "foreign-key" && fkOptions.options.length > 0 ? (
+      {kind === "foreign-key" ? (
         <Select value={String(value ?? "")} onValueChange={(v) => onChange(v)}>
           <SelectTrigger className="h-9">
-            <SelectValue placeholder="Select…" />
+            <SelectValue placeholder="Select…">
+              {selectedForeignKeyLabel ?? (strVal ? shortenIdentifier(strVal) : undefined)}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {fkOptions.options.map((opt) => (
-              <SelectItem key={String(opt.value)} value={String(opt.value)}>
-                {opt.label}
-              </SelectItem>
-            ))}
+            <SelectGroup>
+              {fkOptions.options.map((opt) => (
+                <SelectItem key={String(opt.value)} value={String(opt.value)}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
       ) : kind === "select" && options?.length ? (
@@ -279,9 +335,11 @@ function FormField({
             <SelectValue placeholder="Select…" />
           </SelectTrigger>
           <SelectContent>
-            {options.map((opt) => (
-              <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-            ))}
+            <SelectGroup>
+              {options.map((opt) => (
+                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+              ))}
+            </SelectGroup>
           </SelectContent>
         </Select>
       ) : kind === "boolean" ? (
@@ -338,4 +396,13 @@ function FormField({
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
+}
+
+function shortenIdentifier(value: unknown): string {
+  const text = String(value ?? "")
+  if (!text) return "—"
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)) {
+    return `${text.slice(0, 8)}…${text.slice(-4)}`
+  }
+  return text.length > 28 ? `${text.slice(0, 24)}…` : text
 }

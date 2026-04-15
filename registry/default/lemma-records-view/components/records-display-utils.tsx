@@ -1,0 +1,76 @@
+"use client"
+
+import * as React from "react"
+import type { ColumnSchema } from "lemma-sdk"
+import { enumPillClasses, isSystemField } from "./records-enum-utils"
+
+export type ForeignKeyLabelMap = Record<string, Record<string, string>>
+
+const PRIMARY_FIELD_NAMES = ["title", "name", "label", "subject", "full_name", "primary_email"]
+
+export function isUuidLike(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+}
+
+export function shortenIdentifier(value: unknown): string {
+  const text = String(value ?? "")
+  if (!text) return "—"
+  if (isUuidLike(text)) return `${text.slice(0, 8)}…${text.slice(-4)}`
+  return text.length > 28 ? `${text.slice(0, 24)}…` : text
+}
+
+export function pickPrimaryColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
+  return (
+    columns.find((column) => PRIMARY_FIELD_NAMES.includes(column.name)) ??
+    columns.find((column) => !isSystemField(column) && !column.foreign_key) ??
+    columns.find((column) => !isSystemField(column)) ??
+    columns[0]
+  )
+}
+
+export function pickSecondaryColumns(
+  columns: ColumnSchema[],
+  primaryColumn?: ColumnSchema,
+  options: { groupBy?: string; count?: number } = {},
+): ColumnSchema[] {
+  const count = options.count ?? 4
+  return columns
+    .filter((column) => !isSystemField(column))
+    .filter((column) => column.name !== primaryColumn?.name)
+    .filter((column) => column.name !== options.groupBy)
+    .filter((column) => column.type !== "VECTOR" && column.type !== "JSON")
+    .slice(0, count)
+}
+
+export function formatRecordFieldValue(
+  value: unknown,
+  column?: ColumnSchema,
+  foreignKeyLabelMap?: ForeignKeyLabelMap,
+): React.ReactNode {
+  if (value == null || value === "") return "—"
+
+  const text = String(value)
+  if (column?.foreign_key) {
+    const label = foreignKeyLabelMap?.[column.name]?.[text]
+    return label || shortenIdentifier(text)
+  }
+
+  if (column?.type === "ENUM" && column.options?.length) {
+    return <span className={enumPillClasses(text, column.options)}>{text}</span>
+  }
+
+  if (column?.type === "BOOLEAN") return value ? "Yes" : "No"
+
+  if (column?.type === "DATE" || column?.type === "DATETIME") {
+    const date = new Date(text)
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    }
+  }
+
+  if (column?.type === "UUID" || isUuidLike(text)) {
+    return <span title={text}>{shortenIdentifier(text)}</span>
+  }
+
+  return text
+}

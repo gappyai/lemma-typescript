@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { TrendingUp, TrendingDown, Minus, BarChart3, PieChart as PieChartIcon, LineChart as LineChartIcon } from "lucide-react"
+import { TrendingUp, TrendingDown, Minus } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRecords, useFunctionRun } from "lemma-sdk/react"
 import type { LemmaClient, RecordFilter } from "lemma-sdk"
+import { cn } from "@/lib/utils"
 import {
   BarChart,
   Bar,
@@ -18,15 +19,14 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts"
 
 const CHART_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ]
 
 export type StatSource =
@@ -78,25 +78,38 @@ export interface LemmaInsightsProps {
   stats?: StatCardDef[]
   charts?: ChartCardDef[]
   columns?: 1 | 2 | 3 | 4
+  appearance?: "default" | "minimal" | "borderless" | "contained"
+  density?: "compact" | "comfortable" | "spacious"
+  className?: string
 }
 
-export function LemmaInsights({ client, podId, stats = [], charts = [], columns = 4 }: LemmaInsightsProps) {
+export function LemmaInsights({
+  client,
+  podId,
+  stats = [],
+  charts = [],
+  columns = 4,
+  appearance = "default",
+  density = "comfortable",
+  className,
+}: LemmaInsightsProps) {
   const gridCols = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" }[columns]
+  const gapClassName = density === "compact" ? "gap-2" : density === "spacious" ? "gap-5" : "gap-4"
 
   return (
-    <div className="space-y-6">
+    <div data-appearance={appearance} data-density={density} className={cn("flex flex-col", density === "compact" ? "gap-4" : density === "spacious" ? "gap-7" : "gap-6", className)}>
       {stats.length > 0 && (
-        <div className={`grid gap-4 ${gridCols}`}>
+        <div className={cn("grid", gridCols, gapClassName)}>
           {stats.map((def, i) => (
-            <StatCard key={i} def={def} client={client} podId={podId} />
+            <StatCard key={i} def={def} client={client} podId={podId} appearance={appearance} density={density} />
           ))}
         </div>
       )}
 
       {charts.length > 0 && (
-        <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <div className={cn("grid grid-cols-1 lg:grid-cols-2", gapClassName)}>
           {charts.map((def, i) => (
-            <ChartCard key={i} def={def} client={client} podId={podId} />
+            <ChartCard key={i} def={def} client={client} podId={podId} appearance={appearance} density={density} />
           ))}
         </div>
       )}
@@ -104,7 +117,19 @@ export function LemmaInsights({ client, podId, stats = [], charts = [], columns 
   )
 }
 
-function StatCard({ def, client, podId }: { def: StatCardDef; client: LemmaClient; podId?: string }) {
+function StatCard({
+  def,
+  client,
+  podId,
+  appearance,
+  density,
+}: {
+  def: StatCardDef
+  client: LemmaClient
+  podId?: string
+  appearance: NonNullable<LemmaInsightsProps["appearance"]>
+  density: NonNullable<LemmaInsightsProps["density"]>
+}) {
   const { source, title, format, trend, trendLabel } = def
 
   const recordsState = useRecords({
@@ -159,23 +184,23 @@ function StatCard({ def, client, podId }: { def: StatCardDef; client: LemmaClien
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus
   const trendColor =
     trend === "up"
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "text-primary"
       : trend === "down"
-        ? "text-red-600 dark:text-red-400"
+        ? "text-destructive"
         : "text-muted-foreground"
 
   return (
-    <Card className="border-border/50">
-      <CardHeader className="flex flex-row items-center justify-between pb-2 pt-4 px-4">
+    <Card className={insightCardClassName(appearance)}>
+      <CardHeader className={cn("flex flex-row items-center justify-between", density === "compact" ? "px-3 pb-1 pt-3" : density === "spacious" ? "px-5 pb-3 pt-5" : "px-4 pb-2 pt-4")}>
         <CardTitle className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           {title}
         </CardTitle>
         {trend && (
-          <TrendIcon className={`h-4 w-4 ${trendColor}`} />
+          <TrendIcon className={cn("size-4", trendColor)} />
         )}
       </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <div className="text-2xl font-bold tracking-tight text-foreground">
+      <CardContent className={density === "compact" ? "px-3 pb-3" : density === "spacious" ? "px-5 pb-5" : "px-4 pb-4"}>
+        <div className={cn("font-bold tracking-tight text-foreground", density === "compact" ? "text-xl" : "text-2xl")}>
           {isLoading ? "—" : displayValue}
         </div>
         {trendLabel && (
@@ -186,7 +211,19 @@ function StatCard({ def, client, podId }: { def: StatCardDef; client: LemmaClien
   )
 }
 
-function ChartCard({ def, client, podId }: { def: ChartCardDef; client: LemmaClient; podId?: string }) {
+function ChartCard({
+  def,
+  client,
+  podId,
+  appearance,
+  density,
+}: {
+  def: ChartCardDef
+  client: LemmaClient
+  podId?: string
+  appearance: NonNullable<LemmaInsightsProps["appearance"]>
+  density: NonNullable<LemmaInsightsProps["density"]>
+}) {
   const { source, title, height = 300 } = def
 
   const isTableSource = "table" in source && source.table
@@ -220,43 +257,43 @@ function ChartCard({ def, client, podId }: { def: ChartCardDef; client: LemmaCli
   const data = isTableSource ? aggregateChartData(recordsState.records, source) : fnData
 
   return (
-    <Card className="border-border/50">
-      <CardHeader className="pb-2 pt-4 px-4">
+    <Card className={insightCardClassName(appearance)}>
+      <CardHeader className={density === "compact" ? "px-3 pb-1 pt-3" : density === "spacious" ? "px-5 pb-3 pt-5" : "px-4 pb-2 pt-4"}>
         <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
           {title}
         </CardTitle>
       </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <ResponsiveContainer width="100%" height={height}>
+      <CardContent className={density === "compact" ? "px-3 pb-3" : density === "spacious" ? "px-5 pb-5" : "px-4 pb-4"}>
+        <ResponsiveContainer width="100%" height={density === "compact" ? Math.max(180, height - 60) : density === "spacious" ? height + 40 : height}>
           {source.type === "bar" ? (
             <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
                   fontSize: "12px",
                 }}
               />
-              <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="value" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
             </BarChart>
           ) : source.type === "line" ? (
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-              <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
                   fontSize: "12px",
                 }}
               />
-              <Line type="monotone" dataKey="value" stroke="hsl(var(--chart-1))" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="value" stroke="var(--chart-1)" strokeWidth={2} dot={false} />
             </LineChart>
           ) : (
             <PieChart>
@@ -276,8 +313,8 @@ function ChartCard({ def, client, podId }: { def: ChartCardDef; client: LemmaCli
               </Pie>
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "hsl(var(--card))",
-                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
                   borderRadius: "8px",
                   fontSize: "12px",
                 }}
@@ -288,6 +325,13 @@ function ChartCard({ def, client, podId }: { def: ChartCardDef; client: LemmaCli
       </CardContent>
     </Card>
   )
+}
+
+function insightCardClassName(appearance: NonNullable<LemmaInsightsProps["appearance"]>) {
+  if (appearance === "borderless") return "border-0 shadow-none ring-0"
+  if (appearance === "minimal") return "border-0 bg-transparent shadow-none ring-0"
+  if (appearance === "contained") return "border-border/70 shadow-sm"
+  return "border-border/50"
 }
 
 function aggregateChartData(

@@ -149,7 +149,7 @@
       "name": "lemma-records-view",
       "type": "registry:block",
       "title": "Lemma Records View",
-      "description": "A business-grade records workspace with grid/list/grouped views, inline editing, filter builder, detail sheet with reverse lookups, and schema-aware create form. For operators, not admins.",
+      "description": "A business-grade records workspace with grid, list, kanban, and Linear-style views, inline editing, filter builder, detail sheet/page routing, and schema-aware create form. For operators, not admins.",
       "dependencies": [
         "lemma-sdk",
         "lucide-react",
@@ -162,7 +162,6 @@
         "card",
         "checkbox",
         "dialog",
-        "dropdown-menu",
         "input",
         "label",
         "select",
@@ -176,6 +175,11 @@
           "path": "registry/default/lemma-records-view/components/records-enum-utils.ts",
           "type": "registry:component",
           "target": "components/lemma/records-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-records-view/components/records-display-utils.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/records-display-utils.tsx"
         },
         {
           "path": "registry/default/lemma-records-view/components/records-editable-cell.tsx",
@@ -216,6 +220,33 @@
           "path": "registry/default/lemma-records-view/styles/lemma-records-view.css",
           "type": "registry:file",
           "target": "styles/lemma-records-view.css"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-global-search",
+      "type": "registry:block",
+      "title": "Lemma Global Search",
+      "description": "A command-bar style global search across configured record tables and file search results, with progressive source loading, configurable result actions, lean appearance controls, and assistant-name handoff.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "dialog",
+        "input",
+        "separator"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-global-search/components/lemma-global-search.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-global-search.tsx"
         }
       ]
     },

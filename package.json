@@ -45,6 +45,7 @@
     "build:bundle": "tsc -p tsconfig.bundle.json && node ./scripts/build_browser_bundle.mjs",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })\"",
     "registry:build": "shadcn build ./registry.json -o ./public/r",
+    "registry:check": "npm run registry:build && node ./scripts/check_registry_blocks.mjs",
     "prepublishOnly": "npm run build",
     "release:check": "npm run build && npm_config_cache=.npm-cache npm pack --dry-run"
   },

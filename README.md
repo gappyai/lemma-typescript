@@ -215,10 +215,11 @@ Lemma UI lives in the registry, not in `lemma-sdk/react`.
 After running `npx lemma-sdk init-shadcn`, install blocks like:
 
 ```bash
-npx shadcn@latest add @lemma/lemma-records-page
-npx shadcn@latest add @lemma/lemma-agent-runner-page
-npx shadcn@latest add @lemma/lemma-workflow-launcher-page
-npx shadcn@latest add @lemma/lemma-function-runner-page
+npx shadcn@latest add @lemma/lemma-records-view
+npx shadcn@latest add @lemma/lemma-record-form
+npx shadcn@latest add @lemma/lemma-global-search
+npx shadcn@latest add @lemma/lemma-insights
+npx shadcn@latest add @lemma/lemma-assistant-embedded
 ```
 
 Current registry items:
@@ -226,12 +227,10 @@ Current registry items:
 | Area | Items |
 | --- | --- |
 | Assistant | `lemma-assistant-experience`, `lemma-assistant-embedded` |
-| Schema | `lemma-schema-form` |
-| Tables | `lemma-table-picker`, `lemma-record-picker`, `lemma-record-filters-bar`, `lemma-records-table`, `lemma-record-details-card`, `lemma-record-form`, `lemma-related-records-table`, `lemma-reverse-related-records-table`, `lemma-bulk-actions-bar`, `lemma-records-page` |
-| Agents | `lemma-agent-run-panel`, `lemma-agent-output-card`, `lemma-agent-messages`, `lemma-agent-runner-page` |
-| Workflows | `lemma-workflow-start-form`, `lemma-workflow-history`, `lemma-workflow-run-status`, `lemma-workflow-run-details`, `lemma-workflow-launcher-page` |
-| Members and access | `lemma-members-table`, `lemma-member-picker`, `lemma-org-member-picker`, `lemma-pod-access-card` |
-| Functions | `lemma-function-run-panel`, `lemma-function-run-history`, `lemma-function-runner-page` |
+| App shell | `lemma-dashboard` |
+| Navigation | `lemma-global-search` |
+| Records | `lemma-records-view`, `lemma-record-form` |
+| Analytics | `lemma-insights` |
 
 The registry is currently served from jsDelivr against this public repo:
 
@@ -240,54 +239,101 @@ The registry is currently served from jsDelivr against this public repo:
 
 For more stable installs, pin the registry URL to a tag or commit SHA instead of `@main`.
 
+Blocks that install a CSS file, such as the assistant blocks and records view, should be imported by your app's global stylesheet:
+
+```css
+@import "@/styles/lemma-assistant.css";
+@import "@/styles/lemma-records-view.css";
+```
+
 ### Records Workspace Customization
 
 The records blocks are meant to be configured with props before you reach for a fork.
 
-`lemma-records-page` supports:
+`lemma-records-view` supports:
 
-- capability toggles such as `allowCreate`, `allowEdit`, `allowSelection`, `allowBulkDelete`, `allowSearch`, `allowFilters`, `allowSorting`, `allowPageSizeSelect`, and `allowColumnVisibility`
-- layout toggles such as `showTablePicker`, `showRecordPicker`, and `showRecordDetails`
-- column control through `columns`, `hiddenColumnNames`, `defaultHiddenColumnNames`, and `onHiddenColumnNamesChange`
-- non-`id` primary keys through `recordIdField` or `getRecordId`
-- record-form overrides through `recordFormHiddenFields`, `recordFormFieldOrder`, `recordFormFieldLabels`, `recordFormFieldDescriptions`, `createFormTitle`, `editFormTitle`, `createSubmitLabel`, and `editSubmitLabel`
+- `tableName`, `visibleColumns`, and `hiddenFields` for schema-aware display
+- `defaultView="grid" | "list" | "kanban" | "linear"` and `groupBy` for table, card, horizontal board, or Linear-style grouped layouts
+- `renderCell` and `renderCard` for custom record rendering
+- `foreignKeyLabels` for human-readable FK values in cards, detail views, and create/edit forms
+- `onCreateOptions` and `onUpdateOptions` for function-backed mutations
+- `createMode="sheet" | "modal" | "page"` and `detailMode="sheet" | "page"` for app-specific interaction patterns
+- `headerActions`, `emptyState`, and `onRecordClick` for app-specific extensions
+- `appearance="default" | "minimal" | "borderless" | "contained"` and `density="compact" | "comfortable" | "spacious"` for host-level block chrome; `minimal` is the cardless mode
 
-`lemma-records-table` supports richer column definitions:
+`lemma-record-form` supports:
 
-- `label`, `description`, `type`, `width`, `minWidth`, `align`
-- `searchable`, `hideable`, `hidden`
-- `renderCell(...)` for custom cell output
-- per-row buttons through `rowActions`
+- `mode="inline" | "modal" | "sheet"`
+- `submitVia="direct" | "function"` and `submitFunctionName`
+- `hiddenFields`, `visibleFields`, `fieldOrder`, and `fieldGroups`
+- `foreignKeyLabels` for FK select labels
+- `initialValues`, `onSuccess`, and `onClose`
+- `appearance` and `density` using the same values as `lemma-records-view`
+
+`lemma-insights` supports:
+
+- table-backed count, sum, average, and grouped chart cards
+- function-backed stats and charts
+- shared `appearance` and `density` block chrome controls
+
+`lemma-global-search` supports:
+
+- configured `tables[]` with `searchFields`, `displayField`, `subtitleField`, `href`, `onSelect`, and `openMode`
+- optional file search with `searchMethod`, `href`, `onSelect`, and `openMode`
+- progressive table/file result groups, smooth loading/error source states, hidden empty sources, keyboard navigation, and built-in `cmd/ctrl+k` handling
+- `minQueryLength`, `debounceMs`, `appearance`, `density`, trigger label, and placeholder customization
+- assistant handoff by `assistantName`, with optional query/results message shaping and conversation routing
+
+Assistant blocks support:
+
+- assistant-name-first configuration through `assistantName`
+- shared `appearance` and `density` controls on the assistant experience surface
+- `chromeStyle`, `statusPlacement`, `radius`, model picker, conversation list, and render overrides for deeper customization
 
 ```tsx
-import { LemmaRecordsPage } from "@/components/lemma/lemma-records-page";
-import type { LemmaRecordsTableColumn } from "@/components/lemma/lemma-records-table";
+import { LemmaRecordsView } from "@/components/lemma/lemma-records-view";
+import { LemmaGlobalSearch } from "@/components/lemma/lemma-global-search";
 
-const columns: LemmaRecordsTableColumn[] = [
-  { name: "item_id", label: "Item ID", hideable: false, width: 180 },
-  { name: "group_id", label: "Group", width: 160 },
-  { name: "name", label: "Name", minWidth: 320, searchable: true },
-  {
-    name: "sellable",
-    label: "Sellable",
-    type: "boolean",
-    width: 120,
-    align: "center",
-    renderCell: ({ value }) => (value ? "Yes" : "No"),
-  },
-];
+<LemmaRecordsView
+  client={client}
+  podId={podId}
+  tableName="deals"
+  defaultView="kanban"
+  groupBy="status"
+  hiddenFields={["id", "created_at", "updated_at"]}
+  foreignKeyLabels={{ company_id: "name" }}
+  appearance="minimal"
+  density="compact"
+  createMode="sheet"
+  onCreateOptions={{
+    submitVia: "function",
+    submitFunctionName: "create-deal",
+  }}
+/>;
 
-<LemmaRecordsPage
-  allowColumnVisibility
-  allowCreate
-  allowEdit
-  columns={columns}
-  createButtonLabel="New SKU"
-  defaultHiddenColumnNames={["group_id"]}
-  editSubmitLabel="Save SKU"
-  recordFormFieldLabels={{ item_id: "Item ID" }}
-  recordIdField="item_id"
-  tableName="catalog_items"
+<LemmaGlobalSearch
+  client={client}
+  podId={podId}
+  tables={[
+    {
+      tableName: "deals",
+      label: "Deals",
+      searchFields: ["name", "status", "source"],
+      displayField: "name",
+      subtitleField: "status",
+      href: (record) => `/deals?record=${record.id}`,
+    },
+  ]}
+  files={{ enabled: true, openMode: "new-tab" }}
+  assistant={{
+    assistantName: "sales-copilot",
+    label: "Ask CRM",
+    resultLimit: 8,
+  }}
+  minQueryLength={3}
+  debounceMs={450}
+  appearance="minimal"
+  density="compact"
 />;
 ```
 

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
 import type { SseRawEvent } from "../streams.js";
 import type { Conversation, ConversationMessage } from "../types.js";
@@ -104,6 +104,8 @@ export function useConversationMessages({
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const autoLoadInFlightKeyRef = useRef<string | null>(null);
+  const lastAutoLoadedKeyRef = useRef<string | null>(null);
 
   const {
     conversation: sessionConversation,
@@ -187,6 +189,8 @@ export function useConversationMessages({
 
   useEffect(() => {
     if (!enabled || !conversationId) {
+      autoLoadInFlightKeyRef.current = null;
+      lastAutoLoadedKeyRef.current = null;
       setNextPageToken(null);
       setIsLoading(false);
       setIsLoadingOlder(false);
@@ -198,6 +202,15 @@ export function useConversationMessages({
     setNextPageToken(null);
     if (!autoLoad) return;
 
+    const bootstrapKey = `${conversationId}:${limit}:${autoResume ? "resume" : "load"}`;
+    if (
+      autoLoadInFlightKeyRef.current === bootstrapKey
+      || lastAutoLoadedKeyRef.current === bootstrapKey
+    ) {
+      return;
+    }
+
+    autoLoadInFlightKeyRef.current = bootstrapKey;
     let cancelled = false;
     const bootstrap = async () => {
       await refresh({ conversationId, limit });
@@ -205,7 +218,14 @@ export function useConversationMessages({
       await resumeIfRunning(conversationId);
     };
 
-    void bootstrap();
+    void bootstrap()
+      .catch(() => undefined)
+      .finally(() => {
+        if (autoLoadInFlightKeyRef.current === bootstrapKey) {
+          autoLoadInFlightKeyRef.current = null;
+        }
+        lastAutoLoadedKeyRef.current = bootstrapKey;
+      });
     return () => {
       cancelled = true;
     };

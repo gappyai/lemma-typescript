@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Calendar, ChevronLeft, ChevronRight, Clock, Trash2 } from "lucide-react"
+import { Calendar, ChevronLeft, ChevronRight, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
-import { useReferencingRecords, useForeignKeyOptions, useUpdateRecord, useDeleteRecord } from "lemma-sdk/react"
+import { useReferencingRecords, useForeignKeyOptions, useUpdateRecord } from "lemma-sdk/react"
 import type { LemmaClient, Table, ColumnSchema } from "lemma-sdk"
 import { cn } from "@/lib/utils"
 import { enumPillClasses, typeBadgeClasses, isSystemField } from "./records-enum-utils"
@@ -22,7 +22,11 @@ interface DetailSheetProps {
   onPrevious?: () => void
   hasPrevious?: boolean
   hasNext?: boolean
+  updateVia?: "direct" | "function"
+  updateFunctionName?: string
   foreignKeyLabels?: Record<string, string>
+  appearance?: "default" | "minimal" | "borderless" | "contained"
+  density?: "compact" | "comfortable" | "spacious"
 }
 
 function detectTitle(record: Record<string, unknown>, columns: ColumnSchema[]): string {
@@ -49,7 +53,11 @@ export function DetailSheet({
   onPrevious,
   hasPrevious,
   hasNext,
+  updateVia,
+  updateFunctionName,
   foreignKeyLabels,
+  appearance = "default",
+  density = "comfortable",
 }: DetailSheetProps) {
   const pk = table.primary_key_column || "id"
   const recordId = String(record[pk] ?? "")
@@ -60,9 +68,9 @@ export function DetailSheet({
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg gap-0 p-0">
-        <div className="sticky top-0 z-10 border-b border-border/50 bg-background/95 backdrop-blur-sm">
-          <SheetHeader className="px-6 py-4">
+      <SheetContent className={cn("w-full sm:max-w-lg gap-0 p-0", detailSurfaceClassName(appearance))}>
+        <div className={cn("sticky top-0 z-10 backdrop-blur-sm", appearance === "borderless" ? "border-b-0 bg-background/80" : appearance === "minimal" ? "border-b border-border/15 bg-background/90" : "border-b border-border/50 bg-background/95")}>
+          <SheetHeader className={density === "compact" ? "px-4 py-3" : density === "spacious" ? "px-7 py-5" : "px-6 py-4"}>
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <SheetTitle className="text-lg font-semibold tracking-tight truncate">
@@ -99,7 +107,8 @@ export function DetailSheet({
           </SheetHeader>
         </div>
 
-        <div className="overflow-y-auto px-6 py-4 space-y-6">
+        <div className={cn("overflow-y-auto", density === "compact" ? "px-4 py-3" : density === "spacious" ? "px-7 py-6" : "px-6 py-4")}>
+          <div className={cn("flex flex-col", density === "compact" ? "gap-4" : density === "spacious" ? "gap-7" : "gap-6")}>
           <FieldsSection
             record={record}
             columns={userColumns}
@@ -108,6 +117,8 @@ export function DetailSheet({
             tableName={table.name}
             recordId={recordId}
             onRecordChanged={onRecordChanged}
+            updateVia={updateVia}
+            updateFunctionName={updateFunctionName}
             foreignKeyLabels={foreignKeyLabels}
           />
 
@@ -144,9 +155,10 @@ export function DetailSheet({
               </div>
             </>
           )}
+          </div>
         </div>
 
-        <div className="sticky bottom-0 border-t border-border/50 bg-muted/30 px-6 py-3">
+        <div className={cn("sticky bottom-0", appearance === "borderless" ? "border-t-0 bg-transparent" : appearance === "minimal" ? "border-t border-border/15 bg-transparent" : "border-t border-border/50 bg-muted/30", density === "compact" ? "px-4 py-2.5" : density === "spacious" ? "px-7 py-4" : "px-6 py-3")}>
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
@@ -167,6 +179,13 @@ export function DetailSheet({
   )
 }
 
+function detailSurfaceClassName(appearance: "default" | "minimal" | "borderless" | "contained") {
+  if (appearance === "borderless") return "border-0 shadow-xl ring-0"
+  if (appearance === "minimal") return "border-0 shadow-none ring-0"
+  if (appearance === "contained") return "border-border/70 shadow-xl"
+  return "border-border/50"
+}
+
 function FieldsSection({
   record,
   columns,
@@ -175,6 +194,8 @@ function FieldsSection({
   tableName,
   recordId,
   onRecordChanged,
+  updateVia,
+  updateFunctionName,
   foreignKeyLabels,
 }: {
   record: Record<string, unknown>
@@ -184,9 +205,11 @@ function FieldsSection({
   tableName: string
   recordId: string
   onRecordChanged: () => void
+  updateVia?: "direct" | "function"
+  updateFunctionName?: string
   foreignKeyLabels?: Record<string, string>
 }) {
-  const updateMutation = useUpdateRecord({ client, podId, tableName, recordId })
+  const updateMutation = useUpdateRecord({ client, podId, tableName, recordId, updateVia, updateFunctionName })
 
   return (
     <div className="space-y-3">
@@ -244,6 +267,7 @@ function FieldValue({
     podId,
     tableName,
     columnName: column.name,
+    labelField: foreignKeyLabels?.[column.name],
     enabled: !!column.foreign_key,
   })
 

@@ -762,6 +762,8 @@ export function useAssistantController({
   const lastAutoLoadedConversationIdRef = useRef<string | null>(null);
   const loadingConversationIdRef = useRef<string | null>(null);
   const skipInitialLoadConversationIdsRef = useRef<Set<string>>(new Set());
+  const loadConversationMessagesRef = useRef<((conversationId: string) => Promise<void>) | null>(null);
+  const resumeIfRunningRef = useRef<((conversationId?: string | null) => Promise<boolean>) | null>(null);
 
   const scope = useMemo<AssistantConversationScope>(() => ({
     podId: podId ?? null,
@@ -957,6 +959,14 @@ export function useAssistantController({
   }, [isLoadingMessages, isLoadingOlderMessages, mergeMessages, olderMessagesCursor, sessionLoadMessages]);
 
   useEffect(() => {
+    loadConversationMessagesRef.current = loadConversationMessages;
+  }, [loadConversationMessages]);
+
+  useEffect(() => {
+    resumeIfRunningRef.current = sessionResumeIfRunning;
+  }, [sessionResumeIfRunning]);
+
+  useEffect(() => {
     activeConversationIdRef.current = activeConversationId;
   }, [activeConversationId]);
 
@@ -1095,11 +1105,11 @@ export function useAssistantController({
     loadingConversationIdRef.current = activeConversationId;
     const loadConversation = async () => {
       setOlderMessagesCursor(null);
-      await loadConversationMessages(activeConversationId);
+      await loadConversationMessagesRef.current?.(activeConversationId);
       if (cancelled) return;
       lastAutoLoadedConversationIdRef.current = activeConversationId;
       try {
-        await sessionResumeIfRunning(activeConversationId);
+        await resumeIfRunningRef.current?.(activeConversationId);
       } catch (error) {
         if (cancelled) return;
         setLocalError((prev) => prev || (error instanceof Error ? error.message : "Failed to resume conversation"));
@@ -1114,7 +1124,7 @@ export function useAssistantController({
     return () => {
       cancelled = true;
     };
-  }, [activeConversationId, clearRuntimeMessages, enabled, loadConversationMessages, sessionResumeIfRunning]);
+  }, [activeConversationId, clearRuntimeMessages, enabled]);
 
   const stop = useCallback(() => {
     const hadActiveStream = sessionIsStreaming || isStreaming;
@@ -1148,13 +1158,14 @@ export function useAssistantController({
     clearRuntimeMessages();
     setMessages([]);
     if (wasSameConversation) {
-      void loadConversationMessages(conversationId);
-      void sessionResumeIfRunning(conversationId).catch((error) => {
+      void loadConversationMessagesRef.current?.(conversationId);
+      const resumePromise = resumeIfRunningRef.current?.(conversationId);
+      void resumePromise?.catch((error) => {
         setLocalError((prev) => prev || (error instanceof Error ? error.message : "Failed to resume conversation"));
       });
     }
     setActiveConversationId(conversationId);
-  }, [clearRuntimeMessages, isStreaming, loadConversationMessages, sessionCancel, sessionIsStreaming, sessionResumeIfRunning]);
+  }, [clearRuntimeMessages, isStreaming, sessionCancel, sessionIsStreaming]);
 
   const resetConversationState = useCallback((keepPendingFiles = false) => {
     stop();

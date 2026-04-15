@@ -7,12 +7,15 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { useRecordForm, useForeignKeyOptions } from "lemma-sdk/react"
 import type { LemmaClient, Table, ColumnSchema } from "lemma-sdk"
 import { typeBadgeClasses, enumPillClasses, isSystemField } from "./records-enum-utils"
+import { shortenIdentifier } from "./records-display-utils"
+import { cn } from "@/lib/utils"
 
 interface RecordFormSheetProps {
   client: LemmaClient
@@ -25,7 +28,10 @@ interface RecordFormSheetProps {
   hiddenFields?: string[]
   fieldOrder?: string[]
   fieldGroups?: Array<{ label: string; fields: string[] }>
+  foreignKeyLabels?: Record<string, string>
   mode?: "inline" | "modal" | "sheet"
+  appearance?: "default" | "minimal" | "borderless" | "contained"
+  density?: "compact" | "comfortable" | "spacious"
   onClose: () => void
   onSuccess: () => void
 }
@@ -41,7 +47,10 @@ export function RecordFormSheet({
   hiddenFields = [],
   fieldOrder,
   fieldGroups,
+  foreignKeyLabels,
   mode = "sheet",
+  appearance = "default",
+  density = "comfortable",
   onClose,
   onSuccess,
 }: RecordFormSheetProps) {
@@ -73,12 +82,19 @@ export function RecordFormSheet({
 
   const content = (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 border-b border-border/50 px-6 py-4">
-        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">{table.name}</p>
-      </div>
+      {mode === "modal" ? (
+        <DialogHeader className={cn("shrink-0", formHeaderClassName(appearance, density))}>
+          <DialogTitle className="text-lg font-semibold tracking-tight">{title}</DialogTitle>
+          <DialogDescription>{table.name}</DialogDescription>
+        </DialogHeader>
+      ) : (
+        <SheetHeader className={cn("shrink-0", formHeaderClassName(appearance, density))}>
+          <SheetTitle className="text-lg font-semibold tracking-tight">{title}</SheetTitle>
+          <SheetDescription>{table.name}</SheetDescription>
+        </SheetHeader>
+      )}
 
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className={cn("flex-1 overflow-y-auto", formBodyClassName(density))}>
         {fieldGroups ? (
           <div className="space-y-6">
             {fieldGroups.map((group, gi) => (
@@ -100,6 +116,7 @@ export function RecordFormSheet({
                         client={client}
                         podId={podId}
                         tableName={tableName}
+                        labelField={foreignKeyLabels?.[field.name]}
                       />
                     ))}
                 </div>
@@ -119,13 +136,14 @@ export function RecordFormSheet({
                 client={client}
                 podId={podId}
                 tableName={tableName}
+                labelField={foreignKeyLabels?.[field.name]}
               />
             ))}
           </div>
         )}
       </div>
 
-      <div className="shrink-0 border-t border-border/50 bg-muted/30 px-6 py-3">
+      <div className={cn("shrink-0", formFooterClassName(appearance, density))}>
         <div className="flex items-center justify-end gap-3">
           <Button variant="ghost" onClick={onClose}>
             Cancel
@@ -145,22 +163,51 @@ export function RecordFormSheet({
   if (mode === "sheet") {
     return (
       <Sheet open onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className="w-full sm:max-w-lg p-0 gap-0">{content}</SheetContent>
+        <SheetContent className={cn("w-full sm:max-w-lg p-0 gap-0", overlaySurfaceClassName(appearance))}>{content}</SheetContent>
       </Sheet>
     )
   }
 
   if (mode === "modal") {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <div className="w-full max-w-lg rounded-xl border border-border/50 bg-card shadow-xl">
-          {content}
-        </div>
-      </div>
+      <Dialog open onOpenChange={(open) => !open && onClose()}>
+        <DialogContent className={cn("max-w-lg p-0 gap-0", overlaySurfaceClassName(appearance))}>{content}</DialogContent>
+      </Dialog>
     )
   }
 
-  return <div className="rounded-xl border border-border/50 bg-card">{content}</div>
+  return <div className={cn(appearance === "minimal" ? "rounded-xl bg-transparent" : "rounded-xl bg-card", overlaySurfaceClassName(appearance))}>{content}</div>
+}
+
+function formHeaderClassName(appearance: "default" | "minimal" | "borderless" | "contained", density: "compact" | "comfortable" | "spacious") {
+  return cn(
+    appearance === "borderless" ? "border-b-0" : appearance === "minimal" ? "border-b border-border/15" : "border-b border-border/50",
+    density === "compact" ? "px-4 py-3" : density === "spacious" ? "px-7 py-5" : "px-6 py-4",
+  )
+}
+
+function formBodyClassName(density: "compact" | "comfortable" | "spacious") {
+  if (density === "compact") return "px-4 py-3"
+  if (density === "spacious") return "px-7 py-6"
+  return "px-6 py-4"
+}
+
+function formFooterClassName(appearance: "default" | "minimal" | "borderless" | "contained", density: "compact" | "comfortable" | "spacious") {
+  return cn(
+    appearance === "borderless"
+      ? "border-t-0 bg-transparent"
+      : appearance === "minimal"
+        ? "border-t border-border/15 bg-transparent"
+        : "border-t border-border/50 bg-muted/30",
+    density === "compact" ? "px-4 py-2.5" : density === "spacious" ? "px-7 py-4" : "px-6 py-3",
+  )
+}
+
+function overlaySurfaceClassName(appearance: "default" | "minimal" | "borderless" | "contained") {
+  if (appearance === "borderless") return "border-0 shadow-xl ring-0"
+  if (appearance === "minimal") return "border-0 shadow-none ring-0"
+  if (appearance === "contained") return "border-border/70 shadow-xl"
+  return "border-border/50"
 }
 
 function FormField({
@@ -171,6 +218,7 @@ function FormField({
   client,
   podId,
   tableName,
+  labelField,
 }: {
   field: { name: string; label: string; kind: string; column: ColumnSchema; required?: boolean; options?: string[]; foreignKey?: unknown }
   value: unknown
@@ -179,12 +227,14 @@ function FormField({
   client: LemmaClient
   podId?: string
   tableName: string
+  labelField?: string
 }) {
   const fkOptions = useForeignKeyOptions({
     client,
     podId,
     tableName,
     columnName: field.name,
+    labelField,
     enabled: field.kind === "foreign-key",
   })
 
@@ -218,18 +268,23 @@ function renderInput(
   const strVal = value == null ? "" : String(value)
   const placeholder = field.name.replace(/_/g, " ")
 
-  if (field.kind === "foreign-key" && fkOptions.length > 0) {
+  if (field.kind === "foreign-key") {
+    const selectedLabel = fkOptions.find((opt) => String(opt.value) === strVal)?.label
     return (
       <Select value={String(value ?? "")} onValueChange={(v) => onChange(v)}>
         <SelectTrigger className="h-9">
-          <SelectValue placeholder="Select…" />
+          <SelectValue placeholder="Select…">
+            {selectedLabel ?? (strVal ? shortenIdentifier(strVal) : undefined)}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {fkOptions.map((opt) => (
-            <SelectItem key={String(opt.value)} value={String(opt.value)}>
-              {opt.label}
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            {fkOptions.map((opt) => (
+              <SelectItem key={String(opt.value)} value={String(opt.value)}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
     )
@@ -242,11 +297,13 @@ function renderInput(
           <SelectValue placeholder="Select…" />
         </SelectTrigger>
         <SelectContent>
-          {field.options.map((opt) => (
-            <SelectItem key={opt} value={opt}>
-              <span className={enumPillClasses(opt, field.options!)}>{opt}</span>
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            {field.options.map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                <span className={enumPillClasses(opt, field.options!)}>{opt}</span>
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
     )

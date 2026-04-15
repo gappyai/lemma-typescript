@@ -1,3 +1,5 @@
+"use client";
+
 import {
   useCallback,
   useEffect,
@@ -93,9 +95,13 @@ export interface ActiveToolBanner {
 export type AssistantChromeStyle = "elevated" | "subtle" | "flat";
 export type AssistantStatusPlacement = "inline" | "composer" | "none";
 export type AssistantRadiusScale = "theme" | "none" | "sm" | "md" | "lg" | "xl";
+export type AssistantBlockAppearance = "default" | "minimal" | "borderless" | "contained";
+export type AssistantBlockDensity = "compact" | "comfortable" | "spacious";
 
 export interface AssistantExperienceViewProps extends AssistantExperienceCustomizationProps {
   controller: AssistantControllerView;
+  appearance?: AssistantBlockAppearance;
+  density?: AssistantBlockDensity;
   chromeStyle?: AssistantChromeStyle;
   statusPlacement?: AssistantStatusPlacement;
   radius?: AssistantRadiusScale;
@@ -726,6 +732,12 @@ function defaultMessageContent({ message }: AssistantMessageRenderArgs): ReactNo
       </ReactMarkdown>
     </div>
   );
+}
+
+function assistantChromeStyleFromAppearance(appearance: AssistantBlockAppearance): AssistantChromeStyle {
+  if (appearance === "borderless") return "flat";
+  if (appearance === "contained") return "elevated";
+  return "subtle";
 }
 
 function defaultPresentedFile({ filepath }: AssistantPresentedFileRenderArgs): ReactNode {
@@ -1771,7 +1783,9 @@ export function AssistantExperienceView({
   draft: controlledDraft,
   onDraftChange,
   showConversationList = false,
-  chromeStyle = "subtle",
+  appearance = "default",
+  density = "comfortable",
+  chromeStyle,
   statusPlacement = "inline",
   radius = "theme",
   showModelPicker = false,
@@ -1801,6 +1815,16 @@ export function AssistantExperienceView({
   const isPinnedToBottomRef = useRef(true);
   const loadingOlderFromScrollRef = useRef(false);
   const isConversationBusy = controller.isLoading || controller.isActiveConversationRunning;
+  const resolvedChromeStyle = chromeStyle ?? assistantChromeStyleFromAppearance(appearance);
+  const controllerMessages = controller.messages;
+  const activeConversationId = controller.activeConversationId;
+  const hasOlderMessages = controller.hasOlderMessages;
+  const isLoadingMessages = controller.isLoadingMessages;
+  const isLoadingOlderMessages = controller.isLoadingOlderMessages;
+  const sendMessage = controller.sendMessage;
+  const uploadFiles = controller.uploadFiles;
+  const loadOlderMessages = controller.loadOlderMessages;
+  const setConversationModel = controller.setConversationModel;
 
   const availableModels = useMemo(
     () => {
@@ -1862,13 +1886,13 @@ export function AssistantExperienceView({
     setShowScrollToBottom((prev) => (prev === !isPinned ? prev : !isPinned));
 
     if (el.scrollTop > 48) return;
-    if (!controller.hasOlderMessages || controller.isLoadingMessages || controller.isLoadingOlderMessages || loadingOlderFromScrollRef.current) return;
+    if (!hasOlderMessages || isLoadingMessages || isLoadingOlderMessages || loadingOlderFromScrollRef.current) return;
 
     const previousScrollTop = el.scrollTop;
     const previousScrollHeight = el.scrollHeight;
     loadingOlderFromScrollRef.current = true;
 
-    void controller.loadOlderMessages()
+    void loadOlderMessages()
       .then((didLoad) => {
         if (!didLoad) return;
         requestAnimationFrame(() => {
@@ -1880,9 +1904,7 @@ export function AssistantExperienceView({
       .finally(() => {
         loadingOlderFromScrollRef.current = false;
       });
-  }, [
-    controller,
-  ]);
+  }, [hasOlderMessages, isLoadingMessages, isLoadingOlderMessages, loadOlderMessages]);
 
   useEffect(() => {
     const el = messagesContainerRef.current;
@@ -1895,7 +1917,7 @@ export function AssistantExperienceView({
         });
       });
     }
-  }, [controller.messages, isConversationBusy, scrollToLatest]);
+  }, [controllerMessages, isConversationBusy, scrollToLatest]);
 
   useEffect(() => {
     isPinnedToBottomRef.current = true;
@@ -1904,25 +1926,25 @@ export function AssistantExperienceView({
       scrollToLatest("auto");
       inputRef.current?.focus();
     });
-  }, [controller.activeConversationId, scrollToLatest]);
+  }, [activeConversationId, scrollToLatest]);
 
   useEffect(() => {
     resizeComposer();
   }, [draft, resizeComposer]);
 
-  const displayMessageRows = useMemo(() => buildDisplayMessageRows(controller.messages), [controller.messages]);
-  const activeToolBanner = useMemo(() => getActiveToolBanner(controller.messages), [controller.messages]);
+  const displayMessageRows = useMemo(() => buildDisplayMessageRows(controllerMessages), [controllerMessages]);
+  const activeToolBanner = useMemo(() => getActiveToolBanner(controllerMessages), [controllerMessages]);
   const thinkingLabels = useMemo(
     () => thinkingLabelsFromSummary(activeToolBanner?.summary),
     [activeToolBanner?.summary],
   );
-  const planSummary = useMemo(() => latestPlanSummary(controller.messages), [controller.messages]);
+  const planSummary = useMemo(() => latestPlanSummary(controllerMessages), [controllerMessages]);
   const pendingAskUserInput = useMemo(() => {
-    const pending = findPendingAskUserInput(controller.messages);
+    const pending = findPendingAskUserInput(controllerMessages);
     if (!pending) return null;
     if (dismissedAskToolCallIds.includes(pending.toolCallId)) return null;
     return pending;
-  }, [controller.messages, dismissedAskToolCallIds]);
+  }, [controllerMessages, dismissedAskToolCallIds]);
   const effectiveAskOverlayState = useMemo(() => {
     if (!pendingAskUserInput) return null;
     if (askOverlayState && askOverlayState.toolCallId === pendingAskUserInput.toolCallId) {
@@ -1936,13 +1958,13 @@ export function AssistantExperienceView({
   }, [askOverlayState, pendingAskUserInput]);
 
   const lastMessageHasContent = useMemo(() => {
-    if (controller.messages.length === 0) return false;
-    const lastMsg = controller.messages[controller.messages.length - 1];
+    if (controllerMessages.length === 0) return false;
+    const lastMsg = controllerMessages[controllerMessages.length - 1];
     if (lastMsg.role !== "assistant") return false;
     const hasText = (lastMsg.parts || []).some((part) => part.type === "text" && part.text.trim().length > 0);
     const hasTools = (lastMsg.toolInvocations?.length || 0) > 0 || (lastMsg.parts || []).some((part) => part.type === "tool");
     return hasText || hasTools;
-  }, [controller.messages]);
+  }, [controllerMessages]);
 
   useEffect(() => {
     setThinkingLabelIndex(0);
@@ -2035,8 +2057,8 @@ export function AssistantExperienceView({
     const message = draft.trim();
     setDraft("");
     scrollToLatest("smooth");
-    await controller.sendMessage(message);
-  }, [controller, draft, isConversationBusy, scrollToLatest, setDraft]);
+    await sendMessage(message);
+  }, [draft, isConversationBusy, scrollToLatest, sendMessage, setDraft]);
 
   const handleWidgetSendPrompt = useCallback(async (prompt: string) => {
     const message = prompt.trim();
@@ -2051,22 +2073,22 @@ export function AssistantExperienceView({
     }
 
     scrollToLatest("smooth");
-    await controller.sendMessage(message);
-  }, [controller, isConversationBusy, scrollToLatest, setDraft]);
+    await sendMessage(message);
+  }, [isConversationBusy, scrollToLatest, sendMessage, setDraft]);
 
   const handleSuggestionSend = useCallback(async (suggestion: string) => {
     const message = suggestion.trim();
     if (!message || isConversationBusy) return;
     scrollToLatest("smooth");
-    await controller.sendMessage(message);
-  }, [controller, isConversationBusy, scrollToLatest]);
+    await sendMessage(message);
+  }, [isConversationBusy, scrollToLatest, sendMessage]);
 
   const handleUploadSelection = useCallback(async (files: FileList | null) => {
     const selectedFiles = files ? Array.from(files) : [];
     if (selectedFiles.length === 0) return;
 
     try {
-      await controller.uploadFiles(selectedFiles, { deferUntilSend: true });
+      await uploadFiles(selectedFiles, { deferUntilSend: true });
       requestAnimationFrame(() => {
         inputRef.current?.focus();
       });
@@ -2075,7 +2097,7 @@ export function AssistantExperienceView({
         fileInputRef.current.value = "";
       }
     }
-  }, [controller]);
+  }, [uploadFiles]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -2088,11 +2110,11 @@ export function AssistantExperienceView({
     if (isUpdatingModel) return;
     setIsUpdatingModel(true);
     try {
-      await controller.setConversationModel(nextModel);
+      await setConversationModel(nextModel);
     } finally {
       setIsUpdatingModel(false);
     }
-  }, [controller, isUpdatingModel]);
+  }, [isUpdatingModel, setConversationModel]);
 
   const activeAskQuestion = pendingAskUserInput
     && effectiveAskOverlayState
@@ -2104,8 +2126,8 @@ export function AssistantExperienceView({
     : [];
   const canContinueAsk = activeAskAnswers.length > 0;
   const liveStatusLabel = thinkingLabels[thinkingLabelIndex] || "Working on it…";
-  const headerTone: AssistantSurfaceTone = chromeStyle === "elevated" ? "default" : chromeStyle === "flat" ? "flat" : "subtle";
-  const composerTone: AssistantSurfaceTone = chromeStyle === "flat" ? "flat" : chromeStyle === "subtle" ? "subtle" : "default";
+  const headerTone: AssistantSurfaceTone = resolvedChromeStyle === "elevated" ? "default" : resolvedChromeStyle === "flat" ? "flat" : "subtle";
+  const composerTone: AssistantSurfaceTone = resolvedChromeStyle === "flat" ? "flat" : resolvedChromeStyle === "subtle" ? "subtle" : "default";
   const showInlineStatus = statusPlacement === "inline" && isConversationBusy;
   const showComposerStatus = statusPlacement === "composer" && isConversationBusy;
   const resolvedHeaderBadge = badge === undefined
@@ -2115,7 +2137,9 @@ export function AssistantExperienceView({
   return (
     <div
       className="lemma-assistant-experience"
-      data-chrome-style={chromeStyle}
+      data-appearance={appearance}
+      data-density={density}
+      data-chrome-style={resolvedChromeStyle}
       data-status-placement={statusPlacement}
       data-radius={radius}
       data-show-model-picker={showModelPicker ? "true" : "false"}

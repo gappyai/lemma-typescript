@@ -7,11 +7,11 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { ColumnSchema, RecordFilter } from "lemma-sdk"
 
 interface FilterBuilderProps {
@@ -35,6 +35,8 @@ const OPERATORS = [
   { value: "is", label: "is empty" },
   { value: "is not", label: "is not empty" },
 ] as const
+
+const EMPTY_VALUE = "__lemma_empty__"
 
 function blank(columns: ColumnSchema[]): RecordFilter {
   return { field: columns[0]?.name ?? "", op: "eq", value: "" }
@@ -72,9 +74,6 @@ export function FilterBuilder({ columns, filters, onApply, onClose }: FilterBuil
     onClose()
   }
 
-  const selectClass =
-    "h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground hover:border-foreground/20 focus-ring"
-
   const inputClass =
     "h-9 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground hover:border-foreground/20 focus-ring"
 
@@ -99,58 +98,86 @@ export function FilterBuilder({ columns, filters, onApply, onClose }: FilterBuil
             const col = currentColumn(row.field)
             const needsValue = row.op !== "is" && row.op !== "is not"
             return (
-              <div key={idx} className="group flex items-center gap-2">
-                <div className="grid flex-1 grid-cols-12 gap-2">
-                  <div className="col-span-4">
-                    <select
+              <div key={idx} className="group flex items-start gap-2">
+                <div className="grid flex-1 grid-cols-1 gap-2 md:grid-cols-12">
+                  <div className="md:col-span-4">
+                    <Select
                       value={row.field}
-                      onChange={(e) => update(idx, "field", e.target.value)}
-                      className={selectClass}
+                      onValueChange={(value) => {
+                        if (value != null) update(idx, "field", value)
+                      }}
                     >
-                      {columns.map((c) => (
-                        <option key={c.name} value={c.name}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Field" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {columns.map((c) => (
+                            <SelectItem key={c.name} value={c.name}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="col-span-3">
-                    <select
+                  <div className="md:col-span-3">
+                    <Select
                       value={row.op}
-                      onChange={(e) => update(idx, "op", e.target.value)}
-                      className={selectClass}
+                      onValueChange={(value) => {
+                        if (value != null) update(idx, "op", value)
+                      }}
                     >
-                      {OPERATORS.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="h-9 w-full">
+                        <SelectValue placeholder="Operator" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {OPERATORS.map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="col-span-5">
+                  <div className="md:col-span-5">
                     {needsValue && col?.type === "ENUM" && col.options ? (
-                      <select
-                        value={String(row.value ?? "")}
-                        onChange={(e) => update(idx, "value", e.target.value)}
-                        className={selectClass}
+                      <Select
+                        value={row.value == null || row.value === "" ? EMPTY_VALUE : String(row.value)}
+                        onValueChange={(value) => update(idx, "value", value === EMPTY_VALUE ? "" : value)}
                       >
-                        <option value="">—</option>
-                        {col.options.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue placeholder="Value" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectItem value={EMPTY_VALUE}>—</SelectItem>
+                            {col.options.map((opt) => (
+                              <SelectItem key={opt} value={opt}>
+                                {opt}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
                     ) : needsValue && col?.type === "BOOLEAN" ? (
-                      <select
-                        value={String(row.value ?? "")}
-                        onChange={(e) => update(idx, "value", e.target.value === "true")}
-                        className={selectClass}
+                      <Select
+                        value={row.value == null || row.value === "" ? EMPTY_VALUE : String(row.value)}
+                        onValueChange={(value) => update(idx, "value", value === EMPTY_VALUE ? "" : value === "true")}
                       >
-                        <option value="">—</option>
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                      </select>
+                        <SelectTrigger className="h-9 w-full">
+                          <SelectValue placeholder="Value" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            <SelectItem value={EMPTY_VALUE}>—</SelectItem>
+                            <SelectItem value="true">Yes</SelectItem>
+                            <SelectItem value="false">No</SelectItem>
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
                     ) : needsValue ? (
                       <Input
                         value={String(row.value ?? "")}
@@ -166,6 +193,7 @@ export function FilterBuilder({ columns, filters, onApply, onClose }: FilterBuil
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => remove(idx)}
                   className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                 >

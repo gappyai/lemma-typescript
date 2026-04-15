@@ -191,6 +191,8 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   const statusRef = useRef<string | undefined>(undefined);
   const streamingTextRef = useRef("");
   const autoResumedKeyRef = useRef<string | null>(null);
+  const autoLoadInFlightKeyRef = useRef<string | null>(null);
+  const lastAutoLoadedKeyRef = useRef<string | null>(null);
   const onEventRef = useRef(onEvent);
   const onStatusRef = useRef(onStatus);
   const onMessageRef = useRef(onMessage);
@@ -205,6 +207,8 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       }
 
       autoResumedKeyRef.current = null;
+      autoLoadInFlightKeyRef.current = null;
+      lastAutoLoadedKeyRef.current = null;
       streamingTextRef.current = "";
       setStreamingText("");
       setConversation(null);
@@ -696,11 +700,22 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
 
   useEffect(() => {
     if (!autoLoad || !conversationId) {
+      autoLoadInFlightKeyRef.current = null;
+      lastAutoLoadedKeyRef.current = null;
+      return;
+    }
+
+    const bootstrapKey = `${conversationId}:${autoResume ? "resume" : "load"}`;
+    if (
+      autoLoadInFlightKeyRef.current === bootstrapKey
+      || lastAutoLoadedKeyRef.current === bootstrapKey
+    ) {
       return;
     }
 
     const controller = new AbortController();
     let cancelled = false;
+    autoLoadInFlightKeyRef.current = bootstrapKey;
 
     const bootstrapConversation = async () => {
       const latestConversation = await refreshConversation(conversationId);
@@ -715,7 +730,19 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       await resumeIfRunning(conversationId);
     };
 
-    void bootstrapConversation();
+    void bootstrapConversation()
+      .catch((bootstrapError) => {
+        if (cancelled) return;
+        const normalized = normalizeError(bootstrapError, "Failed to load assistant conversation.");
+        setError(normalized);
+        onErrorRef.current?.(bootstrapError);
+      })
+      .finally(() => {
+        if (autoLoadInFlightKeyRef.current === bootstrapKey) {
+          autoLoadInFlightKeyRef.current = null;
+        }
+        lastAutoLoadedKeyRef.current = bootstrapKey;
+      });
     return () => {
       cancelled = true;
       controller.abort();

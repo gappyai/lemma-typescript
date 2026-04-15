@@ -631,6 +631,64 @@
   box-shadow: none;
 }
 
+.lemma-assistant-experience[data-appearance="minimal"] .lemma-assistant-experience-card,
+.lemma-assistant-experience[data-appearance="minimal"] .lemma-assistant-experience-sidebar {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.lemma-assistant-experience[data-appearance="minimal"] .lemma-assistant-experience-header,
+.lemma-assistant-experience[data-appearance="minimal"] .lemma-assistant-experience-composer,
+.lemma-assistant-experience[data-appearance="minimal"] .lemma-assistant-experience-sidebar-header {
+  border-color: color-mix(in srgb, var(--border-default) 18%, transparent);
+}
+
+.lemma-assistant-experience[data-appearance="contained"] .lemma-assistant-experience-card,
+.lemma-assistant-experience[data-appearance="contained"] .lemma-assistant-experience-sidebar {
+  border-color: color-mix(in srgb, var(--border-default) 92%, transparent);
+  box-shadow: var(--shadow-md);
+}
+
+.lemma-assistant-experience[data-appearance="borderless"] .lemma-assistant-experience-header,
+.lemma-assistant-experience[data-appearance="borderless"] .lemma-assistant-experience-composer {
+  border-color: transparent;
+}
+
+.lemma-assistant-experience[data-density="compact"] {
+  gap: 8px;
+}
+
+.lemma-assistant-experience[data-density="spacious"] {
+  gap: 16px;
+}
+
+.lemma-assistant-experience[data-density="compact"] .lemma-assistant-experience-main {
+  gap: 8px;
+}
+
+.lemma-assistant-experience[data-density="spacious"] .lemma-assistant-experience-main {
+  gap: 16px;
+}
+
+.lemma-assistant-experience[data-density="compact"] .lemma-assistant-experience-header,
+.lemma-assistant-experience[data-density="compact"] .lemma-assistant-experience-sidebar-header {
+  padding: 10px 12px;
+}
+
+.lemma-assistant-experience[data-density="spacious"] .lemma-assistant-experience-header,
+.lemma-assistant-experience[data-density="spacious"] .lemma-assistant-experience-sidebar-header {
+  padding: 16px 20px;
+}
+
+.lemma-assistant-experience[data-density="compact"] .lemma-assistant-experience-viewport {
+  padding: 10px;
+}
+
+.lemma-assistant-experience[data-density="spacious"] .lemma-assistant-experience-viewport {
+  padding: 22px;
+}
+
 .lemma-assistant-plan-strip {
   background: var(--bg-surface);
   border-color: color-mix(in srgb, var(--border-default) 88%, transparent);

@@ -3,20 +3,22 @@
 import * as React from "react"
 import { Check, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import type { ColumnSchema } from "lemma-sdk"
 import { enumPillClasses } from "./records-enum-utils"
+import { shortenIdentifier } from "./records-display-utils"
 
 interface EditableCellProps {
   value: unknown
   column: ColumnSchema
   onSave: (value: unknown) => Promise<void>
   readOnly?: boolean
+  foreignKeyLabelMap?: Record<string, string>
 }
 
-export function EditableCell({ value, column, onSave, readOnly }: EditableCellProps) {
+export function EditableCell({ value, column, onSave, readOnly, foreignKeyLabelMap }: EditableCellProps) {
   const [editing, setEditing] = React.useState(false)
   const [draft, setDraft] = React.useState<string>(serialize(value, column.type))
   const [saving, setSaving] = React.useState(false)
@@ -58,7 +60,7 @@ export function EditableCell({ value, column, onSave, readOnly }: EditableCellPr
   }
 
   if (readOnly) {
-    return <span className="px-2 py-1.5 text-sm text-muted-foreground">{displayValue(value, column)}</span>
+    return <span className="px-2 py-1.5 text-sm text-muted-foreground">{displayValue(value, column, foreignKeyLabelMap)}</span>
   }
 
   if (column.type === "BOOLEAN") {
@@ -92,11 +94,13 @@ export function EditableCell({ value, column, onSave, readOnly }: EditableCellPr
           )}
         </SelectTrigger>
         <SelectContent>
-          {opts.map((opt) => (
-            <SelectItem key={opt} value={opt}>
-              <span className={enumPillClasses(opt, opts)}>{opt}</span>
-            </SelectItem>
-          ))}
+          <SelectGroup>
+            {opts.map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                <span className={enumPillClasses(opt, opts)}>{opt}</span>
+              </SelectItem>
+            ))}
+          </SelectGroup>
         </SelectContent>
       </Select>
     )
@@ -152,13 +156,21 @@ export function EditableCell({ value, column, onSave, readOnly }: EditableCellPr
       className="flex min-h-[32px] cursor-pointer items-center rounded-md border border-transparent px-2 py-1.5 text-sm transition-colors hover:border-border hover:bg-muted/50"
       onClick={startEdit}
     >
-      {displayValue(value, column)}
+      {displayValue(value, column, foreignKeyLabelMap)}
     </div>
   )
 }
 
-function displayValue(value: unknown, column: ColumnSchema): React.ReactNode {
+function displayValue(
+  value: unknown,
+  column: ColumnSchema,
+  foreignKeyLabelMap?: Record<string, string>,
+): React.ReactNode {
   if (value == null || value === "") return <span className="text-muted-foreground">—</span>
+  if (column.foreign_key) {
+    const text = String(value)
+    return foreignKeyLabelMap?.[text] ?? <span title={text}>{shortenIdentifier(text)}</span>
+  }
   if (column.type === "BOOLEAN") return value ? "Yes" : "No"
   if (column.type === "ENUM" && column.options && column.options.length) {
     return <span className={enumPillClasses(String(value), column.options)}>{String(value)}</span>
@@ -176,7 +188,7 @@ function displayValue(value: unknown, column: ColumnSchema): React.ReactNode {
   }
   if (column.type === "UUID" || (column.foreign_key && column.type === "TEXT")) {
     const s = String(value)
-    return <span className="font-mono text-xs text-muted-foreground">{s.length > 8 ? `${s.slice(0, 4)}…${s.slice(-4)}` : s}</span>
+    return <span className="font-mono text-xs text-muted-foreground" title={s}>{shortenIdentifier(s)}</span>
   }
   return String(value)
 }
