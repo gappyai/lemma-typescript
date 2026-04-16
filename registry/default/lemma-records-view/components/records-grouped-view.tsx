@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { ColumnSchema } from "lemma-sdk"
-import { enumPillClasses } from "./records-enum-utils"
+import { enumPillClasses, type EnumColorMap } from "./records-enum-utils"
 import {
   formatRecordFieldValue,
   pickPrimaryColumn,
@@ -33,6 +33,7 @@ interface GroupedViewProps {
   onRecordClick: (record: Record<string, unknown>) => void
   renderCard?: (record: Record<string, unknown>, columns: ColumnSchema[]) => React.ReactNode
   foreignKeyLabelMap?: ForeignKeyLabelMap
+  enumColorMap?: EnumColorMap
 }
 
 export function GroupedView({
@@ -49,6 +50,7 @@ export function GroupedView({
   onRecordClick,
   renderCard,
   foreignKeyLabelMap,
+  enumColorMap,
 }: GroupedViewProps) {
   const groups = React.useMemo(() => {
     const map = new Map<string, Record<string, unknown>[]>()
@@ -122,7 +124,7 @@ export function GroupedView({
         >
           <div className={cn("flex items-center justify-between gap-3 px-3", appearance === "borderless" ? "border-b-0" : appearance === "minimal" ? "border-b border-border/15" : "border-b border-border/40", density === "compact" ? "py-2" : density === "spacious" ? "py-3" : "py-2.5")}>
             {groupByColumn.options?.length ? (
-              <span className={enumPillClasses(group.label, groupByColumn.options)}>
+              <span className={enumPillClasses(group.label, groupByColumn.options!, enumColorMap)}>
                 {group.label}
               </span>
             ) : (
@@ -191,7 +193,7 @@ export function GroupedView({
                         className="mt-0.5"
                       />
                       <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                        {formatRecordFieldValue(primaryCol ? record[primaryCol.name] : undefined, primaryCol, foreignKeyLabelMap)}
+                        {formatRecordFieldValue(primaryCol ? record[primaryCol.name] : undefined, primaryCol, foreignKeyLabelMap, enumColorMap)}
                       </span>
                     </div>
                     <div className={cn("flex flex-wrap gap-1.5", layout === "kanban" ? "pl-6" : "justify-end")}>
@@ -203,7 +205,7 @@ export function GroupedView({
                             key={col.name}
                             className={cn("max-w-full truncate bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground", recordsRadiusClassName(radius, "control"))}
                           >
-                            {formatRecordFieldValue(v, col, foreignKeyLabelMap)}
+                            {formatRecordFieldValue(v, col, foreignKeyLabelMap, enumColorMap)}
                           </span>
                         )
                       })}

@@ -6,7 +6,7 @@ Goal: make the Lemma shadcn registry feel like a coherent Airtable + Notion + Li
 
 - Assistant blocks install cleanly as client components.
 - `lemma-assistant-embedded` now imports sibling installed files instead of source-tree registry paths.
-- README registry docs now list the real seven blocks and current install commands.
+- README registry docs now list the current registry blocks and install commands.
 - Added `npm run registry:check` to build and validate generated registry JSON.
 - Records workspace search now filters visible records, exposes `searchFields`, clears search, and updates empty copy.
 - Records workspace now uses shadcn table primitives for the grid instead of raw table markup.
@@ -38,6 +38,18 @@ Goal: make the Lemma shadcn registry feel like a coherent Airtable + Notion + Li
 - Example CRM now includes a theme lab for switching across shadcn-inspired style families, accents, and surface modes.
 - Insights chart colors now use Tailwind v4 CSS variables directly instead of invalid `hsl(var(...))`.
 - Example app now has a real desk shell with sidebar navigation, mobile nav, action buttons, route context, and pod status.
+- Generated `public/r` registry output now includes every item declared in `registry.json`.
+- Added file SDK wrappers and hooks for datastore lists, file metadata, search, tree, converted previews, and converted artifact download.
+- Added `lemma-breadcrumbs` for route, record, and file-path breadcrumbs.
+- Added `lemma-file-browser` for folder navigation, path breadcrumbs, upload, download, search, and AlertDialog-backed delete.
+- Added `lemma-file-viewer` for image, PDF, text, markdown, converted HTML, and download fallback previews.
+- Added `lemma-markdown-editor` for write, preview, and split editing modes.
+- Added `lemma-members` for member chips, avatar groups, searchable member select, and user-field display helpers.
+- Records detail now exposes a `renderFiles`/`renderFilesTab` slot so file components can plug into record workspaces without hard coupling.
+- Added `lemma-approval-queue` for direct or function-backed approve, reject, and request-changes workflows.
+- Added `lemma-email-workbench` for AI-drafted email review with thread context, editable composer, approve, send, and approve-and-send actions.
+- Upgraded `lemma-insights` with count/sum/avg chart aggregation, area charts, chart descriptions, formatters, sorting, limits, and empty states.
+- Example CRM now mounts breadcrumbs, files, record file tabs, member resolution, approval queue, AI email workbench, markdown editor, and richer insights routes.
 
 ## Next P0/P1 Work
 
@@ -51,12 +63,13 @@ Goal: make the Lemma shadcn registry feel like a coherent Airtable + Notion + Li
 - Add selected-result and record-context assistant entry points, not only query/results handoff.
 - Keep tightening the assistant visual language around the same operator-desk surfaces as records and insights.
 - File and folder components:
-- Add `lemma-file-browser` for folder navigation, breadcrumbs, upload, delete, and search.
 - Add `lemma-file-picker` for attaching/linking files to records.
 - Add a focused file search/results surface that can plug into global search.
 - People and membership components:
-- Add member chips, avatar groups, member selects, and user-field display helpers.
-- Resolve `owner_user_id`, `creator_user_id`, assignee, and participant fields to human labels instead of UUIDs.
+- Resolve `owner_user_id`, `creator_user_id`, assignee, and participant fields to human labels across more existing blocks, not only explicit member slots.
+- Business workflow follow-up:
+- Add reusable audit/history strips for approval and email action outcomes.
+- Add function-run status toasts or inline status rows for long-running send/approve actions.
 - Style controls:
 - Add the next `chrome="full" | "toolbar" | "none"` layer for host apps that want to remove block headers entirely.
 - Keep shadcn presets responsible for primitive tokens, with Lemma blocks owning lightweight layout/chrome controls for business workflows.

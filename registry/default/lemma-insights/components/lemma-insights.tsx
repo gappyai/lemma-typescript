@@ -1,14 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { TrendingUp, TrendingDown, Minus } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { BarChart3, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useRecords, useFunctionRun } from "lemma-sdk/react"
 import type { LemmaClient, RecordFilter } from "lemma-sdk"
 import { cn } from "@/lib/utils"
 import {
   BarChart,
   Bar,
+  AreaChart,
+  Area,
   LineChart,
   Line,
   PieChart,
@@ -18,6 +20,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
 } from "recharts"
 
@@ -37,21 +40,29 @@ export type StatSource =
 
 export type ChartSource =
   | {
-      type: "bar" | "line"
+      type: "bar" | "line" | "area"
       table: string
       category: string
-      value: string
+      value?: string
+      aggregate?: "count" | "sum" | "avg"
       filters?: RecordFilter[]
+      sortBy?: "category" | "value"
+      order?: "asc" | "desc"
+      limit?: number
     }
   | {
       type: "pie"
       table: string
       category: string
       value?: string
+      aggregate?: "count" | "sum" | "avg"
       filters?: RecordFilter[]
+      sortBy?: "category" | "value"
+      order?: "asc" | "desc"
+      limit?: number
     }
   | {
-      type: "bar" | "line" | "pie"
+      type: "bar" | "line" | "area" | "pie"
       table?: undefined
       function: string
       input?: Record<string, unknown>
@@ -69,10 +80,17 @@ export interface StatCardDef {
 export interface ChartCardDef {
   source: ChartSource
   title: string
+  description?: string
   height?: number
+  valueFormatter?: (value: number) => string
+  categoryFormatter?: (value: string) => string
+  footer?: React.ReactNode
+  emptyState?: React.ReactNode
 }
 
 export type LemmaInsightsRadius = "none" | "sm" | "md" | "lg" | "xl"
+
+export type AggregationMode = "client" | "function"
 
 export interface LemmaInsightsProps {
   client: LemmaClient
@@ -80,6 +98,8 @@ export interface LemmaInsightsProps {
   stats?: StatCardDef[]
   charts?: ChartCardDef[]
   columns?: 1 | 2 | 3 | 4
+  aggregationMode?: AggregationMode
+  aggregateFunctionName?: string
   appearance?: "default" | "minimal" | "borderless" | "contained"
   density?: "compact" | "comfortable" | "spacious"
   radius?: LemmaInsightsRadius
@@ -92,6 +112,8 @@ export function LemmaInsights({
   stats = [],
   charts = [],
   columns = 4,
+  aggregationMode = "client",
+  aggregateFunctionName,
   appearance = "default",
   density = "comfortable",
   radius = "lg",
@@ -105,7 +127,7 @@ export function LemmaInsights({
       {stats.length > 0 && (
         <div className={cn("grid", gridCols, gapClassName)}>
           {stats.map((def, i) => (
-            <StatCard key={i} def={def} client={client} podId={podId} appearance={appearance} density={density} radius={radius} />
+            <StatCard key={i} def={def} client={client} podId={podId} aggregationMode={aggregationMode} aggregateFunctionName={aggregateFunctionName} appearance={appearance} density={density} radius={radius} />
           ))}
         </div>
       )}
@@ -113,7 +135,7 @@ export function LemmaInsights({
       {charts.length > 0 && (
         <div className={cn("grid grid-cols-1 lg:grid-cols-2", gapClassName)}>
           {charts.map((def, i) => (
-            <ChartCard key={i} def={def} client={client} podId={podId} appearance={appearance} density={density} radius={radius} />
+            <ChartCard key={i} def={def} client={client} podId={podId} aggregationMode={aggregationMode} aggregateFunctionName={aggregateFunctionName} appearance={appearance} density={density} radius={radius} />
           ))}
         </div>
       )}
@@ -125,6 +147,8 @@ function StatCard({
   def,
   client,
   podId,
+  aggregationMode,
+  aggregateFunctionName,
   appearance,
   density,
   radius,
@@ -132,48 +156,69 @@ function StatCard({
   def: StatCardDef
   client: LemmaClient
   podId?: string
+  aggregationMode: AggregationMode
+  aggregateFunctionName?: string
   appearance: NonNullable<LemmaInsightsProps["appearance"]>
   density: NonNullable<LemmaInsightsProps["density"]>
   radius: LemmaInsightsRadius
 }) {
   const { source, title, format, trend, trendLabel } = def
 
+  const isClientAgg = aggregationMode === "client"
+  const isFnAgg = aggregationMode === "function" && !!aggregateFunctionName
+
   const recordsState = useRecords({
     client,
     podId,
     tableName: ("table" in source ? source.table : "") as string,
     filters: "filters" in source ? source.filters : undefined,
-    enabled: source.type !== "function",
-    limit: 1000,
+    enabled: source.type !== "function" && isClientAgg,
+    limit: source.type === "count" ? 1 : source.type === "sum" || source.type === "avg" ? 500 : 1000,
   })
 
   const fnRun = useFunctionRun({
     client,
     podId,
-    functionName: source.type === "function" ? source.functionName : undefined,
+    functionName: source.type === "function" ? source.functionName : isFnAgg ? aggregateFunctionName : undefined,
   })
 
   const [fnResult, setFnResult] = React.useState<number | null>(null)
-  const [fnLoading, setFnLoading] = React.useState(source.type === "function")
+  const [fnLoading, setFnLoading] = React.useState(source.type === "function" || isFnAgg)
   React.useEffect(() => {
-    if (source.type !== "function") return
-    fnRun.start(source.input ?? {}).then((res) => {
-      if (source.extractPath) {
-        const val = extractNested(res.output_data, source.extractPath)
-        setFnResult(typeof val === "number" ? val : 0)
-      } else {
-        setFnResult(typeof res.output_data === "number" ? res.output_data : 0)
-      }
-    }).catch(() => {
-      setFnResult(0)
-    }).finally(() => {
-      setFnLoading(false)
-    })
-  }, [source.type])
+    if (source.type === "function") {
+      fnRun.start(source.input ?? {}).then((res) => {
+        if (source.extractPath) {
+          const val = extractNested(res.output_data, source.extractPath)
+          setFnResult(typeof val === "number" ? val : 0)
+        } else {
+          setFnResult(typeof res.output_data === "number" ? res.output_data : 0)
+        }
+      }).catch(() => {
+        setFnResult(0)
+      }).finally(() => {
+        setFnLoading(false)
+      })
+    } else if (isFnAgg && aggregateFunctionName) {
+      const input: Record<string, unknown> = { aggregation_type: source.type }
+      if ("table" in source) input.table = source.table
+      if ("field" in source) input.field = source.field
+      if ("filters" in source && source.filters) input.filters = source.filters
+      fnRun.start(input).then((res) => {
+        const val = res.output_data
+        setFnResult(typeof val === "number" ? val : typeof val === "object" && val !== null ? Number((val as Record<string, unknown>).result) || 0 : 0)
+      }).catch(() => {
+        setFnResult(0)
+      }).finally(() => {
+        setFnLoading(false)
+      })
+    }
+  }, [source.type, isFnAgg])
 
   let value = 0
 
-  if (source.type === "count") {
+  if (isFnAgg && fnResult != null) {
+    value = fnResult
+  } else if (source.type === "count") {
     value = recordsState.total
   } else if (source.type === "sum" || source.type === "avg") {
     const records = recordsState.records
@@ -185,7 +230,7 @@ function StatCard({
   }
 
   const displayValue = format ? format(value) : defaultFormat(value, source.type)
-  const isLoading = source.type !== "function" ? recordsState.isLoading : fnLoading
+  const isLoading = isFnAgg ? fnLoading : source.type !== "function" ? recordsState.isLoading : fnLoading
 
   const TrendIcon = trend === "up" ? TrendingUp : trend === "down" ? TrendingDown : Minus
   const trendColor =
@@ -221,6 +266,8 @@ function ChartCard({
   def,
   client,
   podId,
+  aggregationMode,
+  aggregateFunctionName,
   appearance,
   density,
   radius,
@@ -228,41 +275,82 @@ function ChartCard({
   def: ChartCardDef
   client: LemmaClient
   podId?: string
+  aggregationMode: AggregationMode
+  aggregateFunctionName?: string
   appearance: NonNullable<LemmaInsightsProps["appearance"]>
   density: NonNullable<LemmaInsightsProps["density"]>
   radius: LemmaInsightsRadius
 }) {
-  const { source, title, height = 300 } = def
+  const { source, title, description, height = 300, valueFormatter, categoryFormatter, footer, emptyState } = def
 
   const isTableSource = "table" in source && source.table
+
+  const isFnAgg = aggregationMode === "function" && !!aggregateFunctionName
 
   const recordsState = useRecords({
     client,
     podId,
     tableName: isTableSource ? (source.table as string) : "",
     filters: "filters" in source ? source.filters : undefined,
-    enabled: !!isTableSource,
-    limit: 500,
+    enabled: !!isTableSource && !isFnAgg,
+    limit: 200,
   })
 
   const [fnData, setFnData] = React.useState<Array<Record<string, unknown>>>([])
-  React.useEffect(() => {
-    if (isTableSource) return
-    const fnSource = source as unknown as { function: string; input?: Record<string, unknown> }
-    client.withPod(podId ?? (client as { podId?: string }).podId ?? "")
-      .functions.runs.create(fnSource.function, {
-        input: fnSource.input ?? {},
-      })
-      .then((run) => {
-        const output = run.output_data
-        if (Array.isArray(output)) setFnData(output)
-        else if (typeof output === "object" && output !== null) setFnData([output])
-        else setFnData([])
-      })
-      .catch(() => setFnData([]))
-  }, [isTableSource])
+  const [fnLoading, setFnLoading] = React.useState(false)
 
-  const data = isTableSource ? aggregateChartData(recordsState.records, source) : fnData
+  const shouldUseFnAgg = isFnAgg && isTableSource
+  const shouldUseFnSource = !isTableSource
+
+  React.useEffect(() => {
+    if (shouldUseFnAgg && aggregateFunctionName) {
+      setFnLoading(true)
+      const input: Record<string, unknown> = { chart_type: source.type }
+      if ("table" in source) input.table = source.table
+      if ("category" in source) input.category = source.category
+      if ("value" in source && source.value) input.value = source.value
+      if ("filters" in source && source.filters) input.filters = source.filters
+      client.withPod(podId ?? (client as { podId?: string }).podId ?? "")
+        .functions.runs.create(aggregateFunctionName, { input })
+        .then((run) => {
+          const output = run.output_data
+          const extractPath = "extractPath" in source && typeof source.extractPath === "string" ? source.extractPath : ""
+          const extracted = extractPath ? extractNested(output, extractPath) : output
+          if (Array.isArray(extracted)) setFnData(extracted as Array<Record<string, unknown>>)
+          else if (typeof extracted === "object" && extracted !== null) setFnData([extracted as Record<string, unknown>])
+          else setFnData([])
+        })
+        .catch(() => setFnData([]))
+        .finally(() => setFnLoading(false))
+      return
+    }
+    if (shouldUseFnSource) {
+      setFnLoading(true)
+      const fnSource = source as unknown as { function: string; input?: Record<string, unknown> }
+      client.withPod(podId ?? (client as { podId?: string }).podId ?? "")
+        .functions.runs.create(fnSource.function, {
+          input: fnSource.input ?? {},
+        })
+        .then((run) => {
+          const output = run.output_data
+          const extractPath = "extractPath" in source && typeof source.extractPath === "string" ? source.extractPath : ""
+          const extracted = extractPath ? extractNested(output, extractPath) : output
+          if (Array.isArray(extracted)) setFnData(extracted as Array<Record<string, unknown>>)
+          else if (typeof extracted === "object" && extracted !== null) setFnData([extracted as Record<string, unknown>])
+          else setFnData([])
+        })
+        .catch(() => setFnData([]))
+        .finally(() => setFnLoading(false))
+      return
+    }
+  }, [shouldUseFnAgg, shouldUseFnSource])
+
+  const data = shouldUseFnAgg || shouldUseFnSource ? normalizeFunctionChartData(fnData, source) : aggregateChartData(recordsState.records, source)
+  const isLoading = shouldUseFnAgg || shouldUseFnSource ? fnLoading : recordsState.isLoading
+  const chartHeight = density === "compact" ? Math.max(180, height - 60) : density === "spacious" ? height + 40 : height
+  const hasData = data.length > 0
+  const formatValue = valueFormatter ?? ((value: number) => value.toLocaleString(undefined, { maximumFractionDigits: 2 }))
+  const formatCategory = categoryFormatter ?? ((value: string) => value)
 
   return (
     <Card className={insightCardClassName(appearance, radius)}>
@@ -270,15 +358,35 @@ function ChartCard({
         <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
           {title}
         </CardTitle>
+        {description ? (
+          <CardDescription>{description}</CardDescription>
+        ) : null}
       </CardHeader>
       <CardContent className={density === "compact" ? "px-3 pb-3" : density === "spacious" ? "px-5 pb-5" : "px-4 pb-4"}>
-        <ResponsiveContainer width="100%" height={density === "compact" ? Math.max(180, height - 60) : density === "spacious" ? height + 40 : height}>
+        {isLoading ? (
+          <div className="flex items-center justify-center" style={{ height: chartHeight }}>
+            <div className="size-6 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-muted-foreground" />
+          </div>
+        ) : null}
+        {!isLoading && !hasData ? (
+          <div className="flex flex-col items-center justify-center gap-3 text-center text-muted-foreground" style={{ height: chartHeight }}>
+            <span className={cn("flex size-10 items-center justify-center border border-border/60 bg-muted/35", insightRadiusClassName(radius))}>
+              <BarChart3 className="size-4" />
+            </span>
+            <p className="max-w-sm text-sm">{emptyState ?? "No chart data is available for this source."}</p>
+          </div>
+        ) : null}
+        {!isLoading && hasData ? (
+        <>
+        <ResponsiveContainer width="100%" height={chartHeight}>
           {source.type === "bar" ? (
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+              <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickFormatter={formatCategory} />
+              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickFormatter={(value) => formatValue(Number(value))} />
               <Tooltip
+                formatter={(value) => formatValue(Number(value))}
+                labelFormatter={(label) => formatCategory(String(label))}
                 contentStyle={{
                   backgroundColor: "var(--card)",
                   border: "1px solid var(--border)",
@@ -286,14 +394,39 @@ function ChartCard({
                   fontSize: "12px",
                 }}
               />
-              <Bar dataKey="value" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="value" fill="var(--chart-1)" radius={[6, 6, 2, 2]} barSize={28} />
             </BarChart>
+          ) : source.type === "area" ? (
+            <AreaChart data={data}>
+              <defs>
+                <linearGradient id="lemma-insights-area" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickFormatter={formatCategory} />
+              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickFormatter={(value) => formatValue(Number(value))} />
+              <Tooltip
+                formatter={(value) => formatValue(Number(value))}
+                labelFormatter={(label) => formatCategory(String(label))}
+                contentStyle={{
+                  backgroundColor: "var(--card)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "8px",
+                  fontSize: "12px",
+                }}
+              />
+              <Area type="monotone" dataKey="value" stroke="var(--chart-1)" strokeWidth={2} fill="url(#lemma-insights-area)" />
+            </AreaChart>
           ) : source.type === "line" ? (
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-              <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
-              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" />
+              <XAxis dataKey="category" tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickFormatter={formatCategory} />
+              <YAxis tick={{ fontSize: 11 }} stroke="var(--muted-foreground)" tickFormatter={(value) => formatValue(Number(value))} />
               <Tooltip
+                formatter={(value) => formatValue(Number(value))}
+                labelFormatter={(label) => formatCategory(String(label))}
                 contentStyle={{
                   backgroundColor: "var(--card)",
                   border: "1px solid var(--border)",
@@ -312,7 +445,7 @@ function ChartCard({
                 cx="50%"
                 cy="50%"
                 outerRadius={height / 3}
-                label={({ category, percent }) => `${category} ${(percent * 100).toFixed(0)}%`}
+                label={({ category, percent }) => `${formatCategory(String(category))} ${(percent * 100).toFixed(0)}%`}
                 labelLine={false}
               >
                 {data.map((_, i) => (
@@ -320,6 +453,7 @@ function ChartCard({
                 ))}
               </Pie>
               <Tooltip
+                formatter={(value) => formatValue(Number(value))}
                 contentStyle={{
                   backgroundColor: "var(--card)",
                   border: "1px solid var(--border)",
@@ -327,9 +461,13 @@ function ChartCard({
                   fontSize: "12px",
                 }}
               />
+              <Legend formatter={(value) => formatCategory(String(value))} />
             </PieChart>
           )}
         </ResponsiveContainer>
+        {footer ? <div className="mt-3 text-xs text-muted-foreground">{footer}</div> : null}
+        </>
+        ) : null}
       </CardContent>
     </Card>
   )
@@ -355,32 +493,55 @@ function aggregateChartData(
   records: Record<string, unknown>[],
   source: ChartSource,
 ): Array<{ category: string; value: number }> {
-  if (!("category" in source) || !("value" in source)) return []
+  if (!("category" in source)) return []
 
   const catField = source.category
   const valField = source.value
-
-  if (source.type === "pie" && !valField) {
-    const counts = new Map<string, number>()
-    for (const rec of records) {
-      const cat = String(rec[catField] ?? "Unknown")
-      counts.set(cat, (counts.get(cat) ?? 0) + 1)
-    }
-    return Array.from(counts.entries()).map(([category, value]) => ({ category, value }))
-  }
-
-  const groups = new Map<string, number[]>()
+  const aggregate = source.aggregate ?? (valField ? "sum" : "count")
+  const groups = new Map<string, { count: number; sum: number }>()
   for (const rec of records) {
     const cat = String(rec[catField] ?? "Unknown")
-    const val = Number(rec[valField!] ?? 0)
-    if (!groups.has(cat)) groups.set(cat, [])
-    groups.get(cat)!.push(val)
+    const current = groups.get(cat) ?? { count: 0, sum: 0 }
+    const rawValue = valField ? Number(rec[valField] ?? 0) : 1
+    current.count += 1
+    current.sum += Number.isNaN(rawValue) ? 0 : rawValue
+    groups.set(cat, current)
   }
 
-  return Array.from(groups.entries()).map(([category, vals]) => ({
+  const data = Array.from(groups.entries()).map(([category, value]) => ({
     category,
-    value: vals.reduce((a, b) => a + b, 0),
+    value: aggregate === "avg" ? (value.count ? value.sum / value.count : 0) : aggregate === "count" ? value.count : value.sum,
   }))
+
+  return sortAndLimitChartData(data, source)
+}
+
+function normalizeFunctionChartData(
+  rows: Array<Record<string, unknown>>,
+  source: ChartSource,
+): Array<{ category: string; value: number }> {
+  const data = rows
+    .map((row) => ({
+      category: String(row.category ?? row.name ?? row.label ?? row.key ?? "Unknown"),
+      value: Number(row.value ?? row.count ?? row.total ?? 0),
+    }))
+    .filter((row) => !Number.isNaN(row.value))
+
+  return sortAndLimitChartData(data, source)
+}
+
+function sortAndLimitChartData(
+  data: Array<{ category: string; value: number }>,
+  source: ChartSource,
+) {
+  const sortBy = "sortBy" in source ? source.sortBy : undefined
+  const order = "order" in source ? source.order ?? "desc" : "desc"
+  const limit = "limit" in source ? source.limit : undefined
+  const sorted = [...data].sort((a, b) => {
+    const comparison = sortBy === "category" ? a.category.localeCompare(b.category) : a.value - b.value
+    return order === "asc" ? comparison : -comparison
+  })
+  return typeof limit === "number" && limit > 0 ? sorted.slice(0, limit) : sorted
 }
 
 function defaultFormat(value: number, type: string): string {

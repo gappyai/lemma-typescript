@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import type { ColumnSchema } from "lemma-sdk"
-import { enumPillClasses } from "./records-enum-utils"
+import { enumPillClasses, type EnumColorMap } from "./records-enum-utils"
 import { shortenIdentifier } from "./records-display-utils"
 
 interface EditableCellProps {
@@ -16,9 +16,10 @@ interface EditableCellProps {
   onSave: (value: unknown) => Promise<void>
   readOnly?: boolean
   foreignKeyLabelMap?: Record<string, string>
+  enumColorMap?: EnumColorMap
 }
 
-export function EditableCell({ value, column, onSave, readOnly, foreignKeyLabelMap }: EditableCellProps) {
+export function EditableCell({ value, column, onSave, readOnly, foreignKeyLabelMap, enumColorMap }: EditableCellProps) {
   const [editing, setEditing] = React.useState(false)
   const [draft, setDraft] = React.useState<string>(serialize(value, column.type))
   const [saving, setSaving] = React.useState(false)
@@ -60,7 +61,7 @@ export function EditableCell({ value, column, onSave, readOnly, foreignKeyLabelM
   }
 
   if (readOnly) {
-    return <span className="px-2 py-1.5 text-sm text-muted-foreground">{displayValue(value, column, foreignKeyLabelMap)}</span>
+    return <span className="px-2 py-1.5 text-sm text-muted-foreground">{displayValue(value, column, foreignKeyLabelMap, enumColorMap)}</span>
   }
 
   if (column.type === "BOOLEAN") {
@@ -86,7 +87,7 @@ export function EditableCell({ value, column, onSave, readOnly, foreignKeyLabelM
       >
         <SelectTrigger className="h-8 gap-1 border-transparent bg-transparent px-2 text-xs shadow-none hover:border-border hover:bg-muted/50">
           {value != null ? (
-            <span className={enumPillClasses(String(value), opts)}>
+            <span className={enumPillClasses(String(value), opts, enumColorMap)}>
               {String(value)}
             </span>
           ) : (
@@ -97,7 +98,7 @@ export function EditableCell({ value, column, onSave, readOnly, foreignKeyLabelM
           <SelectGroup>
             {opts.map((opt) => (
               <SelectItem key={opt} value={opt}>
-                <span className={enumPillClasses(opt, opts)}>{opt}</span>
+                <span className={enumPillClasses(opt, opts, enumColorMap)}>{opt}</span>
               </SelectItem>
             ))}
           </SelectGroup>
@@ -156,7 +157,7 @@ export function EditableCell({ value, column, onSave, readOnly, foreignKeyLabelM
       className="flex min-h-[32px] cursor-pointer items-center rounded-md border border-transparent px-2 py-1.5 text-sm transition-colors hover:border-border hover:bg-muted/50"
       onClick={startEdit}
     >
-      {displayValue(value, column, foreignKeyLabelMap)}
+      {displayValue(value, column, foreignKeyLabelMap, enumColorMap)}
     </div>
   )
 }
@@ -165,6 +166,7 @@ function displayValue(
   value: unknown,
   column: ColumnSchema,
   foreignKeyLabelMap?: Record<string, string>,
+  enumColorMap?: EnumColorMap,
 ): React.ReactNode {
   if (value == null || value === "") return <span className="text-muted-foreground">—</span>
   if (column.foreign_key) {
@@ -173,7 +175,7 @@ function displayValue(
   }
   if (column.type === "BOOLEAN") return value ? "Yes" : "No"
   if (column.type === "ENUM" && column.options && column.options.length) {
-    return <span className={enumPillClasses(String(value), column.options)}>{String(value)}</span>
+    return <span className={enumPillClasses(String(value), column.options, enumColorMap)}>{String(value)}</span>
   }
   if (column.type === "JSON") {
     const str = typeof value === "string" ? value : JSON.stringify(value, null, 2)

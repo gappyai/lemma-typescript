@@ -201,7 +201,7 @@ export function LemmaRecordForm({
   if (mode === "sheet") {
     return (
       <Sheet open onOpenChange={(open) => !open && onClose?.()}>
-        <SheetContent className={cn("w-full sm:max-w-lg p-0 gap-0", formSurfaceClassName(appearance, radius))}>{inner}</SheetContent>
+        <SheetContent className={cn("w-full min-w-lg sm:max-w-xl lg:max-w-2xl p-0 gap-0", formSurfaceClassName(appearance, radius))}>{inner}</SheetContent>
       </Sheet>
     )
   }
@@ -209,12 +209,12 @@ export function LemmaRecordForm({
   if (mode === "modal") {
     return (
       <Dialog open onOpenChange={(open) => !open && onClose?.()}>
-        <DialogContent className={cn("max-w-lg p-0 gap-0", formSurfaceClassName(appearance, radius))}>{inner}</DialogContent>
+        <DialogContent className={cn("min-w-lg max-w-xl p-0 gap-0", formSurfaceClassName(appearance, radius))}>{inner}</DialogContent>
       </Dialog>
     )
   }
 
-  return <div className={cn(appearance === "minimal" ? "bg-transparent" : "bg-card", formSurfaceClassName(appearance, radius))}>{inner}</div>
+  return <div className={cn("min-w-lg", appearance === "minimal" ? "bg-transparent" : "bg-card", formSurfaceClassName(appearance, radius))}>{inner}</div>
 }
 
 function formHeaderClassName(appearance: LemmaRecordFormAppearance, density: LemmaRecordFormDensity) {

@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { useForeignKeyOptions, useReferencingRecords, useUpdateRecord } from "lemma-sdk/react"
 import type { ColumnSchema, LemmaClient, Table } from "lemma-sdk"
 import { cn } from "@/lib/utils"
-import { enumPillClasses, isSystemField, typeBadgeClasses } from "./records-enum-utils"
+import { enumPillClasses, isSystemField, typeBadgeClasses, type EnumColorMap } from "./records-enum-utils"
 import {
   formatRecordFieldValue,
   pickPrimaryColumn,
@@ -54,10 +54,12 @@ export interface RecordDetailProps {
   updateVia?: "direct" | "function"
   updateFunctionName?: string
   foreignKeyLabels?: Record<string, string>
+  enumColorMap?: EnumColorMap
   appearance?: LemmaRecordsAppearance
   density?: LemmaRecordsDensity
   radius?: LemmaRecordsRadius
   actions?: React.ReactNode
+  renderFiles?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
   className?: string
   onRecordChanged?: () => void
   onDelete?: () => void
@@ -76,10 +78,12 @@ export function RecordDetail({
   updateVia,
   updateFunctionName,
   foreignKeyLabels,
+  enumColorMap,
   appearance = "default",
   density = "comfortable",
   radius = "lg",
   actions,
+  renderFiles,
   className,
   onRecordChanged,
   onDelete,
@@ -110,7 +114,7 @@ export function RecordDetail({
       data-density={density}
       data-radius={radius}
       className={cn(
-        "lemma-record-detail min-h-0 overflow-hidden",
+        "lemma-record-detail min-h-0 min-w-lg overflow-hidden",
         detailSurfaceClassName(appearance, radius),
         className,
       )}
@@ -138,7 +142,7 @@ export function RecordDetail({
                   return (
                     <span key={column.name} className={cn("inline-flex max-w-64 items-center gap-1 truncate bg-muted/35 px-2 py-0.5", recordsRadiusClassName(radius, "pill"))}>
                       <span className="text-muted-foreground/75">{column.name.replace(/_/g, " ")}</span>
-                      <span className="truncate text-foreground">{formatRecordFieldValue(value, column)}</span>
+                       <span className="truncate text-foreground">{formatRecordFieldValue(value, column, undefined, enumColorMap)}</span>
                     </span>
                   )
                 })}
@@ -187,6 +191,7 @@ export function RecordDetail({
                 updateVia={updateVia}
                 updateFunctionName={updateFunctionName}
                 foreignKeyLabels={foreignKeyLabels}
+                enumColorMap={enumColorMap}
                 density={density}
                 radius={radius}
                 onRecordChanged={onRecordChanged}
@@ -216,13 +221,17 @@ export function RecordDetail({
 
           {activeTabs.includes("files") ? (
             <TabsContent value="files" className="mt-4">
-              <EmptyDetailState
-                icon={FileText}
-                title="Files are ready to attach"
-                description="This slot is designed for the upcoming file and folder components so records can show contracts, decks, notes, and email attachments in context."
-                appearance={appearance}
-                radius={radius}
-              />
+              {renderFiles ? (
+                renderFiles({ record, table, recordId })
+              ) : (
+                <EmptyDetailState
+                  icon={FileText}
+                  title="Files are ready to attach"
+                  description="Pass renderFiles to plug in lemma-file-browser, lemma-file-viewer, or a record-specific attachment surface."
+                  appearance={appearance}
+                  radius={radius}
+                />
+              )}
             </TabsContent>
           ) : null}
         </Tabs>
@@ -243,6 +252,7 @@ function DetailsTab({
   updateVia,
   updateFunctionName,
   foreignKeyLabels,
+  enumColorMap,
   density,
   radius,
   onRecordChanged,
@@ -258,6 +268,7 @@ function DetailsTab({
   updateVia?: "direct" | "function"
   updateFunctionName?: string
   foreignKeyLabels?: Record<string, string>
+  enumColorMap?: EnumColorMap
   density: LemmaRecordsDensity
   radius: LemmaRecordsRadius
   onRecordChanged?: () => void
@@ -265,7 +276,7 @@ function DetailsTab({
   const fieldColumns = columns.filter((column) => column.name !== "id" && column.name !== "sort_order")
   const gridClassName = variant === "summary"
     ? "grid-cols-1"
-    : "grid-cols-1 xl:grid-cols-2"
+    : "grid-cols-1 md:grid-cols-2"
 
   return (
     <div className={cn("grid", gridClassName, density === "compact" ? "gap-2" : density === "spacious" ? "gap-4" : "gap-3")}>
@@ -282,6 +293,7 @@ function DetailsTab({
           updateVia={updateVia}
           updateFunctionName={updateFunctionName}
           foreignKeyLabels={foreignKeyLabels}
+          enumColorMap={enumColorMap}
           density={density}
           radius={radius}
           onRecordChanged={onRecordChanged}
@@ -302,6 +314,7 @@ function RecordField({
   updateVia,
   updateFunctionName,
   foreignKeyLabels,
+  enumColorMap,
   density,
   radius,
   onRecordChanged,
@@ -316,6 +329,7 @@ function RecordField({
   updateVia?: "direct" | "function"
   updateFunctionName?: string
   foreignKeyLabels?: Record<string, string>
+  enumColorMap?: EnumColorMap
   density: LemmaRecordsDensity
   radius: LemmaRecordsRadius
   onRecordChanged?: () => void
@@ -345,6 +359,7 @@ function RecordField({
           podId={podId}
           tableName={tableName}
           labelField={foreignKeyLabels?.[column.name]}
+          enumColorMap={enumColorMap}
           radius={radius}
           disabled={updateMutation.isSubmitting}
           onSave={save}
@@ -357,6 +372,7 @@ function RecordField({
           podId={podId}
           tableName={tableName}
           labelField={foreignKeyLabels?.[column.name]}
+          enumColorMap={enumColorMap}
           radius={radius}
         />
       )}
@@ -374,6 +390,7 @@ function ReadOnlyFieldValue({
   podId,
   tableName,
   labelField,
+  enumColorMap,
   radius,
 }: {
   value: unknown
@@ -382,6 +399,7 @@ function ReadOnlyFieldValue({
   podId?: string
   tableName: string
   labelField?: string
+  enumColorMap?: EnumColorMap
   radius: LemmaRecordsRadius
 }) {
   const fkOptions = useForeignKeyOptions({
@@ -412,7 +430,7 @@ function ReadOnlyFieldValue({
       </p>
     )
   }
-  return <div className="break-words text-sm text-foreground">{formatRecordFieldValue(value, column)}</div>
+  return <div className="break-words text-sm text-foreground">{formatRecordFieldValue(value, column, undefined, enumColorMap)}</div>
 }
 
 function EditableFieldValue({
@@ -422,6 +440,7 @@ function EditableFieldValue({
   podId,
   tableName,
   labelField,
+  enumColorMap,
   radius,
   disabled,
   onSave,
@@ -432,6 +451,7 @@ function EditableFieldValue({
   podId?: string
   tableName: string
   labelField?: string
+  enumColorMap?: EnumColorMap
   radius: LemmaRecordsRadius
   disabled?: boolean
   onSave: (value: unknown) => Promise<void>
@@ -484,7 +504,7 @@ function EditableFieldValue({
           <SelectGroup>
             {column.options.map((option) => (
               <SelectItem key={option} value={option}>
-                <span className={enumPillClasses(option, column.options!)}>{option}</span>
+                <span className={enumPillClasses(option, column.options!, enumColorMap)}>{option}</span>
               </SelectItem>
             ))}
           </SelectGroup>

@@ -27,9 +27,16 @@ export function enumColor(optionValue: string, options: string[]) {
   return ENUM_PALETTE[i];
 }
 
-export function enumPillClasses(optionValue: string, options: string[]): string {
-  const c = enumColor(optionValue, options);
-  return `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${c.bg} ${c.text}`;
+export type EnumColorEntry = { bg: string; text: string }
+export type EnumColorMap = Record<string, EnumColorEntry>
+
+export function enumPillClasses(optionValue: string, options: string[], colorMap?: EnumColorMap): string {
+  if (colorMap?.[optionValue]) {
+    const c = colorMap[optionValue]
+    return `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${c.bg} ${c.text}`
+  }
+  const c = enumColor(optionValue, options)
+  return `inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${c.bg} ${c.text}`
 }
 
 const TYPE_TINTS: Record<string, { bg: string; text: string }> = {

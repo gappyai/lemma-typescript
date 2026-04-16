@@ -2002,6 +2002,15 @@ class FilesNamespace {
                 return this.client.request(() => FilesService_js_1.FilesService.fileFolderCreate(this.podId(), payload));
             },
         };
+        this.converted = {
+            get: (path) => this.client.request(() => FilesService_js_1.FilesService.fileConvertedGet(this.podId(), path)),
+            render: (path) => this.client.request(() => FilesService_js_1.FilesService.fileConvertedRender(this.podId(), path)),
+            download: (path, artifact = "document.md") => {
+                const encodedPath = encodeURIComponent(path);
+                const encodedArtifact = encodeURIComponent(artifact);
+                return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/converted/download?path=${encodedPath}&artifact=${encodedArtifact}`);
+            },
+        };
     }
     list(options = {}) {
         const directoryPath = options.directoryPath ?? options.parentId ?? "/";
@@ -2023,6 +2032,9 @@ class FilesNamespace {
     download(path) {
         const encodedPath = encodeURIComponent(path);
         return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/download?path=${encodedPath}`);
+    }
+    tree(options = {}) {
+        return this.client.request(() => FilesService_js_1.FilesService.fileTree(this.podId(), options.rootPath ?? "/", options.filesPerDirectory ?? 3));
     }
     upload(file, options = {}) {
         const payload = {

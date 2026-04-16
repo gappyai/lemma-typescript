@@ -49,6 +49,20 @@ export type {
   UsePodAccessOptions,
   UsePodAccessResult,
 } from "./usePodAccess.js";
+export { useFiles } from "./useFiles.js";
+export type { UseFilesOptions, UseFilesResult } from "./useFiles.js";
+export { useFile } from "./useFile.js";
+export type { UseFileOptions, UseFileResult } from "./useFile.js";
+export { useFileSearch } from "./useFileSearch.js";
+export type { UseFileSearchOptions, UseFileSearchResult } from "./useFileSearch.js";
+export { useFileTree } from "./useFileTree.js";
+export type { UseFileTreeOptions, UseFileTreeResult } from "./useFileTree.js";
+export { useFilePreview } from "./useFilePreview.js";
+export type {
+  FilePreviewMode,
+  UseFilePreviewOptions,
+  UseFilePreviewResult,
+} from "./useFilePreview.js";
 export { useTables } from "./useTables.js";
 export type { UseTablesOptions, UseTablesResult } from "./useTables.js";
 export { useTable } from "./useTable.js";

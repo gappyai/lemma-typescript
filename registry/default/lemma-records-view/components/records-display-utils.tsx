@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import type { ColumnSchema } from "lemma-sdk"
-import { enumPillClasses, isSystemField } from "./records-enum-utils"
+import { enumPillClasses, isSystemField, type EnumColorMap } from "./records-enum-utils"
 
 export type ForeignKeyLabelMap = Record<string, Record<string, string>>
 
@@ -46,6 +46,7 @@ export function formatRecordFieldValue(
   value: unknown,
   column?: ColumnSchema,
   foreignKeyLabelMap?: ForeignKeyLabelMap,
+  enumColorMap?: EnumColorMap,
 ): React.ReactNode {
   if (value == null || value === "") return "—"
 
@@ -56,7 +57,7 @@ export function formatRecordFieldValue(
   }
 
   if (column?.type === "ENUM" && column.options?.length) {
-    return <span className={enumPillClasses(text, column.options)}>{text}</span>
+    return <span className={enumPillClasses(text, column.options, enumColorMap)}>{text}</span>
   }
 
   if (column?.type === "BOOLEAN") return value ? "Yes" : "No"

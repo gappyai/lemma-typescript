@@ -13,6 +13,7 @@ import {
   type RecordDetailTab,
   type RecordDetailVariant,
 } from "./records-detail"
+import { type EnumColorMap } from "./records-enum-utils"
 import {
   recordsRadiusClassName,
   type LemmaRecordsAppearance,
@@ -41,9 +42,11 @@ export interface DetailSheetProps {
   updateVia?: "direct" | "function"
   updateFunctionName?: string
   foreignKeyLabels?: Record<string, string>
+  enumColorMap?: EnumColorMap
   appearance?: LemmaRecordsAppearance
   density?: LemmaRecordsDensity
   radius?: LemmaRecordsRadius
+  renderFiles?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
 }
 
 export function DetailSheet({
@@ -67,9 +70,11 @@ export function DetailSheet({
   updateVia,
   updateFunctionName,
   foreignKeyLabels,
+  enumColorMap,
   appearance = "default",
   density = "comfortable",
   radius = "lg",
+  renderFiles,
 }: DetailSheetProps) {
   const content = (
     <RecordDetail
@@ -85,9 +90,11 @@ export function DetailSheet({
       updateVia={updateVia}
       updateFunctionName={updateFunctionName}
       foreignKeyLabels={foreignKeyLabels}
+      enumColorMap={enumColorMap}
       appearance={appearance}
       density={density}
       radius={radius}
+      renderFiles={renderFiles}
       onRecordChanged={onRecordChanged}
       onDelete={onDelete}
       className="h-full overflow-y-auto border-0 shadow-none"
@@ -123,7 +130,7 @@ export function DetailSheet({
       <Dialog open onOpenChange={(open) => !open && onClose()}>
         <DialogContent
           className={cn(
-            "max-h-[88vh] max-w-4xl gap-0 overflow-hidden p-0",
+            "min-w-lg max-h-[88vh] max-w-5xl gap-0 overflow-hidden p-0",
             detailOverlayClassName(appearance, radius),
           )}
         >
@@ -137,7 +144,7 @@ export function DetailSheet({
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         className={cn(
-          "w-full gap-0 overflow-hidden p-0 sm:max-w-2xl",
+          "w-full min-w-lg gap-0 overflow-hidden p-0 sm:max-w-3xl lg:max-w-4xl",
           detailOverlayClassName(appearance, radius),
         )}
       >

@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Separator } from "@/components/ui/separator"
 import { useRecordForm, useForeignKeyOptions } from "lemma-sdk/react"
 import type { LemmaClient, Table, ColumnSchema } from "lemma-sdk"
-import { typeBadgeClasses, enumPillClasses, isSystemField } from "./records-enum-utils"
+import { typeBadgeClasses, enumPillClasses, isSystemField, type EnumColorMap } from "./records-enum-utils"
 import { shortenIdentifier } from "./records-display-utils"
 import {
   recordsRadiusClassName,
@@ -35,6 +35,7 @@ interface RecordFormSheetProps {
   fieldOrder?: string[]
   fieldGroups?: Array<{ label: string; fields: string[] }>
   foreignKeyLabels?: Record<string, string>
+  enumColorMap?: EnumColorMap
   mode?: "inline" | "modal" | "sheet"
   appearance?: LemmaRecordsAppearance
   density?: LemmaRecordsDensity
@@ -55,6 +56,7 @@ export function RecordFormSheet({
   fieldOrder,
   fieldGroups,
   foreignKeyLabels,
+  enumColorMap,
   mode = "sheet",
   appearance = "default",
   density = "comfortable",
@@ -115,18 +117,19 @@ export function RecordFormSheet({
                     .map((n) => orderedFields.find((f) => f.name === n))
                     .filter((f): f is typeof orderedFields[number] => f !== undefined)
                     .map((field) => (
-                      <FormField
-                        key={field.name}
-                        field={field}
-                        value={form.values[field.name]}
-                        error={form.fieldErrors[field.name]}
-                        onChange={(v) => form.setValue(field.name, v)}
-                        client={client}
-                        podId={podId}
-                        tableName={tableName}
-                        labelField={foreignKeyLabels?.[field.name]}
-                        radius={radius}
-                      />
+                       <FormField
+                         key={field.name}
+                         field={field}
+                         value={form.values[field.name]}
+                         error={form.fieldErrors[field.name]}
+                         onChange={(v) => form.setValue(field.name, v)}
+                         client={client}
+                         podId={podId}
+                         tableName={tableName}
+                         labelField={foreignKeyLabels?.[field.name]}
+                         enumColorMap={enumColorMap}
+                         radius={radius}
+                       />
                     ))}
                 </div>
                 {gi < fieldGroups.length - 1 && <Separator className="mt-6 bg-border/30" />}
@@ -146,6 +149,7 @@ export function RecordFormSheet({
                 podId={podId}
                 tableName={tableName}
                 labelField={foreignKeyLabels?.[field.name]}
+                enumColorMap={enumColorMap}
                 radius={radius}
               />
             ))}
@@ -173,7 +177,7 @@ export function RecordFormSheet({
   if (mode === "sheet") {
     return (
       <Sheet open onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className={cn("w-full sm:max-w-lg p-0 gap-0", overlaySurfaceClassName(appearance, radius))}>{content}</SheetContent>
+        <SheetContent className={cn("w-full min-w-lg sm:max-w-xl lg:max-w-2xl p-0 gap-0", overlaySurfaceClassName(appearance, radius))}>{content}</SheetContent>
       </Sheet>
     )
   }
@@ -181,12 +185,12 @@ export function RecordFormSheet({
   if (mode === "modal") {
     return (
       <Dialog open onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className={cn("max-w-lg p-0 gap-0", overlaySurfaceClassName(appearance, radius))}>{content}</DialogContent>
+        <DialogContent className={cn("min-w-lg max-w-xl p-0 gap-0", overlaySurfaceClassName(appearance, radius))}>{content}</DialogContent>
       </Dialog>
     )
   }
 
-  return <div className={cn(appearance === "minimal" ? "bg-transparent" : "bg-card", overlaySurfaceClassName(appearance, radius))}>{content}</div>
+  return <div className={cn("min-w-lg", appearance === "minimal" ? "bg-transparent" : "bg-card", overlaySurfaceClassName(appearance, radius))}>{content}</div>
 }
 
 function formHeaderClassName(appearance: LemmaRecordsAppearance, density: LemmaRecordsDensity) {
@@ -230,6 +234,7 @@ function FormField({
   podId,
   tableName,
   labelField,
+  enumColorMap,
   radius,
 }: {
   field: { name: string; label: string; kind: string; column: ColumnSchema; required?: boolean; options?: string[]; foreignKey?: unknown }
@@ -240,6 +245,7 @@ function FormField({
   podId?: string
   tableName: string
   labelField?: string
+  enumColorMap?: EnumColorMap
   radius: LemmaRecordsRadius
 }) {
   const fkOptions = useForeignKeyOptions({
@@ -265,7 +271,7 @@ function FormField({
         </span>
       </div>
 
-      {renderInput(field, value, onChange, fkOptions.options, radius)}
+      {renderInput(field, value, onChange, fkOptions.options, radius, enumColorMap)}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
@@ -278,6 +284,7 @@ function renderInput(
   onChange: (v: unknown) => void,
   fkOptions: Array<{ value: unknown; label: string }>,
   radius: LemmaRecordsRadius,
+  enumColorMap?: EnumColorMap,
 ): React.ReactNode {
   const strVal = value == null ? "" : String(value)
   const placeholder = field.name.replace(/_/g, " ")
@@ -314,7 +321,7 @@ function renderInput(
           <SelectGroup>
             {field.options.map((opt) => (
               <SelectItem key={opt} value={opt}>
-                <span className={enumPillClasses(opt, field.options!)}>{opt}</span>
+                <span className={enumPillClasses(opt, field.options!, enumColorMap)}>{opt}</span>
               </SelectItem>
             ))}
           </SelectGroup>

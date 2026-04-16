@@ -9,6 +9,11 @@ import type {
   CreateAssistantRequest,
   CreateTaskRequest,
   DatastoreQueryResponse,
+  DirectoryTreeNode,
+  DirectoryTreeResponse,
+  FileResponse,
+  FileSearchResponse,
+  FileSearchResultSchema,
   FlowRunEntity,
   FlowResponse,
   FunctionRunResponse,
@@ -96,6 +101,11 @@ export type Workflow = FlowResponse;
 export type Table = TableResponse;
 export type TableColumn = ColumnSchema;
 export type DatastoreQueryResult = DatastoreQueryResponse;
+export type DatastoreFile = FileResponse;
+export type DatastoreFileSearchResponse = FileSearchResponse;
+export type DatastoreFileSearchResult = FileSearchResultSchema;
+export type DatastoreDirectoryTree = DirectoryTreeResponse;
+export type DatastoreDirectoryTreeNode = DirectoryTreeNode;
 
 export type Pod = PodResponse;
 export type PodConfig = PodConfigResponse;

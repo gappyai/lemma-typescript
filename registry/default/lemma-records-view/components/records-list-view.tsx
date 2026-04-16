@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { ColumnSchema, Table } from "lemma-sdk"
-import { isSystemField } from "./records-enum-utils"
+import { isSystemField, type EnumColorMap } from "./records-enum-utils"
 import {
   formatRecordFieldValue,
   pickPrimaryColumn,
@@ -31,6 +31,7 @@ interface ListViewProps {
   onRecordClick: (record: Record<string, unknown>) => void
   renderCard?: (record: Record<string, unknown>, columns: ColumnSchema[]) => React.ReactNode
   foreignKeyLabelMap?: ForeignKeyLabelMap
+  enumColorMap?: EnumColorMap
 }
 
 export function ListView({
@@ -42,6 +43,7 @@ export function ListView({
   onRecordClick,
   renderCard,
   foreignKeyLabelMap,
+  enumColorMap,
   appearance = "default",
   density = "comfortable",
   radius = "lg",
@@ -88,7 +90,7 @@ export function ListView({
                 />
                 <div className="min-w-0 flex-1">
                   <p className="font-medium text-sm text-foreground truncate">
-                    {formatRecordFieldValue(primaryCol ? record[primaryCol.name] : undefined, primaryCol, foreignKeyLabelMap)}
+                    {formatRecordFieldValue(primaryCol ? record[primaryCol.name] : undefined, primaryCol, foreignKeyLabelMap, enumColorMap)}
                   </p>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                     {secondaryCols.map((col) => {
@@ -97,7 +99,7 @@ export function ListView({
                       return (
                         <span key={col.name} className="text-xs text-muted-foreground">
                           <span className="font-medium">{col.name.replace(/_/g, " ")}:</span>{" "}
-                          {formatRecordFieldValue(val, col, foreignKeyLabelMap)}
+                          {formatRecordFieldValue(val, col, foreignKeyLabelMap, enumColorMap)}
                         </span>
                       )
                     })}

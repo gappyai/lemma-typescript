@@ -1,7 +1,9 @@
 import type { GeneratedClientAdapter } from "../generated.js";
 import type { HttpClient } from "../http.js";
+import type { ConvertedFileResponse } from "../openapi_client/models/ConvertedFileResponse.js";
 import type { CreateFolderRequest } from "../openapi_client/models/CreateFolderRequest.js";
 import type { DatastoreFileUploadRequest } from "../openapi_client/models/DatastoreFileUploadRequest.js";
+import type { DirectoryTreeResponse } from "../openapi_client/models/DirectoryTreeResponse.js";
 import { SearchMethod } from "../openapi_client/models/SearchMethod.js";
 import type { update } from "../openapi_client/models/update.js";
 import { FilesService } from "../openapi_client/services/FilesService.js";
@@ -76,6 +78,16 @@ export class FilesNamespace {
     return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/download?path=${encodedPath}`);
   }
 
+  tree(options: { rootPath?: string; filesPerDirectory?: number } = {}): Promise<DirectoryTreeResponse> {
+    return this.client.request(() =>
+      FilesService.fileTree(
+        this.podId(),
+        options.rootPath ?? "/",
+        options.filesPerDirectory ?? 3,
+      ),
+    );
+  }
+
   upload(
     file: Blob,
     options: {
@@ -134,6 +146,23 @@ export class FilesNamespace {
         description: options.description,
       };
       return this.client.request(() => FilesService.fileFolderCreate(this.podId(), payload));
+    },
+  };
+
+  readonly converted = {
+    get: (path: string): Promise<ConvertedFileResponse> =>
+      this.client.request(() => FilesService.fileConvertedGet(this.podId(), path)),
+
+    render: (path: string): Promise<string> =>
+      this.client.request(() => FilesService.fileConvertedRender(this.podId(), path)),
+
+    download: (path: string, artifact = "document.md"): Promise<Blob> => {
+      const encodedPath = encodeURIComponent(path);
+      const encodedArtifact = encodeURIComponent(artifact);
+      return this.http.requestBytes(
+        "GET",
+        `/pods/${this.podId()}/datastore/files/converted/download?path=${encodedPath}&artifact=${encodedArtifact}`,
+      );
     },
   };
 }

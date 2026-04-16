@@ -3,6 +3,8 @@
 import * as React from "react"
 import {
   AlertCircle,
+  ArrowDown,
+  ArrowUp,
   Database,
   Filter,
   List,
@@ -18,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   Table as DataTable,
   TableBody,
@@ -38,7 +41,7 @@ import { FilterBuilder } from "./records-filter-builder"
 import { DetailSheet } from "./records-detail-sheet"
 import { ListView } from "./records-list-view"
 import { GroupedView } from "./records-grouped-view"
-import { isSystemField, typeBadgeClasses } from "./records-enum-utils"
+import { isSystemField, typeBadgeClasses, enumPillClasses, type EnumColorMap } from "./records-enum-utils"
 import { RecordFormSheet } from "./records-form-sheet"
 import type { ForeignKeyLabelMap } from "./records-display-utils"
 import type {
@@ -69,6 +72,9 @@ export interface LemmaRecordsViewProps {
 
   visibleColumns?: string[]
   hiddenFields?: string[]
+  columnLabels?: Record<string, string>
+  showTypeHints?: boolean
+  enumColorMap?: EnumColorMap
   renderCell?: (record: Record<string, unknown>, column: ColumnSchema, value: unknown) => React.ReactNode
   renderCard?: (record: Record<string, unknown>, columns: ColumnSchema[]) => React.ReactNode
   foreignKeyLabels?: Record<string, string>
@@ -91,6 +97,7 @@ export interface LemmaRecordsViewProps {
   detailTabs?: RecordDetailTab[]
   detailRelatedRecords?: RecordDetailRelatedRecord[]
   detailEditable?: boolean
+  renderFilesTab?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
 
   onCreateOptions?: {
     submitVia?: "direct" | "function"
@@ -116,6 +123,9 @@ export function LemmaRecordsView({
   enabled = true,
   visibleColumns: visibleColumnNames,
   hiddenFields = [],
+  columnLabels,
+  showTypeHints = false,
+  enumColorMap,
   renderCell,
   renderCard,
   foreignKeyLabels,
@@ -137,6 +147,7 @@ export function LemmaRecordsView({
   detailTabs,
   detailRelatedRecords,
   detailEditable = true,
+  renderFilesTab,
   onCreateOptions,
   onUpdateOptions,
   title,
@@ -154,6 +165,8 @@ export function LemmaRecordsView({
   const [showCreateForm, setShowCreateForm] = React.useState(false)
   const [foreignKeyLabelMap, setForeignKeyLabelMap] = React.useState<ForeignKeyLabelMap>({})
   const [page, setPage] = React.useState(0)
+  const [sortField, setSortField] = React.useState<string | null>(null)
+  const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc")
   const contentRef = React.useRef<HTMLDivElement | null>(null)
   const [infiniteSentinel, setInfiniteSentinel] = React.useState<HTMLDivElement | null>(null)
 
@@ -166,6 +179,8 @@ export function LemmaRecordsView({
     podId,
     tableName,
     filters: queryFilters.length > 0 ? queryFilters : undefined,
+    sortBy: sortField ?? undefined,
+    order: sortField ? sortOrder : undefined,
     limit: pageSize,
     offset: paginationMode === "pagination" ? page * pageSize : 0,
     enabled: !!table && enabled,
@@ -226,6 +241,21 @@ export function LemmaRecordsView({
   const detailRecordIndex = detailRecord
     ? displayedRecords.findIndex((r) => getRecordId(r) === getRecordId(detailRecord))
     : -1
+
+  const handleSortColumn = (colName: string) => {
+    if (sortField === colName) {
+      if (sortOrder === "asc") {
+        setSortOrder("desc")
+      } else {
+        setSortField(null)
+        setSortOrder("asc")
+      }
+    } else {
+      setSortField(colName)
+      setSortOrder("asc")
+    }
+    setPage(0)
+  }
 
   const applyFilters = (nextFilters: RecordFilter[]) => {
     setFilters(nextFilters)
@@ -346,8 +376,15 @@ export function LemmaRecordsView({
 
   if (tableState.isLoading) {
     return (
-      <div className={cn("flex h-64 items-center justify-center", recordsSurfaceClassName(appearance, radius))}>
-        <div className="text-sm text-muted-foreground">Loading…</div>
+      <div className={cn("flex flex-col gap-4 p-6", recordsSurfaceClassName(appearance, radius))}>
+        <div className="flex items-center gap-3">
+          <Skeleton className="size-7 rounded-md" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+        <RecordsSkeletonGrid columnCount={4} rowCount={6} density={density} />
       </div>
     )
   }
@@ -511,13 +548,19 @@ export function LemmaRecordsView({
                   {resolvedColumns.map((col) => (
                     <TableHead
                       key={col.name}
-                      className={cn("px-3 text-left text-xs font-medium tracking-wide text-muted-foreground", density === "compact" ? "py-2" : density === "spacious" ? "py-3.5" : "py-2.5")}
+                      className={cn("cursor-pointer select-none px-3 text-left text-xs font-medium tracking-wide text-muted-foreground transition-colors hover:text-foreground", density === "compact" ? "py-2" : density === "spacious" ? "py-3.5" : "py-2.5")}
+                      onClick={() => handleSortColumn(col.name)}
                     >
                       <div className="flex items-center gap-1.5">
-                        <span>{col.name.replace(/_/g, " ")}</span>
-                        <span className={typeBadgeClasses(col)}>
-                          {col.foreign_key ? "ref" : col.type.toLowerCase()}
-                        </span>
+                        <span>{columnLabels?.[col.name] ?? col.name.replace(/_/g, " ")}</span>
+                        {sortField === col.name ? (
+                          sortOrder === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
+                        ) : null}
+                        {showTypeHints && (
+                          <span className={typeBadgeClasses(col)}>
+                            {col.foreign_key ? "ref" : col.type.toLowerCase()}
+                          </span>
+                        )}
                       </div>
                     </TableHead>
                   ))}
@@ -526,10 +569,7 @@ export function LemmaRecordsView({
               </TableHeader>
               <TableBody className="divide-y divide-border/20">
                 {recordsState.isLoading ? (
-                  <RecordsTableMessage colSpan={resolvedColumns.length + 2}>
-                    <RefreshCw className="size-4 animate-spin" />
-                    Loading records…
-                  </RecordsTableMessage>
+                  <RecordsSkeletonTableRows columnCount={resolvedColumns.length + 2} rowCount={8} density={density} />
                 ) : displayedRecords.length === 0 ? (
                   <RecordsTableMessage colSpan={resolvedColumns.length + 2}>
                     <EmptyRecordsState
@@ -572,6 +612,7 @@ export function LemmaRecordsView({
                                 value={record[col.name]}
                                 column={col}
                                 foreignKeyLabelMap={foreignKeyLabelMap[col.name]}
+                                enumColorMap={enumColorMap}
                                 onSave={async (newValue) => {
                                   await handleUpdateRecord(id, { [col.name]: newValue })
                                 }}
@@ -598,7 +639,7 @@ export function LemmaRecordsView({
             </DataTable>
           </div>
         ) : recordsState.isLoading ? (
-          <RecordsLoadingState radius={radius} />
+          <RecordsSkeletonList rowCount={6} density={density} radius={radius} />
         ) : displayedRecords.length === 0 && !isGroupedView ? (
           <EmptyRecordsState
             constrained={hasActiveConstraints}
@@ -617,6 +658,7 @@ export function LemmaRecordsView({
             onRecordClick={handleRecordClick}
             renderCard={renderCard}
             foreignKeyLabelMap={foreignKeyLabelMap}
+            enumColorMap={enumColorMap}
             appearance={appearance}
             density={density}
             radius={radius}
@@ -633,6 +675,7 @@ export function LemmaRecordsView({
             onRecordClick={handleRecordClick}
             renderCard={renderCard}
             foreignKeyLabelMap={foreignKeyLabelMap}
+            enumColorMap={enumColorMap}
             appearance={appearance}
             density={density}
             radius={radius}
@@ -736,9 +779,11 @@ export function LemmaRecordsView({
           hasPrevious={detailRecordIndex > 0}
           hasNext={detailRecordIndex >= 0 && detailRecordIndex < displayedRecords.length - 1}
           foreignKeyLabels={foreignKeyLabels}
+          enumColorMap={enumColorMap}
           appearance={appearance}
           density={density}
           radius={radius}
+          renderFiles={renderFilesTab}
         />
       )}
 
@@ -752,6 +797,7 @@ export function LemmaRecordsView({
           submitFunctionName={onCreateOptions?.submitFunctionName}
           hiddenFields={onCreateOptions?.hiddenFields ?? hiddenFields}
           foreignKeyLabels={foreignKeyLabels}
+          enumColorMap={enumColorMap}
           mode={createMode === "modal" ? "modal" : "sheet"}
           appearance={appearance}
           density={density}
@@ -873,13 +919,90 @@ function RecordsTableMessage({
   )
 }
 
-function RecordsLoadingState({ radius }: { radius: LemmaRecordsRadius }) {
+function RecordsSkeletonGrid({
+  columnCount,
+  rowCount,
+  density,
+}: {
+  columnCount: number
+  rowCount: number
+  density: LemmaRecordsDensity
+}) {
+  const rowH = density === "compact" ? "h-8" : density === "spacious" ? "h-12" : "h-10"
   return (
-    <div className={cn("flex min-h-64 items-center justify-center border border-border/50 bg-card", recordsRadiusClassName(radius, "surface"))}>
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <RefreshCw className="size-4 animate-spin" />
-        Loading records…
+    <div className="space-y-2">
+      <div className={cn("grid gap-2", `grid-cols-${columnCount}`)}>
+        {Array.from({ length: columnCount }).map((_, i) => (
+          <Skeleton key={i} className={cn("h-4", i === 0 ? "w-16" : i === columnCount - 1 ? "w-12" : "w-24")} />
+        ))}
       </div>
+      {Array.from({ length: rowCount }).map((_, ri) => (
+        <div key={ri} className={cn("grid gap-2 items-center", `grid-cols-${columnCount}`, rowH)}>
+          {Array.from({ length: columnCount }).map((_, ci) => (
+            <Skeleton key={ci} className={cn("h-5 rounded", ci === 0 ? "w-12" : ci % 3 === 0 ? "w-20" : "w-full")} />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RecordsSkeletonTableRows({
+  columnCount,
+  rowCount,
+  density,
+}: {
+  columnCount: number
+  rowCount: number
+  density: LemmaRecordsDensity
+}) {
+  const cellH = density === "compact" ? "h-6" : density === "spacious" ? "h-8" : "h-7"
+  return (
+    <>
+      {Array.from({ length: rowCount }).map((_, ri) => (
+        <TableRow key={ri} className="hover:bg-transparent">
+          {Array.from({ length: columnCount }).map((_, ci) => (
+            <TableCell key={ci} className="px-2 py-1">
+              <Skeleton className={cn(cellH, "w-full rounded", ci === 0 && "w-5", ci === columnCount - 1 && "w-7")} />
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
+    </>
+  )
+}
+
+function RecordsSkeletonList({
+  rowCount,
+  density,
+  radius,
+}: {
+  rowCount: number
+  density: LemmaRecordsDensity
+  radius: LemmaRecordsRadius
+}) {
+  return (
+    <div className={cn("flex flex-col", density === "compact" ? "gap-1.5" : density === "spacious" ? "gap-3" : "gap-2")}>
+      {Array.from({ length: rowCount }).map((_, i) => (
+        <div
+          key={i}
+          className={cn(
+            "flex items-start gap-3 border border-border/30 bg-card",
+            recordsRadiusClassName(radius, "surface"),
+            density === "compact" ? "p-3" : density === "spacious" ? "p-5" : "p-4",
+          )}
+        >
+          <Skeleton className="size-4 mt-1 rounded" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-2/5" />
+            <div className="flex gap-3">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-12" />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
