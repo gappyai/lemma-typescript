@@ -166,29 +166,6 @@ export class DesksService {
         });
     }
     /**
-     * Get Desk HTML
-     * @param podId
-     * @param deskName
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    public static deskHtmlGet(
-        podId: string,
-        deskName: string,
-    ): CancelablePromise<any> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/desks/{desk_name}/html',
-            path: {
-                'pod_id': podId,
-                'desk_name': deskName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Download Desk Source Archive
      * @param podId
      * @param deskName
@@ -202,6 +179,29 @@ export class DesksService {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/desks/{desk_name}/source/archive',
+            path: {
+                'pod_id': podId,
+                'desk_name': deskName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Download Desk Dist Archive
+     * @param podId
+     * @param deskName
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deskDistArchiveGet(
+        podId: string,
+        deskName: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/desks/{desk_name}/dist/archive',
             path: {
                 'pod_id': podId,
                 'desk_name': deskName,

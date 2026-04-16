@@ -28,9 +28,9 @@ export class DesksNamespace {
     return this.client.request(() => DesksService.deskDelete(this.podId(), name));
   }
 
-  readonly html = {
-    get: (name: string): Promise<string> =>
-      this.client.request(() => DesksService.deskHtmlGet(this.podId(), name)),
+  readonly assets = {
+    get: (name: string, path?: string): Promise<string> =>
+      this.http.request("GET", `/pods/${this.podId()}/desks/${name}/assets${path ? `/${path.replace(/^\/+/, "")}` : ""}`),
   };
 
   readonly bundle = {
@@ -41,5 +41,10 @@ export class DesksNamespace {
   readonly source = {
     download: (name: string): Promise<Blob> =>
       this.http.requestBytes("GET", `/pods/${this.podId()}/desks/${name}/source/archive`),
+  };
+
+  readonly dist = {
+    download: (name: string): Promise<Blob> =>
+      this.http.requestBytes("GET", `/pods/${this.podId()}/desks/${name}/dist/archive`),
   };
 }

@@ -7,17 +7,17 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class PublicDesksService {
     /**
-     * Get public desk HTML by slug host
+     * Get public desk asset by slug host
      * @param xDeskPublicSlug
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static deskHtmlPublicSlugGet(
+    public static deskAssetPublicSlugGet(
         xDeskPublicSlug?: (string | null),
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/public/desks/html',
+            url: '/public/desks',
             headers: {
                 'x-desk-public-slug': xDeskPublicSlug,
             },

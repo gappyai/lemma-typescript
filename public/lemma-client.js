@@ -1742,14 +1742,17 @@ class DesksNamespace {
         this.client = client;
         this.http = http;
         this.podId = podId;
-        this.html = {
-            get: (name) => this.client.request(() => DesksService_js_1.DesksService.deskHtmlGet(this.podId(), name)),
+        this.assets = {
+            get: (name, path) => this.http.request("GET", `/pods/${this.podId()}/desks/${name}/assets${path ? `/${path.replace(/^\/+/, "")}` : ""}`),
         };
         this.bundle = {
             upload: (name, payload) => this.client.request(() => DesksService_js_1.DesksService.deskBundleUpload(this.podId(), name, payload)),
         };
         this.source = {
             download: (name) => this.http.requestBytes("GET", `/pods/${this.podId()}/desks/${name}/source/archive`),
+        };
+        this.dist = {
+            download: (name) => this.http.requestBytes("GET", `/pods/${this.podId()}/desks/${name}/dist/archive`),
         };
     }
     list(options = {}) {
@@ -1910,26 +1913,6 @@ class DesksService {
         });
     }
     /**
-     * Get Desk HTML
-     * @param podId
-     * @param deskName
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    static deskHtmlGet(podId, deskName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/desks/{desk_name}/html',
-            path: {
-                'pod_id': podId,
-                'desk_name': deskName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Download Desk Source Archive
      * @param podId
      * @param deskName
@@ -1940,6 +1923,26 @@ class DesksService {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/desks/{desk_name}/source/archive',
+            path: {
+                'pod_id': podId,
+                'desk_name': deskName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Download Desk Dist Archive
+     * @param podId
+     * @param deskName
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static deskDistArchiveGet(podId, deskName) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/desks/{desk_name}/dist/archive',
             path: {
                 'pod_id': podId,
                 'desk_name': deskName,
