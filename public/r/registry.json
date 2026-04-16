@@ -168,6 +168,7 @@
         "separator",
         "sheet",
         "table",
+        "tabs",
         "textarea"
       ],
       "files": [
@@ -182,6 +183,11 @@
           "target": "components/lemma/records-display-utils.tsx"
         },
         {
+          "path": "registry/default/lemma-records-view/components/records-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/records-style-utils.ts"
+        },
+        {
           "path": "registry/default/lemma-records-view/components/records-editable-cell.tsx",
           "type": "registry:component",
           "target": "components/lemma/records-editable-cell.tsx"
@@ -190,6 +196,11 @@
           "path": "registry/default/lemma-records-view/components/records-filter-builder.tsx",
           "type": "registry:component",
           "target": "components/lemma/records-filter-builder.tsx"
+        },
+        {
+          "path": "registry/default/lemma-records-view/components/records-detail.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/records-detail.tsx"
         },
         {
           "path": "registry/default/lemma-records-view/components/records-detail-sheet.tsx",

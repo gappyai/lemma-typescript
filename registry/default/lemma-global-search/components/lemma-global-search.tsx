@@ -37,6 +37,7 @@ type SearchSourceStatus = "idle" | "loading" | "success" | "empty" | "error"
 export type LemmaGlobalSearchOpenMode = "navigate" | "new-tab" | "callback" | "none"
 export type LemmaGlobalSearchAppearance = "default" | "minimal" | "borderless" | "contained"
 export type LemmaGlobalSearchDensity = "compact" | "comfortable" | "spacious"
+export type LemmaGlobalSearchRadius = "none" | "sm" | "md" | "lg" | "xl"
 
 export interface LemmaGlobalSearchResultSummary {
   key: string
@@ -111,6 +112,7 @@ export interface LemmaGlobalSearchProps {
   triggerLabel?: string
   appearance?: LemmaGlobalSearchAppearance
   density?: LemmaGlobalSearchDensity
+  radius?: LemmaGlobalSearchRadius
   className?: string
   dialogClassName?: string
 }
@@ -157,6 +159,7 @@ export function LemmaGlobalSearch({
   triggerLabel = "Search",
   appearance = "default",
   density = "comfortable",
+  radius = "lg",
   className,
   dialogClassName,
 }: LemmaGlobalSearchProps) {
@@ -475,7 +478,7 @@ export function LemmaGlobalSearch({
         type="button"
         variant={triggerVariant(appearance)}
         size="sm"
-        className={cn(triggerClassName(appearance), className)}
+        className={cn(triggerClassName(appearance, radius), className)}
         onClick={() => setOpen(true)}
         disabled={!enabled}
       >
@@ -483,13 +486,13 @@ export function LemmaGlobalSearch({
           <Search data-icon="inline-start" />
           <span className="truncate">{triggerLabel}</span>
         </span>
-        <span className="rounded-md border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground">
+        <span className={cn("border border-border/70 bg-muted/60 px-1.5 py-0.5 text-[11px] text-muted-foreground", searchRadiusClassName(radius, "control"))}>
           {shortcutLabel}
         </span>
       </Button>
 
       <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent showCloseButton={false} className={cn(dialogClassNameFor(appearance), dialogClassName)}>
+        <DialogContent showCloseButton={false} className={cn(dialogClassNameFor(appearance, radius), dialogClassName)}>
           <div className="sr-only">
             <DialogTitle>Global search</DialogTitle>
             <DialogDescription>Search across records and files.</DialogDescription>
@@ -520,6 +523,7 @@ export function LemmaGlobalSearch({
             {!trimmedQuery ? (
               <EmptyPanel
                 appearance={appearance}
+                radius={radius}
                 title="Start typing to search"
                 description={`Search starts after ${minQueryLength} characters and streams results source by source.`}
               />
@@ -528,6 +532,7 @@ export function LemmaGlobalSearch({
             {showTypeHint ? (
               <EmptyPanel
                 appearance={appearance}
+                radius={radius}
                 title="Keep typing to search"
                 description={`Enter at least ${minQueryLength} characters to search across your configured tables and files.`}
               />
@@ -536,6 +541,7 @@ export function LemmaGlobalSearch({
             {!showTypeHint && trimmedQuery && !hasResults && isLoading ? (
               <SearchLoadingPanel
                 appearance={appearance}
+                radius={radius}
                 states={sourceStates}
               />
             ) : null}
@@ -543,6 +549,7 @@ export function LemmaGlobalSearch({
             {!showTypeHint && !isLoading && hasSourceErrors && !hasResults ? (
               <EmptyPanel
                 appearance={appearance}
+                radius={radius}
                 icon={AlertCircle}
                 title="Search unavailable"
                 description={firstSourceError ?? "One or more search sources failed."}
@@ -552,6 +559,7 @@ export function LemmaGlobalSearch({
             {!showTypeHint && !isLoading && !hasSourceErrors && hasValidQuery && !hasResults ? (
               <EmptyPanel
                 appearance={appearance}
+                radius={radius}
                 title="No results"
                 description="Try a broader name, email, status, or filename."
               />
@@ -584,12 +592,12 @@ export function LemmaGlobalSearch({
                             key={item.key}
                             type="button"
                             variant={isActive ? "secondary" : "ghost"}
-                            className={cn(resultRowClassName(density), "mb-1 h-auto w-full justify-start rounded-xl text-left")}
+                            className={cn(resultRowClassName(density), "mb-1 h-auto w-full justify-start text-left", searchRadiusClassName(radius, "surface"))}
                             onMouseEnter={() => setActiveIndex(itemIndex)}
                             onClick={() => void handleSelect(item)}
                           >
                             <span className="flex w-full items-start gap-3">
-                              <span className={cn(iconShellClassName(appearance), "flex size-9 shrink-0 items-center justify-center rounded-lg")}>
+                              <span className={cn(iconShellClassName(appearance), "flex size-9 shrink-0 items-center justify-center", searchRadiusClassName(radius, "control"))}>
                                 <Icon className="size-4 text-muted-foreground" />
                               </span>
                               <span className="min-w-0 flex-1">
@@ -624,7 +632,7 @@ export function LemmaGlobalSearch({
             ) : null}
 
             {sourceProgressStates.length > 0 ? (
-              <SourceStatusRows states={sourceProgressStates} appearance={appearance} />
+              <SourceStatusRows states={sourceProgressStates} appearance={appearance} radius={radius} />
             ) : null}
           </div>
 
@@ -673,9 +681,11 @@ export function LemmaGlobalSearch({
 function SourceStatusRows({
   states,
   appearance,
+  radius,
 }: {
   states: SearchSourceState[]
   appearance: LemmaGlobalSearchAppearance
+  radius: LemmaGlobalSearchRadius
 }) {
   return (
     <div className={cn("flex flex-col gap-1 px-4 py-3", appearance === "borderless" ? "border-t-0" : "border-t border-border/60")}>
@@ -685,7 +695,7 @@ function SourceStatusRows({
         const isError = source.status === "error"
 
         return (
-          <div key={source.key} className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-xs text-muted-foreground">
+          <div key={source.key} className={cn("flex items-center justify-between gap-3 px-2 py-1.5 text-xs text-muted-foreground", searchRadiusClassName(radius, "control"))}>
             <span className="flex min-w-0 items-center gap-2">
               {isLoading ? (
                 <Loader2 className="size-3.5 shrink-0 animate-spin" />
@@ -712,16 +722,18 @@ function EmptyPanel({
   icon: Icon = Search,
   iconClassName,
   appearance,
+  radius,
 }: {
   title: string
   description: string
   icon?: ResultIcon
   iconClassName?: string
   appearance: LemmaGlobalSearchAppearance
+  radius: LemmaGlobalSearchRadius
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 px-6 py-14 text-center">
-      <div className={cn(iconShellClassName(appearance), "flex size-11 items-center justify-center rounded-full")}>
+      <div className={cn(iconShellClassName(appearance), "flex size-11 items-center justify-center", searchRadiusClassName(radius, "pill"))}>
         <Icon className={cn("size-4 text-muted-foreground", iconClassName)} />
       </div>
       <div className="flex flex-col gap-1">
@@ -734,9 +746,11 @@ function EmptyPanel({
 
 function SearchLoadingPanel({
   appearance,
+  radius,
   states,
 }: {
   appearance: LemmaGlobalSearchAppearance
+  radius: LemmaGlobalSearchRadius
   states: SearchSourceState[]
 }) {
   const activeSource = states.find((source) => source.status === "loading")
@@ -744,7 +758,7 @@ function SearchLoadingPanel({
   return (
     <div className="flex flex-col gap-4 px-6 py-12">
       <div className="mx-auto flex max-w-md flex-col items-center gap-3 text-center">
-        <div className={cn(iconShellClassName(appearance), "flex size-11 items-center justify-center rounded-full")}>
+        <div className={cn(iconShellClassName(appearance), "flex size-11 items-center justify-center", searchRadiusClassName(radius, "pill"))}>
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
         </div>
         <div className="flex flex-col gap-1">
@@ -758,10 +772,11 @@ function SearchLoadingPanel({
       </div>
       <div className="mx-auto grid w-full max-w-xl gap-2">
         {[0, 1, 2].map((item) => (
-          <div key={item} className="overflow-hidden rounded-xl bg-muted/35">
+          <div key={item} className={cn("overflow-hidden bg-muted/35", searchRadiusClassName(radius, "surface"))}>
             <div
               className={cn(
-                "h-10 animate-pulse rounded-xl bg-muted",
+                "h-10 animate-pulse bg-muted",
+                searchRadiusClassName(radius, "surface"),
                 item === 0 ? "w-11/12" : item === 1 ? "w-2/3" : "w-5/6",
               )}
             />
@@ -1026,17 +1041,19 @@ function triggerVariant(appearance: LemmaGlobalSearchAppearance) {
   return appearance === "minimal" || appearance === "borderless" ? "ghost" : "outline"
 }
 
-function triggerClassName(appearance: LemmaGlobalSearchAppearance) {
+function triggerClassName(appearance: LemmaGlobalSearchAppearance, radius: LemmaGlobalSearchRadius) {
   return cn(
     "w-full justify-between gap-3 md:w-[22rem]",
+    searchRadiusClassName(radius, "control"),
     appearance === "minimal" ? "border-transparent bg-transparent shadow-none hover:bg-muted/40" : null,
     appearance === "borderless" ? "border-transparent bg-transparent shadow-none" : null,
   )
 }
 
-function dialogClassNameFor(appearance: LemmaGlobalSearchAppearance) {
+function dialogClassNameFor(appearance: LemmaGlobalSearchAppearance, radius: LemmaGlobalSearchRadius) {
   return cn(
     "max-w-4xl gap-0 overflow-hidden p-0 sm:max-w-3xl",
+    searchRadiusClassName(radius, "overlay"),
     appearance === "minimal" ? "border-transparent bg-background/95 shadow-none ring-1 ring-border/15" : null,
     appearance === "borderless" ? "border-transparent shadow-2xl ring-0" : null,
     appearance === "contained" ? "border-border/80 bg-card shadow-xl" : null,
@@ -1056,4 +1073,15 @@ function iconShellClassName(appearance: LemmaGlobalSearchAppearance) {
     appearance === "minimal" ? "border-transparent bg-muted/25" : null,
     appearance === "contained" ? "bg-background" : null,
   )
+}
+
+function searchRadiusClassName(
+  radius: LemmaGlobalSearchRadius = "lg",
+  target: "surface" | "control" | "pill" | "overlay" = "surface",
+) {
+  if (radius === "none") return "rounded-none"
+  if (radius === "sm") return target === "surface" || target === "overlay" ? "rounded-md" : "rounded-sm"
+  if (radius === "md") return target === "surface" || target === "overlay" ? "rounded-lg" : "rounded-md"
+  if (radius === "xl") return target === "pill" ? "rounded-full" : target === "control" ? "rounded-xl" : "rounded-2xl"
+  return target === "pill" ? "rounded-full" : target === "control" ? "rounded-lg" : "rounded-xl"
 }

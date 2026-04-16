@@ -112,7 +112,11 @@ export function useRecords<TRecord extends Record<string, unknown> = Record<stri
   ]);
 
   const loadMore = useCallback(async (overrides: Partial<ListRecordsOptions> = {}): Promise<TRecord[]> => {
-    if (!isEnabled || !nextPageToken || isLoading || isLoadingMore) {
+    const loadedCount = records.length;
+    const canLoadWithCursor = Boolean(nextPageToken);
+    const canLoadWithOffset = loadedCount < total;
+
+    if (!isEnabled || isLoading || isLoadingMore || (!canLoadWithCursor && !canLoadWithOffset)) {
       return [];
     }
 
@@ -125,15 +129,15 @@ export function useRecords<TRecord extends Record<string, unknown> = Record<stri
         filters: stableFilters,
         sort: stableSort,
         limit: overrides.limit ?? limit,
-        pageToken: nextPageToken,
-        offset: overrides.offset,
+        pageToken: overrides.pageToken ?? nextPageToken ?? undefined,
+        offset: overrides.offset ?? (nextPageToken ? undefined : (offset ?? 0) + loadedCount),
         sortBy: overrides.sortBy ?? sortBy,
         order: overrides.order ?? order,
         params: overrides.params ?? stableParams,
       });
       const moreRecords = (response.items ?? []) as TRecord[];
       setRecords((previous) => [...previous, ...moreRecords]);
-      setTotal((response as { total?: number }).total ?? records.length + moreRecords.length);
+      setTotal((response as { total?: number }).total ?? loadedCount + moreRecords.length);
       setNextPageToken(response.next_page_token ?? null);
       return moreRecords;
     } catch (loadError) {
@@ -143,7 +147,7 @@ export function useRecords<TRecord extends Record<string, unknown> = Record<stri
     } finally {
       setIsLoadingMore(false);
     }
-  }, [client, isEnabled, isLoading, isLoadingMore, limit, nextPageToken, offset, order, podId, records.length, sortBy, stableFilters, stableParams, stableSort, trimmedTableName]);
+  }, [client, isEnabled, isLoading, isLoadingMore, limit, nextPageToken, offset, order, podId, records.length, sortBy, stableFilters, stableParams, stableSort, total, trimmedTableName]);
 
   useEffect(() => {
     if (!isEnabled) {

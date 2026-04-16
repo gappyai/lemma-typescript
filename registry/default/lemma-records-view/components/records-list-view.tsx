@@ -12,13 +12,20 @@ import {
   pickSecondaryColumns,
   type ForeignKeyLabelMap,
 } from "./records-display-utils"
+import {
+  recordsRadiusClassName,
+  type LemmaRecordsAppearance,
+  type LemmaRecordsDensity,
+  type LemmaRecordsRadius,
+} from "./records-style-utils"
 
 interface ListViewProps {
   records: Record<string, unknown>[]
   table: Table
   visibleColumns?: ColumnSchema[]
-  appearance?: "default" | "minimal" | "borderless" | "contained"
-  density?: "compact" | "comfortable" | "spacious"
+  appearance?: LemmaRecordsAppearance
+  density?: LemmaRecordsDensity
+  radius?: LemmaRecordsRadius
   selectedRecords: Set<string>
   onSelectRecord: (id: string) => void
   onRecordClick: (record: Record<string, unknown>) => void
@@ -37,6 +44,7 @@ export function ListView({
   foreignKeyLabelMap,
   appearance = "default",
   density = "comfortable",
+  radius = "lg",
 }: ListViewProps) {
   const pk = table.primary_key_column || "id"
   const columns = visibleColumns ?? table.columns.filter((c) => !isSystemField(c))
@@ -65,6 +73,7 @@ export function ListView({
                   ? "shadow-none ring-primary/25"
                   : "bg-transparent shadow-none ring-0 hover:bg-muted/30"
               ),
+              recordsRadiusClassName(radius, "surface"),
             )}
           >
             {renderCard ? (

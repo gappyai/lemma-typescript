@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 
 export type LemmaRecordFormAppearance = "default" | "minimal" | "borderless" | "contained"
 export type LemmaRecordFormDensity = "compact" | "comfortable" | "spacious"
+export type LemmaRecordFormRadius = "none" | "sm" | "md" | "lg" | "xl"
 
 export interface LemmaRecordFormProps {
   client: LemmaClient
@@ -27,6 +28,7 @@ export interface LemmaRecordFormProps {
   mode?: "inline" | "modal" | "sheet"
   appearance?: LemmaRecordFormAppearance
   density?: LemmaRecordFormDensity
+  radius?: LemmaRecordFormRadius
   submitVia?: "direct" | "function"
   submitFunctionName?: string
   submitFunctionInput?: (payload: Record<string, unknown>) => Record<string, unknown>
@@ -49,6 +51,7 @@ export function LemmaRecordForm({
   mode = "inline",
   appearance = "default",
   density = "comfortable",
+  radius = "lg",
   submitVia = "direct",
   submitFunctionName,
   submitFunctionInput,
@@ -137,6 +140,7 @@ export function LemmaRecordForm({
                         podId={podId}
                         tableName={tableName}
                         labelField={foreignKeyLabels?.[field.name]}
+                        radius={radius}
                       />
                     ))}
                 </div>
@@ -162,6 +166,7 @@ export function LemmaRecordForm({
                 podId={podId}
                 tableName={tableName}
                 labelField={foreignKeyLabels?.[field.name]}
+                radius={radius}
               />
             ))}
           </div>
@@ -196,7 +201,7 @@ export function LemmaRecordForm({
   if (mode === "sheet") {
     return (
       <Sheet open onOpenChange={(open) => !open && onClose?.()}>
-        <SheetContent className={cn("w-full sm:max-w-lg p-0 gap-0", formSurfaceClassName(appearance))}>{inner}</SheetContent>
+        <SheetContent className={cn("w-full sm:max-w-lg p-0 gap-0", formSurfaceClassName(appearance, radius))}>{inner}</SheetContent>
       </Sheet>
     )
   }
@@ -204,12 +209,12 @@ export function LemmaRecordForm({
   if (mode === "modal") {
     return (
       <Dialog open onOpenChange={(open) => !open && onClose?.()}>
-        <DialogContent className={cn("max-w-lg p-0 gap-0", formSurfaceClassName(appearance))}>{inner}</DialogContent>
+        <DialogContent className={cn("max-w-lg p-0 gap-0", formSurfaceClassName(appearance, radius))}>{inner}</DialogContent>
       </Dialog>
     )
   }
 
-  return <div className={cn(appearance === "minimal" ? "rounded-xl bg-transparent" : "rounded-xl bg-card", formSurfaceClassName(appearance))}>{inner}</div>
+  return <div className={cn(appearance === "minimal" ? "bg-transparent" : "bg-card", formSurfaceClassName(appearance, radius))}>{inner}</div>
 }
 
 function formHeaderClassName(appearance: LemmaRecordFormAppearance, density: LemmaRecordFormDensity) {
@@ -236,11 +241,12 @@ function formFooterClassName(appearance: LemmaRecordFormAppearance, density: Lem
   )
 }
 
-function formSurfaceClassName(appearance: LemmaRecordFormAppearance) {
-  if (appearance === "borderless") return "border-0 shadow-none ring-0"
-  if (appearance === "minimal") return "border-0 shadow-none ring-0"
-  if (appearance === "contained") return "border border-border/70 shadow-sm"
-  return "border border-border/50"
+function formSurfaceClassName(appearance: LemmaRecordFormAppearance, radius: LemmaRecordFormRadius) {
+  const radiusClassName = formRadiusClassName(radius, "surface")
+  if (appearance === "borderless") return cn(radiusClassName, "border-0 shadow-none ring-0")
+  if (appearance === "minimal") return cn(radiusClassName, "border-0 shadow-none ring-0")
+  if (appearance === "contained") return cn(radiusClassName, "border border-border/70 shadow-sm")
+  return cn(radiusClassName, "border border-border/50")
 }
 
 function FormField({
@@ -257,6 +263,7 @@ function FormField({
   podId,
   tableName,
   labelField,
+  radius,
 }: {
   name: string
   label: string
@@ -271,6 +278,7 @@ function FormField({
   podId?: string
   tableName: string
   labelField?: string
+  radius: LemmaRecordFormRadius
 }) {
   const fkOptions = useForeignKeyOptions({
     client,
@@ -307,14 +315,14 @@ function FormField({
           {displayLabel}
           {required && <span className="ml-0.5 text-destructive">*</span>}
         </Label>
-        <span className={`rounded-full border border-border/50 ${tint.bg} px-1.5 py-0.5 text-[9px] font-medium normal-case ${tint.text}`}>
+        <span className={cn(`border border-border/50 ${tint.bg} px-1.5 py-0.5 text-[9px] font-medium normal-case ${tint.text}`, formRadiusClassName(radius, "pill"))}>
           {column.foreign_key ? "ref" : column.type.toLowerCase()}
         </span>
       </div>
 
       {kind === "foreign-key" ? (
         <Select value={String(value ?? "")} onValueChange={(v) => onChange(v)}>
-          <SelectTrigger className="h-9">
+          <SelectTrigger className={cn("h-9", formRadiusClassName(radius, "control"))}>
             <SelectValue placeholder="Select…">
               {selectedForeignKeyLabel ?? (strVal ? shortenIdentifier(strVal) : undefined)}
             </SelectValue>
@@ -331,7 +339,7 @@ function FormField({
         </Select>
       ) : kind === "select" && options?.length ? (
         <Select value={strVal || undefined} onValueChange={(v) => onChange(v)}>
-          <SelectTrigger className="h-9">
+          <SelectTrigger className={cn("h-9", formRadiusClassName(radius, "control"))}>
             <SelectValue placeholder="Select…" />
           </SelectTrigger>
           <SelectContent>
@@ -352,35 +360,35 @@ function FormField({
           value={strVal}
           onChange={(e) => onChange(e.target.value)}
           rows={3}
-          className="resize-none border-border bg-background placeholder:text-muted-foreground focus-ring"
+          className={cn("resize-none border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
         />
       ) : kind === "number" ? (
         <Input
           type="number"
           value={strVal}
           onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-          className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+          className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
         />
       ) : kind === "date" ? (
         <Input
           type="date"
           value={strVal}
           onChange={(e) => onChange(e.target.value || null)}
-          className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+          className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
         />
       ) : kind === "datetime" ? (
         <Input
           type="datetime-local"
           value={strVal}
           onChange={(e) => onChange(e.target.value || null)}
-          className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+          className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
         />
       ) : kind === "json" ? (
         <Textarea
           value={strVal}
           onChange={(e) => onChange(e.target.value)}
           rows={4}
-          className="font-mono text-xs resize-none border-border bg-background placeholder:text-muted-foreground focus-ring"
+          className={cn("font-mono text-xs resize-none border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
           placeholder="{}"
         />
       ) : (
@@ -388,7 +396,7 @@ function FormField({
           type="text"
           value={strVal}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+          className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
           placeholder={displayLabel}
         />
       )}
@@ -405,4 +413,15 @@ function shortenIdentifier(value: unknown): string {
     return `${text.slice(0, 8)}…${text.slice(-4)}`
   }
   return text.length > 28 ? `${text.slice(0, 24)}…` : text
+}
+
+function formRadiusClassName(
+  radius: LemmaRecordFormRadius = "lg",
+  target: "surface" | "control" | "pill" = "surface",
+): string {
+  if (radius === "none") return "rounded-none"
+  if (radius === "sm") return target === "surface" ? "rounded-md" : "rounded-sm"
+  if (radius === "md") return "rounded-md"
+  if (radius === "xl") return target === "surface" ? "rounded-2xl" : target === "control" ? "rounded-xl" : "rounded-full"
+  return target === "surface" ? "rounded-xl" : target === "control" ? "rounded-lg" : "rounded-full"
 }

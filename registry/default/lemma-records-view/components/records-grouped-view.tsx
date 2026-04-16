@@ -12,13 +12,20 @@ import {
   pickSecondaryColumns,
   type ForeignKeyLabelMap,
 } from "./records-display-utils"
+import {
+  recordsRadiusClassName,
+  type LemmaRecordsAppearance,
+  type LemmaRecordsDensity,
+  type LemmaRecordsRadius,
+} from "./records-style-utils"
 
 interface GroupedViewProps {
   records: Record<string, unknown>[]
   groupByColumn: ColumnSchema
   layout?: "kanban" | "linear"
-  appearance?: "default" | "minimal" | "borderless" | "contained"
-  density?: "compact" | "comfortable" | "spacious"
+  appearance?: LemmaRecordsAppearance
+  density?: LemmaRecordsDensity
+  radius?: LemmaRecordsRadius
   primaryKey: string
   visibleColumns: ColumnSchema[]
   selectedRecords: Set<string>
@@ -34,6 +41,7 @@ export function GroupedView({
   layout = "kanban",
   appearance = "default",
   density = "comfortable",
+  radius = "lg",
   primaryKey,
   visibleColumns,
   selectedRecords,
@@ -86,7 +94,8 @@ export function GroupedView({
 
   const sectionClass = layout === "kanban"
     ? cn(
-        "flex max-h-full shrink-0 flex-col rounded-xl",
+        "flex max-h-full shrink-0 flex-col",
+        recordsRadiusClassName(radius, "surface"),
         density === "compact" ? "w-72" : density === "spacious" ? "w-96" : "w-80",
         appearance === "minimal"
           ? "border-0 bg-transparent"
@@ -95,7 +104,8 @@ export function GroupedView({
             : "border border-border/50 bg-muted/20",
       )
     : cn(
-        "flex min-w-0 flex-col rounded-xl",
+        "flex min-w-0 flex-col",
+        recordsRadiusClassName(radius, "surface"),
         appearance === "minimal"
           ? "border-0 bg-transparent"
           : appearance === "borderless"
@@ -116,17 +126,17 @@ export function GroupedView({
                 {group.label}
               </span>
             ) : (
-              <span className="inline-flex items-center rounded-full border border-border/50 bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">
+              <span className={cn("inline-flex items-center border border-border/50 bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground", recordsRadiusClassName(radius, "pill"))}>
                 {group.label}
               </span>
             )}
-            <span className="rounded-full bg-background px-2 py-0.5 text-xs text-muted-foreground ring-1 ring-border/50">
+            <span className={cn("bg-background px-2 py-0.5 text-xs text-muted-foreground ring-1 ring-border/50", recordsRadiusClassName(radius, "pill"))}>
               {group.records.length}
             </span>
           </div>
           <div className={cn("flex flex-col", density === "compact" ? "gap-1.5 p-1.5" : density === "spacious" ? "gap-3 p-3" : "gap-2 p-2", layout === "kanban" && "overflow-y-auto")}>
             {group.records.length === 0 && (
-              <div className={cn("rounded-lg px-3 py-6 text-center text-xs text-muted-foreground", appearance === "minimal" ? "border border-dashed border-border/25 bg-transparent" : "border border-dashed border-border/60 bg-background/40")}>
+              <div className={cn("px-3 py-6 text-center text-xs text-muted-foreground", recordsRadiusClassName(radius, "surface"), appearance === "minimal" ? "border border-dashed border-border/25 bg-transparent" : "border border-dashed border-border/60 bg-background/40")}>
                 No records
               </div>
             )}
@@ -148,6 +158,7 @@ export function GroupedView({
                           ? "shadow-none ring-primary/25"
                           : "bg-transparent shadow-none ring-0 hover:bg-muted/30"
                       ),
+                      recordsRadiusClassName(radius, "surface"),
                     )}
                   >
                     <CardContent>{renderCard(record, visibleColumns)}</CardContent>
@@ -168,6 +179,7 @@ export function GroupedView({
                         ? "shadow-none ring-primary/25"
                         : "bg-transparent shadow-none ring-0 hover:bg-muted/30"
                     ),
+                    recordsRadiusClassName(radius, "surface"),
                   )}
                 >
                   <CardContent className={cn("flex gap-2", layout === "kanban" ? "flex-col" : "items-center", density === "compact" ? "py-2" : density === "spacious" ? "py-4" : null)}>
@@ -189,7 +201,7 @@ export function GroupedView({
                         return (
                           <span
                             key={col.name}
-                            className="max-w-full truncate rounded-md bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground"
+                            className={cn("max-w-full truncate bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground", recordsRadiusClassName(radius, "control"))}
                           >
                             {formatRecordFieldValue(v, col, foreignKeyLabelMap)}
                           </span>

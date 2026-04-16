@@ -72,6 +72,8 @@ export interface ChartCardDef {
   height?: number
 }
 
+export type LemmaInsightsRadius = "none" | "sm" | "md" | "lg" | "xl"
+
 export interface LemmaInsightsProps {
   client: LemmaClient
   podId?: string
@@ -80,6 +82,7 @@ export interface LemmaInsightsProps {
   columns?: 1 | 2 | 3 | 4
   appearance?: "default" | "minimal" | "borderless" | "contained"
   density?: "compact" | "comfortable" | "spacious"
+  radius?: LemmaInsightsRadius
   className?: string
 }
 
@@ -91,17 +94,18 @@ export function LemmaInsights({
   columns = 4,
   appearance = "default",
   density = "comfortable",
+  radius = "lg",
   className,
 }: LemmaInsightsProps) {
   const gridCols = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4" }[columns]
   const gapClassName = density === "compact" ? "gap-2" : density === "spacious" ? "gap-5" : "gap-4"
 
   return (
-    <div data-appearance={appearance} data-density={density} className={cn("flex flex-col", density === "compact" ? "gap-4" : density === "spacious" ? "gap-7" : "gap-6", className)}>
+    <div data-appearance={appearance} data-density={density} data-radius={radius} className={cn("flex flex-col", density === "compact" ? "gap-4" : density === "spacious" ? "gap-7" : "gap-6", className)}>
       {stats.length > 0 && (
         <div className={cn("grid", gridCols, gapClassName)}>
           {stats.map((def, i) => (
-            <StatCard key={i} def={def} client={client} podId={podId} appearance={appearance} density={density} />
+            <StatCard key={i} def={def} client={client} podId={podId} appearance={appearance} density={density} radius={radius} />
           ))}
         </div>
       )}
@@ -109,7 +113,7 @@ export function LemmaInsights({
       {charts.length > 0 && (
         <div className={cn("grid grid-cols-1 lg:grid-cols-2", gapClassName)}>
           {charts.map((def, i) => (
-            <ChartCard key={i} def={def} client={client} podId={podId} appearance={appearance} density={density} />
+            <ChartCard key={i} def={def} client={client} podId={podId} appearance={appearance} density={density} radius={radius} />
           ))}
         </div>
       )}
@@ -123,12 +127,14 @@ function StatCard({
   podId,
   appearance,
   density,
+  radius,
 }: {
   def: StatCardDef
   client: LemmaClient
   podId?: string
   appearance: NonNullable<LemmaInsightsProps["appearance"]>
   density: NonNullable<LemmaInsightsProps["density"]>
+  radius: LemmaInsightsRadius
 }) {
   const { source, title, format, trend, trendLabel } = def
 
@@ -190,7 +196,7 @@ function StatCard({
         : "text-muted-foreground"
 
   return (
-    <Card className={insightCardClassName(appearance)}>
+    <Card className={insightCardClassName(appearance, radius)}>
       <CardHeader className={cn("flex flex-row items-center justify-between", density === "compact" ? "px-3 pb-1 pt-3" : density === "spacious" ? "px-5 pb-3 pt-5" : "px-4 pb-2 pt-4")}>
         <CardTitle className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
           {title}
@@ -217,12 +223,14 @@ function ChartCard({
   podId,
   appearance,
   density,
+  radius,
 }: {
   def: ChartCardDef
   client: LemmaClient
   podId?: string
   appearance: NonNullable<LemmaInsightsProps["appearance"]>
   density: NonNullable<LemmaInsightsProps["density"]>
+  radius: LemmaInsightsRadius
 }) {
   const { source, title, height = 300 } = def
 
@@ -257,7 +265,7 @@ function ChartCard({
   const data = isTableSource ? aggregateChartData(recordsState.records, source) : fnData
 
   return (
-    <Card className={insightCardClassName(appearance)}>
+    <Card className={insightCardClassName(appearance, radius)}>
       <CardHeader className={density === "compact" ? "px-3 pb-1 pt-3" : density === "spacious" ? "px-5 pb-3 pt-5" : "px-4 pb-2 pt-4"}>
         <CardTitle className="text-sm font-semibold tracking-tight text-foreground">
           {title}
@@ -327,11 +335,20 @@ function ChartCard({
   )
 }
 
-function insightCardClassName(appearance: NonNullable<LemmaInsightsProps["appearance"]>) {
-  if (appearance === "borderless") return "border-0 shadow-none ring-0"
-  if (appearance === "minimal") return "border-0 bg-transparent shadow-none ring-0"
-  if (appearance === "contained") return "border-border/70 shadow-sm"
-  return "border-border/50"
+function insightCardClassName(appearance: NonNullable<LemmaInsightsProps["appearance"]>, radius: LemmaInsightsRadius) {
+  const radiusClassName = insightRadiusClassName(radius)
+  if (appearance === "borderless") return cn(radiusClassName, "border-0 shadow-none ring-0")
+  if (appearance === "minimal") return cn(radiusClassName, "border-0 bg-transparent shadow-none ring-0")
+  if (appearance === "contained") return cn(radiusClassName, "border-border/70 shadow-sm")
+  return cn(radiusClassName, "border-border/50")
+}
+
+function insightRadiusClassName(radius: LemmaInsightsRadius = "lg") {
+  if (radius === "none") return "rounded-none"
+  if (radius === "sm") return "rounded-md"
+  if (radius === "md") return "rounded-lg"
+  if (radius === "xl") return "rounded-2xl"
+  return "rounded-xl"
 }
 
 function aggregateChartData(

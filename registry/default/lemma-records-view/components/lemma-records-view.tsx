@@ -41,13 +41,25 @@ import { GroupedView } from "./records-grouped-view"
 import { isSystemField, typeBadgeClasses } from "./records-enum-utils"
 import { RecordFormSheet } from "./records-form-sheet"
 import type { ForeignKeyLabelMap } from "./records-display-utils"
+import type {
+  RecordDetailRelatedRecord,
+  RecordDetailTab,
+  RecordDetailVariant,
+} from "./records-detail"
+import {
+  recordsRadiusClassName,
+  type LemmaRecordsAppearance,
+  type LemmaRecordsDensity,
+  type LemmaRecordsRadius,
+} from "./records-style-utils"
+
+export type { LemmaRecordsAppearance, LemmaRecordsDensity, LemmaRecordsRadius } from "./records-style-utils"
 
 type ViewMode = "grid" | "list" | "grouped" | "kanban" | "linear"
 type ResolvedViewMode = "grid" | "list" | "kanban" | "linear"
 type CreateMode = "sheet" | "modal" | "page"
-type DetailMode = "sheet" | "page"
-export type LemmaRecordsAppearance = "default" | "minimal" | "borderless" | "contained"
-export type LemmaRecordsDensity = "compact" | "comfortable" | "spacious"
+type DetailMode = "sheet" | "modal" | "page"
+type PaginationMode = "pagination" | "load-more" | "infinite"
 
 export interface LemmaRecordsViewProps {
   client: LemmaClient
@@ -66,13 +78,19 @@ export interface LemmaRecordsViewProps {
   defaultView?: ViewMode
   appearance?: LemmaRecordsAppearance
   density?: LemmaRecordsDensity
+  radius?: LemmaRecordsRadius
   groupBy?: string
   defaultFilters?: RecordFilter[]
   pageSize?: number
+  paginationMode?: PaginationMode
   createMode?: CreateMode
   createRoute?: string | (() => string)
   detailMode?: DetailMode
   detailRoute?: (record: Record<string, unknown>) => string
+  detailVariant?: RecordDetailVariant
+  detailTabs?: RecordDetailTab[]
+  detailRelatedRecords?: RecordDetailRelatedRecord[]
+  detailEditable?: boolean
 
   onCreateOptions?: {
     submitVia?: "direct" | "function"
@@ -106,13 +124,19 @@ export function LemmaRecordsView({
   defaultView = "grid",
   appearance = "default",
   density = "comfortable",
+  radius = "lg",
   groupBy: groupByProp,
   defaultFilters = [],
   pageSize = 50,
+  paginationMode = "pagination",
   createMode = "sheet",
   createRoute,
   detailMode = "sheet",
   detailRoute,
+  detailVariant = "workspace",
+  detailTabs,
+  detailRelatedRecords,
+  detailEditable = true,
   onCreateOptions,
   onUpdateOptions,
   title,
@@ -130,6 +154,8 @@ export function LemmaRecordsView({
   const [showCreateForm, setShowCreateForm] = React.useState(false)
   const [foreignKeyLabelMap, setForeignKeyLabelMap] = React.useState<ForeignKeyLabelMap>({})
   const [page, setPage] = React.useState(0)
+  const contentRef = React.useRef<HTMLDivElement | null>(null)
+  const [infiniteSentinel, setInfiniteSentinel] = React.useState<HTMLDivElement | null>(null)
 
   const tableState = useTable({ client, podId, tableName, enabled })
   const table = tableState.table
@@ -141,7 +167,7 @@ export function LemmaRecordsView({
     tableName,
     filters: queryFilters.length > 0 ? queryFilters : undefined,
     limit: pageSize,
-    offset: page * pageSize,
+    offset: paginationMode === "pagination" ? page * pageSize : 0,
     enabled: !!table && enabled,
   })
 
@@ -195,6 +221,8 @@ export function LemmaRecordsView({
   const pageStart = total === 0 ? 0 : page * pageSize + 1
   const pageEnd = Math.min(page * pageSize + records.length, total)
   const isGroupedView = (viewMode === "kanban" || viewMode === "linear") && !!groupByColumn
+  const canLoadMore = records.length < total || !!recordsState.nextPageToken
+  const progressivePagination = paginationMode === "load-more" || paginationMode === "infinite"
   const detailRecordIndex = detailRecord
     ? displayedRecords.findIndex((r) => getRecordId(r) === getRecordId(detailRecord))
     : -1
@@ -249,6 +277,35 @@ export function LemmaRecordsView({
     setDetailRecord(record)
   }
 
+  const handleLoadMore = React.useCallback(async () => {
+    if (!canLoadMore || recordsState.isLoading || recordsState.isLoadingMore) return
+    await recordsState.loadMore()
+  }, [canLoadMore, recordsState])
+
+  React.useEffect(() => {
+    if (paginationMode !== "infinite") return
+    if (!infiniteSentinel || !canLoadMore || recordsState.isLoading || recordsState.isLoadingMore) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          void handleLoadMore()
+        }
+      },
+      { root: contentRef.current, rootMargin: "320px 0px" },
+    )
+
+    observer.observe(infiniteSentinel)
+    return () => observer.disconnect()
+  }, [
+    canLoadMore,
+    handleLoadMore,
+    infiniteSentinel,
+    paginationMode,
+    recordsState.isLoading,
+    recordsState.isLoadingMore,
+  ])
+
   const handleCreateClick = () => {
     if (createMode === "page" && createRoute) {
       navigateTo(typeof createRoute === "function" ? createRoute() : createRoute)
@@ -289,7 +346,7 @@ export function LemmaRecordsView({
 
   if (tableState.isLoading) {
     return (
-      <div className={cn("flex h-64 items-center justify-center", recordsSurfaceClassName(appearance))}>
+      <div className={cn("flex h-64 items-center justify-center", recordsSurfaceClassName(appearance, radius))}>
         <div className="text-sm text-muted-foreground">Loading…</div>
       </div>
     )
@@ -297,7 +354,7 @@ export function LemmaRecordsView({
 
   if (!table) {
     return (
-      <div className={cn("flex h-64 flex-col items-center justify-center px-6 text-center", recordsSurfaceClassName(appearance, true))}>
+      <div className={cn("flex h-64 flex-col items-center justify-center px-6 text-center", recordsSurfaceClassName(appearance, radius, true))}>
         <p className="text-lg font-semibold text-foreground">Table not found</p>
         <p className="mt-1 text-sm text-muted-foreground">The table &quot;{tableName}&quot; could not be loaded.</p>
       </div>
@@ -308,6 +365,7 @@ export function LemmaRecordsView({
     <div
       data-appearance={appearance}
       data-density={density}
+      data-radius={radius}
       className={cn("lemma-records-view flex h-full min-h-0 flex-col", recordsRootClassName(appearance), className)}
     >
       {foreignKeyColumns.map((column) => (
@@ -326,7 +384,7 @@ export function LemmaRecordsView({
         <div className={cn("flex flex-col lg:flex-row lg:items-center lg:justify-between", recordsToolbarClassName(density))}>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <span className="flex size-7 items-center justify-center rounded-md border border-border/50 bg-muted/40 text-muted-foreground">
+              <span className={cn("flex size-7 items-center justify-center border border-border/50 bg-muted/40 text-muted-foreground", recordsRadiusClassName(radius, "control"))}>
                 <Database className="size-3.5" />
               </span>
               <div className="min-w-0">
@@ -347,13 +405,13 @@ export function LemmaRecordsView({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="h-8 w-full pl-8 pr-8 text-xs sm:w-56"
+                className={cn("h-8 w-full pl-8 pr-8 text-xs sm:w-56", recordsRadiusClassName(radius, "control"))}
               />
               {search && (
                 <button
                   type="button"
                   onClick={clearSearch}
-                  className="absolute right-2 top-1/2 flex size-4 -translate-y-1/2 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className={cn("absolute right-2 top-1/2 flex size-4 -translate-y-1/2 items-center justify-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground", recordsRadiusClassName(radius, "control"))}
                 >
                   <X className="size-3" />
                   <span className="sr-only">Clear search</span>
@@ -363,7 +421,7 @@ export function LemmaRecordsView({
 
             <div className={cn("mx-1 h-5 w-px bg-border/50", appearance === "borderless" && "hidden")} />
 
-            <ViewModeToggle mode={viewMode} onChange={setViewMode} hasGroupBy={!!groupByColumn} />
+            <ViewModeToggle mode={viewMode} onChange={setViewMode} hasGroupBy={!!groupByColumn} radius={radius} />
 
             <Button
               variant="ghost"
@@ -435,11 +493,11 @@ export function LemmaRecordsView({
         </div>
       )}
 
-      <div className={cn("flex-1 overflow-auto", recordsContentClassName(density))}>
+      <div ref={contentRef} className={cn("flex-1 overflow-auto", recordsContentClassName(density))}>
         {recordsState.error ? (
-          <RecordsErrorState error={recordsState.error} onRetry={() => recordsState.refresh()} />
+          <RecordsErrorState error={recordsState.error} radius={radius} onRetry={() => recordsState.refresh()} />
         ) : viewMode === "grid" ? (
-          <div className={cn("overflow-auto", recordsSurfaceClassName(appearance))}>
+          <div className={cn("overflow-auto", recordsSurfaceClassName(appearance, radius))}>
             <DataTable className="min-w-full table-fixed">
               <TableHeader className={cn("sticky top-0 z-10 backdrop-blur-md", appearance === "minimal" || appearance === "borderless" ? "border-b border-border/15 bg-background/80" : "border-b border-border/30 bg-card/95")}>
                 <TableRow className="hover:bg-transparent">
@@ -477,6 +535,7 @@ export function LemmaRecordsView({
                     <EmptyRecordsState
                       constrained={hasActiveConstraints}
                       emptyState={emptyState}
+                      radius={radius}
                       onClear={hasActiveConstraints ? clearAllConstraints : undefined}
                       onCreate={handleCreateClick}
                     />
@@ -539,11 +598,12 @@ export function LemmaRecordsView({
             </DataTable>
           </div>
         ) : recordsState.isLoading ? (
-          <RecordsLoadingState />
+          <RecordsLoadingState radius={radius} />
         ) : displayedRecords.length === 0 && !isGroupedView ? (
           <EmptyRecordsState
             constrained={hasActiveConstraints}
             emptyState={emptyState}
+            radius={radius}
             onClear={hasActiveConstraints ? clearAllConstraints : undefined}
             onCreate={handleCreateClick}
           />
@@ -559,6 +619,7 @@ export function LemmaRecordsView({
             foreignKeyLabelMap={foreignKeyLabelMap}
             appearance={appearance}
             density={density}
+            radius={radius}
           />
         ) : (viewMode === "kanban" || viewMode === "linear") && groupByColumn ? (
           <GroupedView
@@ -574,36 +635,60 @@ export function LemmaRecordsView({
             foreignKeyLabelMap={foreignKeyLabelMap}
             appearance={appearance}
             density={density}
+            radius={radius}
           />
+        ) : null}
+
+        {paginationMode === "infinite" && !recordsState.isLoading ? (
+          <div ref={setInfiniteSentinel} className="h-px" />
         ) : null}
       </div>
 
       <div className={cn("shrink-0 px-4", recordsFooterClassName(appearance, density))}>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>
-            {hasSearch
+            {progressivePagination
+              ? hasSearch
+                ? `Showing ${displayedRecords.length} matching loaded record(s)`
+                : `Loaded ${records.length} of ${total}`
+              : hasSearch
               ? `Showing ${displayedRecords.length} matching record(s) on this page`
               : `Showing ${pageStart}–${pageEnd} of ${total}`}
           </span>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setPage(Math.max(0, page - 1))}
-              disabled={page === 0}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setPage(page + 1)}
-              disabled={page * pageSize + records.length >= total}
-            >
-              Next
-            </Button>
+            {progressivePagination ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => void handleLoadMore()}
+                disabled={!canLoadMore || recordsState.isLoadingMore}
+              >
+                {recordsState.isLoadingMore ? <RefreshCw className="mr-1.5 size-3 animate-spin" /> : null}
+                {canLoadMore ? "Load more" : "All loaded"}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setPage(Math.max(0, page - 1))}
+                  disabled={page === 0}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setPage(page + 1)}
+                  disabled={page * pageSize + records.length >= total}
+                >
+                  Next
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -623,6 +708,12 @@ export function LemmaRecordsView({
           table={table}
           client={client}
           podId={podId}
+          mode={detailMode === "modal" ? "modal" : "sheet"}
+          variant={detailVariant}
+          tabs={detailTabs}
+          relatedRecords={detailRelatedRecords}
+          editable={detailEditable}
+          hiddenFields={hiddenFields}
           onClose={() => setDetailRecord(null)}
           onRecordChanged={() => recordsState.refresh()}
           updateVia={onUpdateOptions?.updateVia}
@@ -647,6 +738,7 @@ export function LemmaRecordsView({
           foreignKeyLabels={foreignKeyLabels}
           appearance={appearance}
           density={density}
+          radius={radius}
         />
       )}
 
@@ -663,6 +755,7 @@ export function LemmaRecordsView({
           mode={createMode === "modal" ? "modal" : "sheet"}
           appearance={appearance}
           density={density}
+          radius={radius}
           onClose={() => setShowCreateForm(false)}
           onSuccess={() => {
             setShowCreateForm(false)
@@ -780,9 +873,9 @@ function RecordsTableMessage({
   )
 }
 
-function RecordsLoadingState() {
+function RecordsLoadingState({ radius }: { radius: LemmaRecordsRadius }) {
   return (
-    <div className="flex min-h-64 items-center justify-center rounded-xl border border-border/50 bg-card">
+    <div className={cn("flex min-h-64 items-center justify-center border border-border/50 bg-card", recordsRadiusClassName(radius, "surface"))}>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <RefreshCw className="size-4 animate-spin" />
         Loading records…
@@ -791,10 +884,10 @@ function RecordsLoadingState() {
   )
 }
 
-function RecordsErrorState({ error, onRetry }: { error: Error; onRetry: () => void }) {
+function RecordsErrorState({ error, radius, onRetry }: { error: Error; radius: LemmaRecordsRadius; onRetry: () => void }) {
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-6 text-center">
-      <div className="flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+    <div className={cn("flex min-h-64 flex-col items-center justify-center gap-3 border border-destructive/30 bg-destructive/5 px-6 text-center", recordsRadiusClassName(radius, "surface"))}>
+      <div className={cn("flex size-10 items-center justify-center bg-destructive/10 text-destructive", recordsRadiusClassName(radius, "pill"))}>
         <AlertCircle className="size-5" />
       </div>
       <div>
@@ -812,19 +905,21 @@ function RecordsErrorState({ error, onRetry }: { error: Error; onRetry: () => vo
 function EmptyRecordsState({
   constrained,
   emptyState,
+  radius,
   onClear,
   onCreate,
 }: {
   constrained: boolean
   emptyState?: React.ReactNode
+  radius: LemmaRecordsRadius
   onClear?: () => void
   onCreate: () => void
 }) {
   if (!constrained && emptyState) return <>{emptyState}</>
 
   return (
-    <div className="flex min-h-64 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border bg-card/60 px-6 text-center">
-      <div className="flex size-10 items-center justify-center rounded-full border border-border/60 bg-muted/40 text-muted-foreground">
+    <div className={cn("flex min-h-64 flex-col items-center justify-center gap-3 border border-dashed border-border bg-card/60 px-6 text-center", recordsRadiusClassName(radius, "surface"))}>
+      <div className={cn("flex size-10 items-center justify-center border border-border/60 bg-muted/40 text-muted-foreground", recordsRadiusClassName(radius, "pill"))}>
         <Database className="size-5" />
       </div>
       <div>
@@ -874,17 +969,20 @@ function ViewModeToggle({
   mode,
   onChange,
   hasGroupBy,
+  radius,
 }: {
   mode: ResolvedViewMode
   onChange: (m: ResolvedViewMode) => void
   hasGroupBy: boolean
+  radius: LemmaRecordsRadius
 }) {
   return (
-    <div className="flex items-center gap-0.5 rounded-lg border border-border/50 bg-muted/30 p-0.5">
+    <div className={cn("flex items-center gap-0.5 border border-border/50 bg-muted/30 p-0.5", recordsRadiusClassName(radius, "control"))}>
       <button
         onClick={() => onChange("grid")}
         className={cn(
-          "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
+          "flex items-center gap-1.5 px-2 py-1 text-xs transition-colors",
+          recordsRadiusClassName(radius, "control"),
           mode === "grid"
             ? "bg-card text-foreground shadow-sm"
             : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
@@ -896,7 +994,8 @@ function ViewModeToggle({
       <button
         onClick={() => onChange("list")}
         className={cn(
-          "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
+          "flex items-center gap-1.5 px-2 py-1 text-xs transition-colors",
+          recordsRadiusClassName(radius, "control"),
           mode === "list"
             ? "bg-card text-foreground shadow-sm"
             : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
@@ -910,7 +1009,8 @@ function ViewModeToggle({
           <button
             onClick={() => onChange("kanban")}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
+              "flex items-center gap-1.5 px-2 py-1 text-xs transition-colors",
+              recordsRadiusClassName(radius, "control"),
               mode === "kanban"
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
@@ -922,7 +1022,8 @@ function ViewModeToggle({
           <button
             onClick={() => onChange("linear")}
             className={cn(
-              "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
+              "flex items-center gap-1.5 px-2 py-1 text-xs transition-colors",
+              recordsRadiusClassName(radius, "control"),
               mode === "linear"
                 ? "bg-card text-foreground shadow-sm"
                 : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
@@ -979,16 +1080,18 @@ function recordsFloatingClassName(appearance: LemmaRecordsAppearance) {
   return "border border-border/50 bg-card/95"
 }
 
-function recordsSurfaceClassName(appearance: LemmaRecordsAppearance, dashed = false) {
+function recordsSurfaceClassName(appearance: LemmaRecordsAppearance, radius: LemmaRecordsRadius, dashed = false) {
   if (appearance === "minimal") {
     return cn(
-      "rounded-xl bg-transparent shadow-none",
+      "bg-transparent shadow-none",
+      recordsRadiusClassName(radius, "surface"),
       dashed ? "border border-dashed border-border/25" : "border-0 ring-0",
     )
   }
 
   return cn(
-    "rounded-xl bg-card",
+    "bg-card",
+    recordsRadiusClassName(radius, "surface"),
     dashed ? "border-dashed" : null,
     appearance === "borderless" ? "border-0 shadow-none" : null,
     appearance === "contained" ? "border border-border/70 shadow-sm" : null,

@@ -15,6 +15,12 @@ import { useRecordForm, useForeignKeyOptions } from "lemma-sdk/react"
 import type { LemmaClient, Table, ColumnSchema } from "lemma-sdk"
 import { typeBadgeClasses, enumPillClasses, isSystemField } from "./records-enum-utils"
 import { shortenIdentifier } from "./records-display-utils"
+import {
+  recordsRadiusClassName,
+  type LemmaRecordsAppearance,
+  type LemmaRecordsDensity,
+  type LemmaRecordsRadius,
+} from "./records-style-utils"
 import { cn } from "@/lib/utils"
 
 interface RecordFormSheetProps {
@@ -30,8 +36,9 @@ interface RecordFormSheetProps {
   fieldGroups?: Array<{ label: string; fields: string[] }>
   foreignKeyLabels?: Record<string, string>
   mode?: "inline" | "modal" | "sheet"
-  appearance?: "default" | "minimal" | "borderless" | "contained"
-  density?: "compact" | "comfortable" | "spacious"
+  appearance?: LemmaRecordsAppearance
+  density?: LemmaRecordsDensity
+  radius?: LemmaRecordsRadius
   onClose: () => void
   onSuccess: () => void
 }
@@ -51,6 +58,7 @@ export function RecordFormSheet({
   mode = "sheet",
   appearance = "default",
   density = "comfortable",
+  radius = "lg",
   onClose,
   onSuccess,
 }: RecordFormSheetProps) {
@@ -117,6 +125,7 @@ export function RecordFormSheet({
                         podId={podId}
                         tableName={tableName}
                         labelField={foreignKeyLabels?.[field.name]}
+                        radius={radius}
                       />
                     ))}
                 </div>
@@ -137,6 +146,7 @@ export function RecordFormSheet({
                 podId={podId}
                 tableName={tableName}
                 labelField={foreignKeyLabels?.[field.name]}
+                radius={radius}
               />
             ))}
           </div>
@@ -163,7 +173,7 @@ export function RecordFormSheet({
   if (mode === "sheet") {
     return (
       <Sheet open onOpenChange={(open) => !open && onClose()}>
-        <SheetContent className={cn("w-full sm:max-w-lg p-0 gap-0", overlaySurfaceClassName(appearance))}>{content}</SheetContent>
+        <SheetContent className={cn("w-full sm:max-w-lg p-0 gap-0", overlaySurfaceClassName(appearance, radius))}>{content}</SheetContent>
       </Sheet>
     )
   }
@@ -171,28 +181,28 @@ export function RecordFormSheet({
   if (mode === "modal") {
     return (
       <Dialog open onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className={cn("max-w-lg p-0 gap-0", overlaySurfaceClassName(appearance))}>{content}</DialogContent>
+        <DialogContent className={cn("max-w-lg p-0 gap-0", overlaySurfaceClassName(appearance, radius))}>{content}</DialogContent>
       </Dialog>
     )
   }
 
-  return <div className={cn(appearance === "minimal" ? "rounded-xl bg-transparent" : "rounded-xl bg-card", overlaySurfaceClassName(appearance))}>{content}</div>
+  return <div className={cn(appearance === "minimal" ? "bg-transparent" : "bg-card", overlaySurfaceClassName(appearance, radius))}>{content}</div>
 }
 
-function formHeaderClassName(appearance: "default" | "minimal" | "borderless" | "contained", density: "compact" | "comfortable" | "spacious") {
+function formHeaderClassName(appearance: LemmaRecordsAppearance, density: LemmaRecordsDensity) {
   return cn(
     appearance === "borderless" ? "border-b-0" : appearance === "minimal" ? "border-b border-border/15" : "border-b border-border/50",
     density === "compact" ? "px-4 py-3" : density === "spacious" ? "px-7 py-5" : "px-6 py-4",
   )
 }
 
-function formBodyClassName(density: "compact" | "comfortable" | "spacious") {
+function formBodyClassName(density: LemmaRecordsDensity) {
   if (density === "compact") return "px-4 py-3"
   if (density === "spacious") return "px-7 py-6"
   return "px-6 py-4"
 }
 
-function formFooterClassName(appearance: "default" | "minimal" | "borderless" | "contained", density: "compact" | "comfortable" | "spacious") {
+function formFooterClassName(appearance: LemmaRecordsAppearance, density: LemmaRecordsDensity) {
   return cn(
     appearance === "borderless"
       ? "border-t-0 bg-transparent"
@@ -203,11 +213,12 @@ function formFooterClassName(appearance: "default" | "minimal" | "borderless" | 
   )
 }
 
-function overlaySurfaceClassName(appearance: "default" | "minimal" | "borderless" | "contained") {
-  if (appearance === "borderless") return "border-0 shadow-xl ring-0"
-  if (appearance === "minimal") return "border-0 shadow-none ring-0"
-  if (appearance === "contained") return "border-border/70 shadow-xl"
-  return "border-border/50"
+function overlaySurfaceClassName(appearance: LemmaRecordsAppearance, radius: LemmaRecordsRadius) {
+  const radiusClassName = recordsRadiusClassName(radius, "overlay")
+  if (appearance === "borderless") return cn(radiusClassName, "border-0 shadow-xl ring-0")
+  if (appearance === "minimal") return cn(radiusClassName, "border-0 shadow-none ring-0")
+  if (appearance === "contained") return cn(radiusClassName, "border-border/70 shadow-xl")
+  return cn(radiusClassName, "border-border/50")
 }
 
 function FormField({
@@ -219,6 +230,7 @@ function FormField({
   podId,
   tableName,
   labelField,
+  radius,
 }: {
   field: { name: string; label: string; kind: string; column: ColumnSchema; required?: boolean; options?: string[]; foreignKey?: unknown }
   value: unknown
@@ -228,6 +240,7 @@ function FormField({
   podId?: string
   tableName: string
   labelField?: string
+  radius: LemmaRecordsRadius
 }) {
   const fkOptions = useForeignKeyOptions({
     client,
@@ -252,7 +265,7 @@ function FormField({
         </span>
       </div>
 
-      {renderInput(field, value, onChange, fkOptions.options)}
+      {renderInput(field, value, onChange, fkOptions.options, radius)}
 
       {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
@@ -264,6 +277,7 @@ function renderInput(
   value: unknown,
   onChange: (v: unknown) => void,
   fkOptions: Array<{ value: unknown; label: string }>,
+  radius: LemmaRecordsRadius,
 ): React.ReactNode {
   const strVal = value == null ? "" : String(value)
   const placeholder = field.name.replace(/_/g, " ")
@@ -272,7 +286,7 @@ function renderInput(
     const selectedLabel = fkOptions.find((opt) => String(opt.value) === strVal)?.label
     return (
       <Select value={String(value ?? "")} onValueChange={(v) => onChange(v)}>
-        <SelectTrigger className="h-9">
+        <SelectTrigger className={cn("h-9", recordsRadiusClassName(radius, "control"))}>
           <SelectValue placeholder="Select…">
             {selectedLabel ?? (strVal ? shortenIdentifier(strVal) : undefined)}
           </SelectValue>
@@ -293,7 +307,7 @@ function renderInput(
   if (field.kind === "select" && field.options?.length) {
     return (
       <Select value={strVal || undefined} onValueChange={(v) => onChange(v)}>
-        <SelectTrigger className="h-9">
+        <SelectTrigger className={cn("h-9", recordsRadiusClassName(radius, "control"))}>
           <SelectValue placeholder="Select…" />
         </SelectTrigger>
         <SelectContent>
@@ -324,7 +338,7 @@ function renderInput(
         value={strVal}
         onChange={(e) => onChange(e.target.value)}
         rows={3}
-        className="resize-none border-border bg-background placeholder:text-muted-foreground focus-ring"
+        className={cn("resize-none border-border bg-background placeholder:text-muted-foreground focus-ring", recordsRadiusClassName(radius, "control"))}
       />
     )
   }
@@ -335,7 +349,7 @@ function renderInput(
         type="number"
         value={strVal}
         onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-        className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+        className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", recordsRadiusClassName(radius, "control"))}
       />
     )
   }
@@ -346,7 +360,7 @@ function renderInput(
         type="date"
         value={strVal}
         onChange={(e) => onChange(e.target.value || null)}
-        className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+        className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", recordsRadiusClassName(radius, "control"))}
       />
     )
   }
@@ -357,7 +371,7 @@ function renderInput(
         type="datetime-local"
         value={strVal}
         onChange={(e) => onChange(e.target.value || null)}
-        className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+        className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", recordsRadiusClassName(radius, "control"))}
       />
     )
   }
@@ -368,7 +382,7 @@ function renderInput(
         value={strVal}
         onChange={(e) => onChange(e.target.value)}
         rows={4}
-        className="font-mono text-xs resize-none border-border bg-background placeholder:text-muted-foreground focus-ring"
+        className={cn("font-mono text-xs resize-none border-border bg-background placeholder:text-muted-foreground focus-ring", recordsRadiusClassName(radius, "control"))}
         placeholder="{}"
       />
     )
@@ -379,7 +393,7 @@ function renderInput(
       type="text"
       value={strVal}
       onChange={(e) => onChange(e.target.value)}
-      className="h-9 border-border bg-background placeholder:text-muted-foreground focus-ring"
+        className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", recordsRadiusClassName(radius, "control"))}
       placeholder={placeholder}
     />
   )
