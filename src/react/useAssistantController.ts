@@ -743,7 +743,6 @@ export function useAssistantController({
   enabled = true,
 }: UseAssistantControllerOptions): UseAssistantControllerResult {
   const [localError, setLocalError] = useState<string | null>(null);
-  const [messages, setMessages] = useState<AssistantRenderableMessage[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [availableModels, setAvailableModels] = useState<AvailableModelInfo[]>([]);
@@ -758,6 +757,8 @@ export function useAssistantController({
 
   const activeConversationIdRef = useRef<string | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
+  const isStreamingRef = useRef(false);
+  const sessionIsStreamingRef = useRef(false);
   const suppressAutoSelectRef = useRef(false);
   const lastAutoLoadedConversationIdRef = useRef<string | null>(null);
   const loadingConversationIdRef = useRef<string | null>(null);
@@ -975,6 +976,14 @@ export function useAssistantController({
   }, [conversations]);
 
   useEffect(() => {
+    isStreamingRef.current = isStreaming;
+  }, [isStreaming]);
+
+  useEffect(() => {
+    sessionIsStreamingRef.current = sessionIsStreaming;
+  }, [sessionIsStreaming]);
+
+  useEffect(() => {
     if (!enabled) {
       setAvailableModels([]);
       return;
@@ -993,24 +1002,17 @@ export function useAssistantController({
     };
   }, [enabled, loadAvailableModels]);
 
-  useEffect(() => {
-    const conversationId = activeConversationIdRef.current;
-    if (!conversationId) {
-      setMessages([]);
-      return;
-    }
+  const messages = useMemo(() => {
+    if (!activeConversationId) return [];
 
     const normalized = sortMessagesByCreatedAt(runtimeMessages as AssistantApiConversationMessage[])
-      .filter((message) => message.conversation_id === conversationId);
-    if (normalized.length === 0) {
-      setMessages([]);
-      return;
-    }
+      .filter((message) => message.conversation_id === activeConversationId);
+    if (normalized.length === 0) return [];
 
     const nextMessages = mapConversationMessages(normalized);
     const pendingText = sessionStreamingText.trim();
     if (pendingText.length > 0) {
-      const streamingId = `streaming-${conversationId}`;
+      const streamingId = `streaming-${activeConversationId}`;
       nextMessages.push({
         id: streamingId,
         role: "assistant",
@@ -1020,8 +1022,8 @@ export function useAssistantController({
       });
     }
 
-    setMessages(nextMessages);
-  }, [runtimeMessages, sessionStreamingText]);
+    return nextMessages;
+  }, [activeConversationId, runtimeMessages, sessionStreamingText]);
 
   useEffect(() => {
     if (!activeConversationId) return;
@@ -1052,7 +1054,6 @@ export function useAssistantController({
       setAvailableModels([]);
       setConversationModelState(null);
       setConversations([]);
-      setMessages([]);
       setLocalError(null);
       setOlderMessagesCursor(null);
       setIsLoadingConversations(false);
@@ -1069,7 +1070,6 @@ export function useAssistantController({
     setActiveConversationId(null);
     setConversationModelState(null);
     setConversations([]);
-    setMessages([]);
     setLocalError(null);
     clearRuntimeMessages();
     setOlderMessagesCursor(null);
@@ -1083,7 +1083,6 @@ export function useAssistantController({
       clearRuntimeMessages();
       lastAutoLoadedConversationIdRef.current = null;
       loadingConversationIdRef.current = null;
-      setMessages([]);
       setOlderMessagesCursor(null);
       return;
     }
@@ -1127,7 +1126,7 @@ export function useAssistantController({
   }, [activeConversationId, clearRuntimeMessages, enabled]);
 
   const stop = useCallback(() => {
-    const hadActiveStream = sessionIsStreaming || isStreaming;
+    const hadActiveStream = sessionIsStreamingRef.current || isStreamingRef.current;
     sessionCancel();
     setIsStreaming(false);
     const conversationId = activeConversationIdRef.current;
@@ -1141,14 +1140,40 @@ export function useAssistantController({
       touchConversation(conversationId, { status: previousStatus });
       setLocalError((prev) => prev || (error instanceof Error ? error.message : "Failed to stop conversation"));
     });
-  }, [isStreaming, sessionCancel, sessionIsStreaming, sessionStop, touchConversation]);
+  }, [sessionCancel, sessionStop, touchConversation]);
 
   const selectConversation = useCallback((conversationId: string | null) => {
-    if (sessionIsStreaming || isStreaming) {
+    if (sessionIsStreamingRef.current || isStreamingRef.current) {
       sessionCancel();
       setIsStreaming(false);
     }
-    const wasSameConversation = conversationId && conversationId === activeConversationIdRef.current;
+
+    const currentConversationId = activeConversationIdRef.current;
+    if (conversationId && conversationId === currentConversationId) {
+      if (
+        loadingConversationIdRef.current === conversationId
+        || lastAutoLoadedConversationIdRef.current === conversationId
+      ) {
+        return;
+      }
+
+      loadingConversationIdRef.current = conversationId;
+      setLocalError(null);
+      setOlderMessagesCursor(null);
+      void loadConversationMessagesRef.current?.(conversationId)
+        .then(() => resumeIfRunningRef.current?.(conversationId))
+        .catch((error) => {
+          setLocalError((prev) => prev || (error instanceof Error ? error.message : "Failed to resume conversation"));
+        })
+        .finally(() => {
+          if (loadingConversationIdRef.current === conversationId) {
+            loadingConversationIdRef.current = null;
+          }
+          lastAutoLoadedConversationIdRef.current = conversationId;
+        });
+      return;
+    }
+
     suppressAutoSelectRef.current = conversationId === null;
     setLocalError(null);
     activeConversationIdRef.current = conversationId;
@@ -1156,16 +1181,8 @@ export function useAssistantController({
     loadingConversationIdRef.current = null;
     setOlderMessagesCursor(null);
     clearRuntimeMessages();
-    setMessages([]);
-    if (wasSameConversation) {
-      void loadConversationMessagesRef.current?.(conversationId);
-      const resumePromise = resumeIfRunningRef.current?.(conversationId);
-      void resumePromise?.catch((error) => {
-        setLocalError((prev) => prev || (error instanceof Error ? error.message : "Failed to resume conversation"));
-      });
-    }
     setActiveConversationId(conversationId);
-  }, [clearRuntimeMessages, isStreaming, sessionCancel, sessionIsStreaming]);
+  }, [clearRuntimeMessages, sessionCancel]);
 
   const resetConversationState = useCallback((keepPendingFiles = false) => {
     stop();
@@ -1176,7 +1193,6 @@ export function useAssistantController({
     loadingConversationIdRef.current = null;
     skipInitialLoadConversationIdsRef.current.clear();
     setActiveConversationId(null);
-    setMessages([]);
     setLocalError(null);
     setOlderMessagesCursor(null);
     if (!keepPendingFiles) {
@@ -1212,7 +1228,6 @@ export function useAssistantController({
     setActiveConversationId(createdConversation.id);
     setConversationModelState((createdConversation.model ?? conversationModel ?? null) as ConversationModel | null);
     clearRuntimeMessages();
-    setMessages([]);
     setOlderMessagesCursor(null);
 
     return createdConversation.id;
@@ -1384,7 +1399,7 @@ export function useAssistantController({
     return isConversationRunning(activeConversation?.status);
   }, [activeConversationId, conversations]);
 
-  return {
+  return useMemo(() => ({
     messages,
     conversations,
     activeConversationId,
@@ -1410,5 +1425,31 @@ export function useAssistantController({
     loadOlderMessages,
     clearMessages,
     stop,
-  };
+  }), [
+    activeConversationId,
+    availableModels,
+    clearMessages,
+    clearPendingFiles,
+    completedActions,
+    conversationModel,
+    conversations,
+    error,
+    isActiveConversationRunning,
+    isLoading,
+    isLoadingConversations,
+    isLoadingMessages,
+    isLoadingOlderMessages,
+    isUploadingFiles,
+    loadOlderMessages,
+    messages,
+    olderMessagesCursor,
+    pendingActions,
+    pendingFiles,
+    removePendingFile,
+    selectConversation,
+    sendMessage,
+    setConversationModel,
+    stop,
+    uploadFiles,
+  ]);
 }

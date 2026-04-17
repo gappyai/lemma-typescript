@@ -11,45 +11,74 @@ Guide for AI agents building desks and features with the Lemma SDK.
   - `src/datastore-query.ts` — SQL join query builder
   - `src/record-form.ts` — Schema-driven form field resolution
   - `src/client.ts` — LemmaClient class
+  - `src/react/components/` — React components used by registry blocks (AssistantExperienceView, etc.)
 - `dist/` — Built output (generated, do not edit)
 - `docs/hooks-guide.md` — Business-facing hook recipes and decision guide
-- `examples/` — Working example apps
+- `examples/` — Working example apps (inbox-crm)
 - `registry/` — Shadcn registry component source
-- `registry.json` — Registry manifest (6 blocks)
+- `registry.json` — Registry manifest (22 blocks)
 
 ## Registry blocks
 
-The shadcn registry ships 6 blocks:
+The shadcn registry ships **22 blocks**. All blocks accept `appearance`, `density`, and `radius` props for cross-cutting visual control.
 
-### Assistant blocks
-- **lemma-assistant-experience** — Full assistant UI (chrome + experience)
-- **lemma-assistant-embedded** — Embedded assistant variant
-
-### Dashboard block
-- **lemma-dashboard** — App shell with sidebar, header, KPI cards
+### Shell blocks
+- **lemma-dashboard** — App shell with sidebar, header, KPI cards, nav groups, breadcrumbs, header actions
+- **lemma-breadcrumbs** — Workspace breadcrumb navigation with `filePathToBreadcrumbItems()` and `recordBreadcrumbItems()` helpers
 
 ### Data blocks (for operators, not admins)
 - **lemma-records-view** — Business-grade records workspace with:
-  - Grid view with inline editable cells, enum pill badges, FK labels
-  - List view with card-based records and `renderCard` override
-  - Grouped view (auto-detects status/priority columns for kanban-style grouping)
+  - Grid, list, grouped, kanban, and linear view modes
+  - Inline editable cells, enum pill badges, FK labels
   - Filter builder dialog (field/operator/value AND logic)
   - Detail sheet with field view, FK resolution, reverse lookup sections, prev/next nav
   - Create form sheet (schema-aware, hides system fields, supports `submitVia: "function"`)
-  - Props: `tableName`, `visibleColumns`, `hiddenFields`, `renderCell`, `renderCard`, `groupBy`, `foreignKeyLabels`, `onCreateOptions`, `onUpdateOptions`
+  - Props: `tableName`, `visibleColumns`, `hiddenFields`, `columnLabels`, `renderCell`, `renderCard`, `groupBy`, `defaultView`, `paginationMode`, `createMode`, `detailMode`, `detailVariant`, `detailTabs`, `detailRelatedRecords`, `foreignKeyLabels`, `onCreateOptions`, `onUpdateOptions`, `searchFields`, `enumColorMap`
 
 - **lemma-record-form** — Standalone schema-aware form:
   - Hides id, created_at, updated_at, system/auto/computed fields
   - FK fields → searchable select; Enum → colored pills; JSON → monospace textarea
   - Modes: `inline` | `modal` | `sheet`
-  - Supports `submitVia: "function"`, `fieldGroups`, `fieldOrder`
-  - Props: `tableName`, `recordId?`, `mode?`, `submitVia?`, `submitFunctionName?`, `fieldGroups?`, `hiddenFields?`
+  - Supports `submitVia: "function"`, `fieldGroups`, `fieldOrder`, `foreignKeyLabels`
+  - Props: `tableName`, `recordId?`, `mode?`, `submitVia?`, `submitFunctionName?`, `submitFunctionInput?`, `fieldGroups?`, `fieldOrder?`, `hiddenFields?`, `visibleFields?`, `foreignKeyLabels?`, `initialValues?`
 
 - **lemma-insights** — Dashboard-style stats and charts:
   - Stat cards: count/sum/avg from table queries, or function outputs
-  - Chart cards: bar/line/pie from table aggregation or function outputs
-  - Props: `stats[]`, `charts[]`, `columns`
+  - Chart cards: bar/line/area/pie from table aggregation or function outputs
+  - Props: `stats[]`, `charts[]`, `columns`, `aggregationMode`
   - Dependency: `recharts`
+
+### Assistant blocks
+- **lemma-assistant-experience** — Full assistant UI with message bubbles, tool invocation cards, file attachments, model picker, empty state suggestions
+- **lemma-assistant-embedded** — Embedded assistant variant wrapping the experience view with `useAssistantController`
+
+### Workflow and approval blocks
+- **lemma-approval-queue** — Split-panel approval workflow with function-backed approve/reject/request-changes actions
+- **lemma-email-workbench** — Three-panel AI-draft email review workbench (drafts, thread context, compose/preview)
+- **lemma-workflow-runner** — Visual workflow run viewer with step-by-step progress timeline
+
+### Date and schedule blocks
+- **lemma-calendar** — Month/week calendar mapping records onto dates via `dateField`/`endDateField`
+- **lemma-timeline** — Gantt-style timeline view with horizontal bars, color coding, progress, assignees
+
+### Activity and communication blocks
+- **lemma-activity-feed** — Unified audit feed aggregating events from multiple tables with type badges and date grouping
+- **lemma-comments** — Record-scoped comment thread with function-backed submission
+
+### File blocks
+- **lemma-file-browser** — Datastore file browser with directory navigation, search, upload, delete
+- **lemma-file-viewer** — Inline file preview (image, PDF, markdown, text, HTML)
+- **lemma-attachment-viewer** — File attachments linked to a record with upload support
+- **lemma-markdown-editor** — Markdown write/preview/split editor
+
+### Search and navigation blocks
+- **lemma-global-search** — Command-bar global search across record tables and files with assistant handoff
+
+### User and notification blocks
+- **lemma-members** — Member chips, avatar groups, searchable member select, user field resolver
+  - Exports: `LemmaMemberChip`, `LemmaAvatarGroup`, `LemmaMemberSelect`, `LemmaUserField`
+- **lemma-notification-bell** — Bell icon with unread count badge and notification popover
+- **lemma-user-menu** — User avatar with dropdown menu and sign-out
 
 ## Build
 
@@ -66,7 +95,7 @@ This runs `tsc` then bundles the browser client. There are no tests currently.
 import { LemmaClient, type RecordResponse } from "lemma-sdk";
 
 // React hooks
-import { useRecords, useRecordForm, useReferencingRecords } from "lemma-sdk/react";
+import { useRecords, useRecordForm, useReferencingRecords, useAssistantController } from "lemma-sdk/react";
 ```
 
 Never import from individual hook files directly. Always use the barrel exports.
@@ -78,6 +107,8 @@ When building a desk, choose hooks based on what the UI needs:
 **Fetching data:**
 - List of records → `useRecords`
 - Single record → `useRecord`
+- Table schema → `useTable`, `useTables`
+- Record schema fields → `useRecordSchema`
 - Records from a referencing table → `useReferencingRecords({ table, foreignKey, recordId })`
 - Records with FK-related data joined → `useRelatedRecords`
 - Cross-table join → `useJoinedRecords({ baseTable, joins })`
@@ -93,11 +124,42 @@ When building a desk, choose hooks based on what the UI needs:
 
 **Running functions/workflows:**
 - Run a function → `useFunctionRun`
+- Function run history → `useFunctionRuns`
+- Function session (streaming) → `useFunctionSession`
 - Run a workflow → `useWorkflowStart`
+- Workflow run detail → `useWorkflowRun`
+- Workflow run history → `useWorkflowRuns`
+- Resume a workflow → `useWorkflowResume`
+- Flow session → `useFlowSession`
+- Flow run history → `useFlowRunHistory`
 
-**Auth:**
+**Assistant/agent:**
+- Assistant controller → `useAssistantController`
+- Assistant session → `useAssistantSession`
+- Assistant runtime → `useAssistantRuntime`
+- Single assistant run → `useAssistantRun`
+- Conversations → `useConversations`, `useConversation`, `useConversationMessages`
+- Agent run → `useAgentRun`
+- Agent run history → `useAgentRuns`
+- Agent input schema → `useAgentInputSchema`
+
+**Files:**
+- List files → `useFiles`
+- Single file → `useFile`
+- File search → `useFileSearch`
+- File tree → `useFileTree`
+- File preview → `useFilePreview`
+
+**Members and auth:**
+- Pod members → `useMembers`
+- Organization members → `useOrganizationMembers`
+- Current user → `useCurrentUser`
+- Pod access → `usePodAccess`
 - Gate the app → `AuthGuard`
 - Read auth state → `useAuth`
+
+**Task/session:**
+- Task session (streaming) → `useTaskSession`
 
 ## Function-aware mutations
 

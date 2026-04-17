@@ -5,6 +5,8 @@ import {
   AlertCircle,
   ArrowDown,
   ArrowUp,
+  ChevronLeft,
+  ChevronRight,
   Database,
   Filter,
   List,
@@ -43,12 +45,24 @@ import { ListView } from "./records-list-view"
 import { GroupedView } from "./records-grouped-view"
 import { isSystemField, typeBadgeClasses, enumPillClasses, type EnumColorMap } from "./records-enum-utils"
 import { RecordFormSheet } from "./records-form-sheet"
+import { RecordDetail } from "./records-detail"
 import type { ForeignKeyLabelMap } from "./records-display-utils"
 import type {
+  RecordDetailFieldGroup,
   RecordDetailRelatedRecord,
   RecordDetailTab,
   RecordDetailVariant,
 } from "./records-detail"
+import type { RecordPreviewDisplayOptions } from "./records-display-utils"
+import {
+  RecordQuickActionButtons,
+  recordQuickActionKey,
+  resolveQuickActionValues,
+  type RecordQuickAction,
+  type RecordQuickActionContext,
+  type RecordQuickActionMode,
+  type RecordQuickActionPlacement,
+} from "./records-quick-actions"
 import {
   recordsRadiusClassName,
   type LemmaRecordsAppearance,
@@ -61,7 +75,7 @@ export type { LemmaRecordsAppearance, LemmaRecordsDensity, LemmaRecordsRadius } 
 type ViewMode = "grid" | "list" | "grouped" | "kanban" | "linear"
 type ResolvedViewMode = "grid" | "list" | "kanban" | "linear"
 type CreateMode = "sheet" | "modal" | "page"
-type DetailMode = "sheet" | "modal" | "page"
+type DetailMode = "sheet" | "modal" | "page" | "inline"
 type PaginationMode = "pagination" | "load-more" | "infinite"
 
 export interface LemmaRecordsViewProps {
@@ -82,6 +96,7 @@ export interface LemmaRecordsViewProps {
   searchPlaceholder?: string
 
   defaultView?: ViewMode
+  availableViews?: ViewMode[]
   appearance?: LemmaRecordsAppearance
   density?: LemmaRecordsDensity
   radius?: LemmaRecordsRadius
@@ -95,9 +110,22 @@ export interface LemmaRecordsViewProps {
   detailRoute?: (record: Record<string, unknown>) => string
   detailVariant?: RecordDetailVariant
   detailTabs?: RecordDetailTab[]
+  detailHeaderFields?: string[]
+  detailFieldGroups?: RecordDetailFieldGroup[]
   detailRelatedRecords?: RecordDetailRelatedRecord[]
+  detailTitleField?: string
+  detailDescriptionField?: string
+  detailIdentifierField?: string
+  detailStatusField?: string
   detailEditable?: boolean
+  detailActions?: React.ReactNode | ((context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode)
+  quickActions?: RecordQuickAction[]
+  quickActionMode?: RecordQuickActionMode
+  quickActionPlacement?: RecordQuickActionPlacement
+  onQuickActionSuccess?: (context: RecordQuickActionContext) => void
   renderFilesTab?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  listOptions?: RecordPreviewDisplayOptions
+  groupedOptions?: RecordPreviewDisplayOptions
 
   onCreateOptions?: {
     submitVia?: "direct" | "function"
@@ -132,6 +160,7 @@ export function LemmaRecordsView({
   searchFields,
   searchPlaceholder = "Search…",
   defaultView = "grid",
+  availableViews,
   appearance = "default",
   density = "comfortable",
   radius = "lg",
@@ -145,9 +174,22 @@ export function LemmaRecordsView({
   detailRoute,
   detailVariant = "workspace",
   detailTabs,
+  detailHeaderFields,
+  detailFieldGroups,
   detailRelatedRecords,
+  detailTitleField,
+  detailDescriptionField,
+  detailIdentifierField,
+  detailStatusField,
   detailEditable = true,
+  detailActions,
+  quickActions,
+  quickActionMode,
+  quickActionPlacement = "detail",
+  onQuickActionSuccess,
   renderFilesTab,
+  listOptions,
+  groupedOptions,
   onCreateOptions,
   onUpdateOptions,
   title,
@@ -161,9 +203,10 @@ export function LemmaRecordsView({
   const [showFilterBuilder, setShowFilterBuilder] = React.useState(false)
   const [search, setSearch] = React.useState("")
   const [selectedRows, setSelectedRows] = React.useState<Set<string>>(new Set())
-  const [detailRecord, setDetailRecord] = React.useState<Record<string, unknown> | null>(null)
+  const [detailRecordId, setDetailRecordId] = React.useState<string | null>(null)
   const [showCreateForm, setShowCreateForm] = React.useState(false)
   const [foreignKeyLabelMap, setForeignKeyLabelMap] = React.useState<ForeignKeyLabelMap>({})
+  const [submittingQuickActionKey, setSubmittingQuickActionKey] = React.useState<string | null>(null)
   const [page, setPage] = React.useState(0)
   const [sortField, setSortField] = React.useState<string | null>(null)
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc")
@@ -173,6 +216,10 @@ export function LemmaRecordsView({
   const tableState = useTable({ client, podId, tableName, enabled })
   const table = tableState.table
   const queryFilters = React.useMemo(() => normalizeRecordFilters(filters), [filters])
+  const defaultFiltersKey = React.useMemo(
+    () => JSON.stringify(normalizeRecordFilters(defaultFilters)),
+    [defaultFilters],
+  )
 
   const recordsState = useRecords({
     client,
@@ -189,6 +236,10 @@ export function LemmaRecordsView({
   const records = recordsState.records
   const total = recordsState.total
   const pk = table?.primary_key_column ?? "id"
+  const scopedClient = React.useMemo(
+    () => (podId ? client.withPod(podId) : client),
+    [client, podId],
+  )
 
   const resolvedColumns = React.useMemo(() => {
     if (!table) return []
@@ -213,6 +264,10 @@ export function LemmaRecordsView({
       table.columns.find((c) => /status|stage|state|priority|type|category/i.test(c.name) && c.type === "ENUM") ?? null
     )
   }, [table, groupByProp])
+  const availableViewModes = React.useMemo(
+    () => resolveAvailableViewModes(availableViews, !!groupByColumn),
+    [availableViews, groupByColumn],
+  )
 
   const getRecordId = (r: Record<string, unknown>) => String(r[pk] ?? "")
   const deferredSearch = React.useDeferredValue(search)
@@ -228,6 +283,10 @@ export function LemmaRecordsView({
     )
   }, [records, searchQuery, searchableColumnNames])
   const displayedRecordIds = React.useMemo(() => displayedRecords.map(getRecordId), [displayedRecords, pk])
+  const detailRecord = React.useMemo(() => {
+    if (!detailRecordId) return null
+    return records.find((record) => getRecordId(record) === detailRecordId) ?? null
+  }, [detailRecordId, records, pk])
   const allDisplayedSelected =
     displayedRecordIds.length > 0 && displayedRecordIds.every((id) => selectedRows.has(id))
   const hasSearch = searchQuery.length > 0
@@ -241,6 +300,54 @@ export function LemmaRecordsView({
   const detailRecordIndex = detailRecord
     ? displayedRecords.findIndex((r) => getRecordId(r) === getRecordId(detailRecord))
     : -1
+  const customDetailActionContent = React.useMemo(() => {
+    if (!detailRecord || !table || !detailActions) return null
+    const recordId = getRecordId(detailRecord)
+    return typeof detailActions === "function"
+      ? detailActions({ record: detailRecord, table, recordId })
+      : detailActions
+  }, [detailActions, detailRecord, table])
+  const previewQuickActionsEnabled = quickActions != null && quickActions.length > 0 && (quickActionPlacement === "preview" || quickActionPlacement === "both")
+  const detailQuickActionsEnabled = quickActions != null && quickActions.length > 0 && (quickActionPlacement === "detail" || quickActionPlacement === "both")
+
+  React.useEffect(() => {
+    if (availableViewModes.length === 0) return
+    if (!availableViewModes.includes(viewMode)) {
+      setViewMode(availableViewModes[0])
+    }
+  }, [availableViewModes, viewMode])
+
+  React.useEffect(() => {
+    setFilters(defaultFilters)
+    setSearch("")
+    setSelectedRows(new Set())
+    setDetailRecordId(null)
+    setPage(0)
+    setSortField(null)
+    setSortOrder("asc")
+    setViewMode(normalizeViewMode(defaultView))
+  }, [defaultFiltersKey, defaultView, podId, tableName])
+
+  React.useEffect(() => {
+    if (!detailRecordId) return
+    if (records.some((record) => getRecordId(record) === detailRecordId)) return
+    if (detailMode === "inline" && displayedRecords.length > 0) {
+      setDetailRecordId(getRecordId(displayedRecords[0]))
+      return
+    }
+    setDetailRecordId(null)
+  }, [detailMode, detailRecordId, displayedRecords, records, pk])
+
+  React.useEffect(() => {
+    if (detailMode !== "inline") return
+    if (displayedRecords.length === 0) {
+      setDetailRecordId(null)
+      return
+    }
+    if (!detailRecordId || !displayedRecords.some((record) => getRecordId(record) === detailRecordId)) {
+      setDetailRecordId(getRecordId(displayedRecords[0]))
+    }
+  }, [detailMode, detailRecordId, displayedRecords, pk])
 
   const handleSortColumn = (colName: string) => {
     if (sortField === colName) {
@@ -304,7 +411,7 @@ export function LemmaRecordsView({
       navigateTo(detailRoute(record))
       return
     }
-    setDetailRecord(record)
+    setDetailRecordId(getRecordId(record))
   }
 
   const handleLoadMore = React.useCallback(async () => {
@@ -348,24 +455,69 @@ export function LemmaRecordsView({
     const ids = Array.from(selectedRows)
     if (!confirm(`Delete ${ids.length} record(s)?`)) return
     for (const id of ids) {
-      const scoped = podId ? client.withPod(podId) : client
-      await scoped.records.delete(tableName, id)
+      await scopedClient.records.delete(tableName, id)
     }
     setSelectedRows(new Set())
-    recordsState.refresh()
+    await recordsState.refresh()
   }
 
   const handleUpdateRecord = async (recordId: string, data: Record<string, unknown>) => {
-    const scoped = podId ? client.withPod(podId) : client
     if (onUpdateOptions?.updateVia === "function") {
-      await scoped.functions.runs.create(onUpdateOptions.updateFunctionName ?? tableName, {
+      await scopedClient.functions.runs.create(onUpdateOptions.updateFunctionName ?? tableName, {
         input: { ...data, id: recordId, record_id: recordId },
       })
     } else {
-      await scoped.records.update(tableName, recordId, data)
+      await scopedClient.records.update(tableName, recordId, data)
     }
-    recordsState.refresh()
+    await recordsState.refresh()
   }
+
+  const runQuickAction = React.useCallback(async (
+    action: RecordQuickAction,
+    record: Record<string, unknown>,
+    index: number,
+  ) => {
+    const recordId = getRecordId(record)
+    const actionKey = recordQuickActionKey(action, recordId, index)
+    const mode = action.mode ?? quickActionMode ?? (action.functionName ? "function" : "direct")
+    const nextValues = resolveQuickActionValues(action, record)
+
+    setSubmittingQuickActionKey(actionKey)
+    try {
+      if (mode === "function") {
+        const functionName = action.functionName
+        if (!functionName) throw new Error(`Quick action "${action.label}" requires functionName in function mode.`)
+        await scopedClient.functions.runs.create(functionName, {
+          input: {
+            id: recordId,
+            record_id: recordId,
+            record,
+            ...nextValues,
+            ...(action.buildInput?.(record) ?? {}),
+          },
+        })
+      } else {
+        await scopedClient.records.update(tableName, recordId, nextValues)
+      }
+      await recordsState.refresh()
+      setDetailRecordId(recordId)
+      onQuickActionSuccess?.({
+        action,
+        record,
+        recordId,
+        tableName,
+      })
+    } finally {
+      setSubmittingQuickActionKey(null)
+    }
+  }, [
+    getRecordId,
+    onQuickActionSuccess,
+    quickActionMode,
+    recordsState,
+    scopedClient,
+    tableName,
+  ])
 
   const handleResolveForeignKeyLabels = React.useCallback((columnName: string, labels: Record<string, string>) => {
     setForeignKeyLabelMap((previous) => {
@@ -373,6 +525,75 @@ export function LemmaRecordsView({
       return { ...previous, [columnName]: labels }
     })
   }, [])
+
+  const detailActionContent = React.useMemo(() => {
+    if (!table || !detailRecord) return customDetailActionContent
+
+    const quickActionContent = detailQuickActionsEnabled && quickActions?.length ? (
+      <RecordQuickActionButtons
+        record={detailRecord}
+        recordId={getRecordId(detailRecord)}
+        actions={quickActions}
+        pendingActionKey={submittingQuickActionKey}
+        onRun={(action, index) => void runQuickAction(action, detailRecord, index)}
+      />
+    ) : null
+
+    const pager = detailMode === "inline" ? (
+      <div className="flex items-center gap-1">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => {
+            if (detailRecordIndex > 0) {
+              setDetailRecordId(getRecordId(displayedRecords[detailRecordIndex - 1]))
+            }
+          }}
+          disabled={detailRecordIndex <= 0}
+        >
+          <ChevronLeft />
+          <span className="sr-only">Previous record</span>
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => {
+            if (detailRecordIndex >= 0 && detailRecordIndex < displayedRecords.length - 1) {
+              setDetailRecordId(getRecordId(displayedRecords[detailRecordIndex + 1]))
+            }
+          }}
+          disabled={detailRecordIndex < 0 || detailRecordIndex >= displayedRecords.length - 1}
+        >
+          <ChevronRight />
+          <span className="sr-only">Next record</span>
+        </Button>
+      </div>
+    ) : null
+
+    if (!customDetailActionContent && !quickActionContent && !pager) return null
+
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {customDetailActionContent}
+        {quickActionContent}
+        {pager}
+      </div>
+    )
+  }, [
+    customDetailActionContent,
+    detailMode,
+    detailQuickActionsEnabled,
+    detailRecord,
+    detailRecordIndex,
+    displayedRecords,
+    getRecordId,
+    quickActions,
+    runQuickAction,
+    submittingQuickActionKey,
+    table,
+  ])
 
   if (tableState.isLoading) {
     return (
@@ -397,6 +618,175 @@ export function LemmaRecordsView({
       </div>
     )
   }
+
+  const recordsCanvas = (
+    <>
+      {recordsState.error ? (
+        <RecordsErrorState error={recordsState.error} radius={radius} onRetry={() => recordsState.refresh()} />
+      ) : viewMode === "grid" ? (
+        <div className={cn("overflow-auto", recordsSurfaceClassName(appearance, radius))}>
+          <DataTable className="min-w-full table-fixed">
+            <TableHeader className={cn("sticky top-0 z-10 backdrop-blur-md", appearance === "minimal" || appearance === "borderless" ? "border-b border-border/15 bg-background/80" : "border-b border-border/30 bg-card/95")}>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-10 px-2 py-2 text-center">
+                  <Checkbox
+                    checked={allDisplayedSelected}
+                    onCheckedChange={handleSelectAll}
+                    className="h-4 w-4 rounded"
+                  />
+                </TableHead>
+                {resolvedColumns.map((col) => (
+                  <TableHead
+                    key={col.name}
+                    className={cn("cursor-pointer select-none px-3 text-left text-xs font-medium tracking-wide text-muted-foreground transition-colors hover:text-foreground", density === "compact" ? "py-2" : density === "spacious" ? "py-3.5" : "py-2.5")}
+                    onClick={() => handleSortColumn(col.name)}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>{columnLabels?.[col.name] ?? col.name.replace(/_/g, " ")}</span>
+                      {sortField === col.name ? (
+                        sortOrder === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
+                      ) : null}
+                      {showTypeHints && (
+                        <span className={typeBadgeClasses(col)}>
+                          {col.foreign_key ? "ref" : col.type.toLowerCase()}
+                        </span>
+                      )}
+                    </div>
+                  </TableHead>
+                ))}
+                <TableHead className="w-10 px-2 py-2" />
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-border/20">
+              {recordsState.isLoading ? (
+                <RecordsSkeletonTableRows columnCount={resolvedColumns.length + 2} rowCount={8} density={density} />
+              ) : displayedRecords.length === 0 ? (
+                <RecordsTableMessage colSpan={resolvedColumns.length + 2}>
+                  <EmptyRecordsState
+                    constrained={hasActiveConstraints}
+                    emptyState={emptyState}
+                    radius={radius}
+                    onClear={hasActiveConstraints ? clearAllConstraints : undefined}
+                    onCreate={handleCreateClick}
+                  />
+                </RecordsTableMessage>
+              ) : (
+                displayedRecords.map((record) => {
+                  const id = getRecordId(record)
+                  const selected = selectedRows.has(id)
+                  return (
+                    <TableRow
+                      key={id}
+                      data-state={selected ? "selected" : undefined}
+                      className={cn(
+                        "group transition-colors duration-75",
+                        selected && "bg-primary/5",
+                      )}
+                    >
+                      <TableCell className="px-2 py-1 text-center">
+                        <Checkbox
+                          checked={selected}
+                          onCheckedChange={() => handleSelectRow(id)}
+                          className={cn(
+                            "h-4 w-4 rounded opacity-0 transition-opacity group-hover:opacity-100",
+                            selected && "opacity-100",
+                          )}
+                        />
+                      </TableCell>
+                      {resolvedColumns.map((col) => (
+                        <TableCell key={col.name} className="px-0 py-0">
+                          {renderCell ? (
+                            renderCell(record, col, record[col.name])
+                          ) : (
+                            <EditableCell
+                              value={record[col.name]}
+                              column={col}
+                              foreignKeyLabelMap={foreignKeyLabelMap[col.name]}
+                              enumColorMap={enumColorMap}
+                              onSave={async (newValue) => {
+                                await handleUpdateRecord(id, { [col.name]: newValue })
+                              }}
+                            />
+                          )}
+                        </TableCell>
+                      ))}
+                      <TableCell className="px-2 py-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRecordClick(record)}
+                          className="size-7 text-muted-foreground opacity-0 transition-all group-hover:opacity-100"
+                        >
+                          <MoreVertical className="size-3.5" />
+                          <span className="sr-only">Open record details</span>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
+            </TableBody>
+          </DataTable>
+        </div>
+      ) : recordsState.isLoading ? (
+        <RecordsSkeletonList rowCount={6} density={density} radius={radius} />
+      ) : displayedRecords.length === 0 && !isGroupedView ? (
+        <EmptyRecordsState
+          constrained={hasActiveConstraints}
+          emptyState={emptyState}
+          radius={radius}
+          onClear={hasActiveConstraints ? clearAllConstraints : undefined}
+          onCreate={handleCreateClick}
+        />
+      ) : viewMode === "list" ? (
+        <ListView
+          records={displayedRecords}
+          table={table}
+          visibleColumns={resolvedColumns}
+          selectedRecords={selectedRows}
+          onSelectRecord={handleSelectRow}
+          onRecordClick={handleRecordClick}
+          renderCard={renderCard}
+          foreignKeyLabelMap={foreignKeyLabelMap}
+          columnLabels={columnLabels}
+          displayOptions={listOptions}
+          quickActions={previewQuickActionsEnabled ? quickActions : undefined}
+          onQuickAction={previewQuickActionsEnabled ? (action, record, index) => void runQuickAction(action, record, index) : undefined}
+          pendingActionKey={submittingQuickActionKey}
+          enumColorMap={enumColorMap}
+          appearance={appearance}
+          density={density}
+          radius={radius}
+        />
+      ) : (viewMode === "kanban" || viewMode === "linear") && groupByColumn ? (
+        <GroupedView
+          records={displayedRecords}
+          groupByColumn={groupByColumn}
+          layout={viewMode}
+          primaryKey={pk}
+          visibleColumns={resolvedColumns}
+          selectedRecords={selectedRows}
+          onSelectRecord={handleSelectRow}
+          onRecordClick={handleRecordClick}
+          renderCard={renderCard}
+          foreignKeyLabelMap={foreignKeyLabelMap}
+          columnLabels={columnLabels}
+          displayOptions={groupedOptions}
+          quickActions={previewQuickActionsEnabled ? quickActions : undefined}
+          onQuickAction={previewQuickActionsEnabled ? (action, record, index) => void runQuickAction(action, record, index) : undefined}
+          pendingActionKey={submittingQuickActionKey}
+          enumColorMap={enumColorMap}
+          appearance={appearance}
+          density={density}
+          radius={radius}
+        />
+      ) : null}
+
+      {paginationMode === "infinite" && !recordsState.isLoading ? (
+        <div ref={setInfiniteSentinel} className="h-px" />
+      ) : null}
+    </>
+  )
 
   return (
     <div
@@ -458,7 +848,9 @@ export function LemmaRecordsView({
 
             <div className={cn("mx-1 h-5 w-px bg-border/50", appearance === "borderless" && "hidden")} />
 
-            <ViewModeToggle mode={viewMode} onChange={setViewMode} hasGroupBy={!!groupByColumn} radius={radius} />
+            {availableViewModes.length > 1 ? (
+              <ViewModeToggle mode={viewMode} onChange={setViewMode} availableModes={availableViewModes} radius={radius} />
+            ) : null}
 
             <Button
               variant="ghost"
@@ -508,7 +900,7 @@ export function LemmaRecordsView({
                   onClick={() => applyFilters(filters.filter((_, i) => i !== index))}
                   className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-2 py-0.5 text-foreground transition-colors hover:bg-muted/60"
                 >
-                  <span>{filter.field}</span>
+                  <span>{columnLabels?.[filter.field] ?? filter.field}</span>
                   <span className="text-muted-foreground">{filter.op}</span>
                   {filter.value != null && filter.value !== "" && <span>{String(filter.value)}</span>}
                   <X className="size-3 text-muted-foreground" />
@@ -530,162 +922,75 @@ export function LemmaRecordsView({
         </div>
       )}
 
-      <div ref={contentRef} className={cn("flex-1 overflow-auto", recordsContentClassName(density))}>
-        {recordsState.error ? (
-          <RecordsErrorState error={recordsState.error} radius={radius} onRetry={() => recordsState.refresh()} />
-        ) : viewMode === "grid" ? (
-          <div className={cn("overflow-auto", recordsSurfaceClassName(appearance, radius))}>
-            <DataTable className="min-w-full table-fixed">
-              <TableHeader className={cn("sticky top-0 z-10 backdrop-blur-md", appearance === "minimal" || appearance === "borderless" ? "border-b border-border/15 bg-background/80" : "border-b border-border/30 bg-card/95")}>
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-10 px-2 py-2 text-center">
-                    <Checkbox
-                      checked={allDisplayedSelected}
-                      onCheckedChange={handleSelectAll}
-                      className="h-4 w-4 rounded"
-                    />
-                  </TableHead>
-                  {resolvedColumns.map((col) => (
-                    <TableHead
-                      key={col.name}
-                      className={cn("cursor-pointer select-none px-3 text-left text-xs font-medium tracking-wide text-muted-foreground transition-colors hover:text-foreground", density === "compact" ? "py-2" : density === "spacious" ? "py-3.5" : "py-2.5")}
-                      onClick={() => handleSortColumn(col.name)}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span>{columnLabels?.[col.name] ?? col.name.replace(/_/g, " ")}</span>
-                        {sortField === col.name ? (
-                          sortOrder === "asc" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />
-                        ) : null}
-                        {showTypeHints && (
-                          <span className={typeBadgeClasses(col)}>
-                            {col.foreign_key ? "ref" : col.type.toLowerCase()}
-                          </span>
-                        )}
-                      </div>
-                    </TableHead>
-                  ))}
-                  <TableHead className="w-10 px-2 py-2" />
-                </TableRow>
-              </TableHeader>
-              <TableBody className="divide-y divide-border/20">
-                {recordsState.isLoading ? (
-                  <RecordsSkeletonTableRows columnCount={resolvedColumns.length + 2} rowCount={8} density={density} />
-                ) : displayedRecords.length === 0 ? (
-                  <RecordsTableMessage colSpan={resolvedColumns.length + 2}>
-                    <EmptyRecordsState
-                      constrained={hasActiveConstraints}
-                      emptyState={emptyState}
-                      radius={radius}
-                      onClear={hasActiveConstraints ? clearAllConstraints : undefined}
-                      onCreate={handleCreateClick}
-                    />
-                  </RecordsTableMessage>
-                ) : (
-                  displayedRecords.map((record) => {
-                    const id = getRecordId(record)
-                    const selected = selectedRows.has(id)
-                    return (
-                      <TableRow
-                        key={id}
-                        data-state={selected ? "selected" : undefined}
-                        className={cn(
-                          "group transition-colors duration-75",
-                          selected && "bg-primary/5",
-                        )}
-                      >
-                        <TableCell className="px-2 py-1 text-center">
-                          <Checkbox
-                            checked={selected}
-                            onCheckedChange={() => handleSelectRow(id)}
-                            className={cn(
-                              "h-4 w-4 rounded opacity-0 transition-opacity group-hover:opacity-100",
-                              selected && "opacity-100",
-                            )}
-                          />
-                        </TableCell>
-                        {resolvedColumns.map((col) => (
-                          <TableCell key={col.name} className="px-0 py-0">
-                            {renderCell ? (
-                              renderCell(record, col, record[col.name])
-                            ) : (
-                              <EditableCell
-                                value={record[col.name]}
-                                column={col}
-                                foreignKeyLabelMap={foreignKeyLabelMap[col.name]}
-                                enumColorMap={enumColorMap}
-                                onSave={async (newValue) => {
-                                  await handleUpdateRecord(id, { [col.name]: newValue })
-                                }}
-                              />
-                            )}
-                          </TableCell>
-                        ))}
-                        <TableCell className="px-2 py-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRecordClick(record)}
-                            className="size-7 text-muted-foreground opacity-0 transition-all group-hover:opacity-100"
-                          >
-                            <MoreVertical className="size-3.5" />
-                            <span className="sr-only">Open record details</span>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })
-                )}
-              </TableBody>
-            </DataTable>
+      {detailMode === "inline" ? (
+        <div className="flex-1 min-h-0">
+          <div
+            className={cn(
+              "grid h-full min-h-0 gap-3",
+              density === "compact" ? "p-2" : density === "spacious" ? "p-4" : "p-3",
+              "lg:grid-cols-[minmax(0,1fr)_minmax(26rem,36rem)]",
+            )}
+          >
+            <div
+              ref={contentRef}
+              className={cn("min-h-0 overflow-auto", recordsSurfaceClassName(appearance, radius))}
+            >
+              {recordsCanvas}
+            </div>
+            <div className={cn("min-h-0 overflow-auto", recordsSurfaceClassName(appearance, radius))}>
+              {detailRecord ? (
+                <RecordDetail
+                  record={detailRecord}
+                  table={table}
+                  client={client}
+                  podId={podId}
+                  mode={detailEditable ? "editable" : "view"}
+                  variant={detailVariant}
+                  tabs={detailTabs}
+                  headerFields={detailHeaderFields}
+                  fieldGroups={detailFieldGroups}
+                  relatedRecords={detailRelatedRecords}
+                  hiddenFields={hiddenFields}
+                  titleField={detailTitleField}
+                  descriptionField={detailDescriptionField}
+                  identifierField={detailIdentifierField}
+                  statusField={detailStatusField}
+                  updateVia={onUpdateOptions?.updateVia}
+                  updateFunctionName={onUpdateOptions?.updateFunctionName}
+                  columnLabels={columnLabels}
+                  foreignKeyLabels={foreignKeyLabels}
+                  enumColorMap={enumColorMap}
+                  appearance={appearance === "minimal" ? "minimal" : "borderless"}
+                  density={density}
+                  radius={radius}
+                  layout="embedded"
+                  actions={detailActionContent}
+                  renderFiles={renderFilesTab}
+                  onRecordChanged={() => void recordsState.refresh()}
+                  onDelete={async () => {
+                    const id = getRecordId(detailRecord)
+                    await scopedClient.records.delete(tableName, id)
+                    setDetailRecordId(null)
+                    await recordsState.refresh()
+                  }}
+                  className="h-full min-w-0"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center px-6 text-center">
+                  <div>
+                    <p className="font-medium text-foreground">Select a record</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Choose a row or card to inspect details, related records, files, and quick actions.</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        ) : recordsState.isLoading ? (
-          <RecordsSkeletonList rowCount={6} density={density} radius={radius} />
-        ) : displayedRecords.length === 0 && !isGroupedView ? (
-          <EmptyRecordsState
-            constrained={hasActiveConstraints}
-            emptyState={emptyState}
-            radius={radius}
-            onClear={hasActiveConstraints ? clearAllConstraints : undefined}
-            onCreate={handleCreateClick}
-          />
-        ) : viewMode === "list" ? (
-          <ListView
-            records={displayedRecords}
-            table={table}
-            visibleColumns={resolvedColumns}
-            selectedRecords={selectedRows}
-            onSelectRecord={handleSelectRow}
-            onRecordClick={handleRecordClick}
-            renderCard={renderCard}
-            foreignKeyLabelMap={foreignKeyLabelMap}
-            enumColorMap={enumColorMap}
-            appearance={appearance}
-            density={density}
-            radius={radius}
-          />
-        ) : (viewMode === "kanban" || viewMode === "linear") && groupByColumn ? (
-          <GroupedView
-            records={displayedRecords}
-            groupByColumn={groupByColumn}
-            layout={viewMode}
-            primaryKey={pk}
-            visibleColumns={resolvedColumns}
-            selectedRecords={selectedRows}
-            onSelectRecord={handleSelectRow}
-            onRecordClick={handleRecordClick}
-            renderCard={renderCard}
-            foreignKeyLabelMap={foreignKeyLabelMap}
-            enumColorMap={enumColorMap}
-            appearance={appearance}
-            density={density}
-            radius={radius}
-          />
-        ) : null}
-
-        {paginationMode === "infinite" && !recordsState.isLoading ? (
-          <div ref={setInfiniteSentinel} className="h-px" />
-        ) : null}
-      </div>
+        </div>
+      ) : (
+        <div ref={contentRef} className={cn("flex-1 overflow-auto", recordsContentClassName(density))}>
+          {recordsCanvas}
+        </div>
+      )}
 
       <div className={cn("shrink-0 px-4", recordsFooterClassName(appearance, density))}>
         <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -745,7 +1050,7 @@ export function LemmaRecordsView({
         />
       )}
 
-      {detailRecord && table && (
+      {detailMode !== "inline" && detailRecord && table && (
         <DetailSheet
           record={detailRecord}
           table={table}
@@ -754,35 +1059,42 @@ export function LemmaRecordsView({
           mode={detailMode === "modal" ? "modal" : "sheet"}
           variant={detailVariant}
           tabs={detailTabs}
+          headerFields={detailHeaderFields}
+          fieldGroups={detailFieldGroups}
           relatedRecords={detailRelatedRecords}
           editable={detailEditable}
           hiddenFields={hiddenFields}
-          onClose={() => setDetailRecord(null)}
-          onRecordChanged={() => recordsState.refresh()}
+          titleField={detailTitleField}
+          descriptionField={detailDescriptionField}
+          identifierField={detailIdentifierField}
+          statusField={detailStatusField}
+          onClose={() => setDetailRecordId(null)}
+          onRecordChanged={() => void recordsState.refresh()}
           updateVia={onUpdateOptions?.updateVia}
           updateFunctionName={onUpdateOptions?.updateFunctionName}
           onDelete={async () => {
             const id = getRecordId(detailRecord)
-            const scoped = podId ? client.withPod(podId) : client
-            await scoped.records.delete(tableName, id)
-            setDetailRecord(null)
-            recordsState.refresh()
+            await scopedClient.records.delete(tableName, id)
+            setDetailRecordId(null)
+            await recordsState.refresh()
           }}
           onNext={() => {
             if (detailRecordIndex >= 0 && detailRecordIndex < displayedRecords.length - 1) {
-              setDetailRecord(displayedRecords[detailRecordIndex + 1])
+              setDetailRecordId(getRecordId(displayedRecords[detailRecordIndex + 1]))
             }
           }}
           onPrevious={() => {
-            if (detailRecordIndex > 0) setDetailRecord(displayedRecords[detailRecordIndex - 1])
+            if (detailRecordIndex > 0) setDetailRecordId(getRecordId(displayedRecords[detailRecordIndex - 1]))
           }}
           hasPrevious={detailRecordIndex > 0}
           hasNext={detailRecordIndex >= 0 && detailRecordIndex < displayedRecords.length - 1}
+          columnLabels={columnLabels}
           foreignKeyLabels={foreignKeyLabels}
           enumColorMap={enumColorMap}
           appearance={appearance}
           density={density}
           radius={radius}
+          actions={detailActionContent}
           renderFiles={renderFilesTab}
         />
       )}
@@ -815,6 +1127,24 @@ export function LemmaRecordsView({
 
 function normalizeViewMode(mode: ViewMode): ResolvedViewMode {
   return mode === "grouped" ? "kanban" : mode
+}
+
+function resolveAvailableViewModes(
+  availableViews: ViewMode[] | undefined,
+  hasGroupBy: boolean,
+): ResolvedViewMode[] {
+  const requested: ViewMode[] = availableViews?.length
+    ? availableViews
+    : hasGroupBy
+      ? ["grid", "list", "kanban", "linear"]
+      : ["grid", "list"]
+
+  const normalized = requested
+    .map((mode) => normalizeViewMode(mode))
+    .filter((mode, index, allModes) => allModes.indexOf(mode) === index)
+
+  const filtered = normalized.filter((mode) => (mode === "kanban" || mode === "linear" ? hasGroupBy : true))
+  return filtered.length > 0 ? filtered : ["grid", "list"]
 }
 
 function navigateTo(path: string): void {
@@ -1091,72 +1421,34 @@ function matchesSearchValue(value: unknown, query: string): boolean {
 function ViewModeToggle({
   mode,
   onChange,
-  hasGroupBy,
+  availableModes,
   radius,
 }: {
   mode: ResolvedViewMode
   onChange: (m: ResolvedViewMode) => void
-  hasGroupBy: boolean
+  availableModes: ResolvedViewMode[]
   radius: LemmaRecordsRadius
 }) {
   return (
     <div className={cn("flex items-center gap-0.5 border border-border/50 bg-muted/30 p-0.5", recordsRadiusClassName(radius, "control"))}>
-      <button
-        onClick={() => onChange("grid")}
-        className={cn(
-          "flex items-center gap-1.5 px-2 py-1 text-xs transition-colors",
-          recordsRadiusClassName(radius, "control"),
-          mode === "grid"
-            ? "bg-card text-foreground shadow-sm"
-            : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
-        )}
-      >
-        <LayoutGrid className="h-3.5 w-3.5" />
-        Grid
-      </button>
-      <button
-        onClick={() => onChange("list")}
-        className={cn(
-          "flex items-center gap-1.5 px-2 py-1 text-xs transition-colors",
-          recordsRadiusClassName(radius, "control"),
-          mode === "list"
-            ? "bg-card text-foreground shadow-sm"
-            : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
-        )}
-      >
-        <List className="h-3.5 w-3.5" />
-        List
-      </button>
-      {hasGroupBy && (
-        <>
-          <button
-            onClick={() => onChange("kanban")}
-            className={cn(
-              "flex items-center gap-1.5 px-2 py-1 text-xs transition-colors",
-              recordsRadiusClassName(radius, "control"),
-              mode === "kanban"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
-            )}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            Kanban
-          </button>
-          <button
-            onClick={() => onChange("linear")}
-            className={cn(
-              "flex items-center gap-1.5 px-2 py-1 text-xs transition-colors",
-              recordsRadiusClassName(radius, "control"),
-              mode === "linear"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
-            )}
-          >
-            <Rows3 className="h-3.5 w-3.5" />
-            Linear
-          </button>
-        </>
-      )}
+      {availableModes.map((availableMode) => (
+        <button
+          key={availableMode}
+          onClick={() => onChange(availableMode)}
+          className={cn(
+            "flex items-center gap-1.5 px-2 py-1 text-xs transition-colors",
+            recordsRadiusClassName(radius, "control"),
+            mode === availableMode
+              ? "bg-card text-foreground shadow-sm"
+              : "text-muted-foreground hover:bg-card/50 hover:text-foreground",
+          )}
+        >
+          {availableMode === "grid" || availableMode === "kanban" ? <LayoutGrid className="h-3.5 w-3.5" /> : null}
+          {availableMode === "list" ? <List className="h-3.5 w-3.5" /> : null}
+          {availableMode === "linear" ? <Rows3 className="h-3.5 w-3.5" /> : null}
+          {availableMode === "grid" ? "Grid" : availableMode === "list" ? "List" : availableMode === "kanban" ? "Kanban" : "Linear"}
+        </button>
+      ))}
     </div>
   )
 }

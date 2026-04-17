@@ -75,6 +75,24 @@ export function LemmaTimeline({
   const tableState = useTable({ client, podId, tableName, enabled })
   const table = tableState.table
 
+  const startColumn = React.useMemo(
+    () => table?.columns.find((c) => c.name === startDateField),
+    [table, startDateField],
+  )
+  const endColumn = React.useMemo(
+    () => table?.columns.find((c) => c.name === endDateField),
+    [table, endDateField],
+  )
+  const isStartDateOnly = startColumn?.type === "DATE"
+  const isEndDateOnly = endColumn?.type === "DATE"
+
+  const formatDateFilter = React.useCallback((d: Date, dateOnly: boolean) => {
+    if (dateOnly) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    }
+    return d.toISOString()
+  }, [])
+
   const dateRange = React.useMemo(() => {
     const start = new Date(scrollDate)
     start.setDate(start.getDate() - 15)
@@ -89,8 +107,8 @@ export function LemmaTimeline({
     tableName,
     enabled: !!table && enabled,
     filters: [
-      { field: startDateField, op: "<=", value: dateRange.end.toISOString() },
-      { field: endDateField, op: ">=", value: dateRange.start.toISOString() },
+      { field: startDateField, op: "lte", value: formatDateFilter(dateRange.end, isStartDateOnly) },
+      { field: endDateField, op: "gte", value: formatDateFilter(dateRange.start, isEndDateOnly) },
     ],
     limit: 500,
   })

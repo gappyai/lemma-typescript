@@ -39,7 +39,7 @@ export function AssistantEmbedded({
   });
 
   return (
-    <AssistantThemeScope className="lemma-assistant-embedded" theme={theme}>
+    <AssistantThemeScope className="flex flex-col min-h-0 h-full" theme={theme}>
       <AssistantExperienceView controller={controller} {...props} />
     </AssistantThemeScope>
   );

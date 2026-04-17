@@ -259,7 +259,13 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     }
   }, []);
 
+  const pendingStreamingFlushRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const clearStreamingText = useCallback(() => {
+    if (pendingStreamingFlushRef.current) {
+      clearTimeout(pendingStreamingFlushRef.current);
+      pendingStreamingFlushRef.current = null;
+    }
     streamingTextRef.current = "";
     setStreamingText("");
   }, []);
@@ -267,7 +273,20 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   const appendStreamingToken = useCallback((token: string) => {
     if (!token) return;
     streamingTextRef.current += token;
-    setStreamingText(streamingTextRef.current);
+    if (!pendingStreamingFlushRef.current) {
+      pendingStreamingFlushRef.current = setTimeout(() => {
+        pendingStreamingFlushRef.current = null;
+        setStreamingText(streamingTextRef.current);
+      }, 0);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pendingStreamingFlushRef.current) {
+        clearTimeout(pendingStreamingFlushRef.current);
+      }
+    };
   }, []);
 
   const cancel = useCallback(() => {

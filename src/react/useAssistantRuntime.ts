@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ConversationMessage } from "../types.js";
 
 type RuntimeConversationMessage = ConversationMessage & { conversation_id?: string };
@@ -185,6 +185,7 @@ export function useAssistantRuntime({
   }, []);
 
   useEffect(() => {
+    lastSessionMessageIdRef.current = null;
     setRuntimeMessages((previous) => {
       if (!conversationId) {
         return [];
@@ -194,12 +195,16 @@ export function useAssistantRuntime({
     });
   }, [conversationId]);
 
+  const lastSessionMessageIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (sessionMessages.length === 0) return;
 
-    // Session message state can lag one render behind active conversation
-    // updates. Prefer the session's own conversation id as fallback so we
-    // never relabel stale messages into the newly selected thread.
+    const lastSessionMessage = sessionMessages[sessionMessages.length - 1];
+    const lastSessionId = lastSessionMessage?.id ?? null;
+    if (lastSessionId && lastSessionId === lastSessionMessageIdRef.current) return;
+    lastSessionMessageIdRef.current = lastSessionId;
+
     const fallbackConversationId = sessionConversationId ?? conversationId;
 
     const normalized = sessionMessages

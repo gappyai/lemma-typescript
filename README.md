@@ -251,10 +251,9 @@ The registry is currently served from jsDelivr against this public repo:
 
 For more stable installs, pin the registry URL to a tag or commit SHA instead of `@main`.
 
-Blocks that install a CSS file, such as the assistant blocks and records view, should be imported by your app's global stylesheet:
+Blocks that install a CSS file, such as records view, should be imported by your app's global stylesheet:
 
 ```css
-@import "@/styles/lemma-assistant.css";
 @import "@/styles/lemma-records-view.css";
 ```
 

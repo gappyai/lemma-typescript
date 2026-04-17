@@ -9,11 +9,13 @@ import type { LemmaClient, Table } from "lemma-sdk"
 import { cn } from "@/lib/utils"
 import {
   RecordDetail,
+  type RecordDetailFieldGroup,
   type RecordDetailRelatedRecord,
   type RecordDetailTab,
   type RecordDetailVariant,
 } from "./records-detail"
 import { type EnumColorMap } from "./records-enum-utils"
+import type { ColumnLabelMap } from "./records-display-utils"
 import {
   recordsRadiusClassName,
   type LemmaRecordsAppearance,
@@ -29,9 +31,15 @@ export interface DetailSheetProps {
   mode?: "sheet" | "modal"
   variant?: RecordDetailVariant
   tabs?: RecordDetailTab[]
+  headerFields?: string[]
+  fieldGroups?: RecordDetailFieldGroup[]
   relatedRecords?: RecordDetailRelatedRecord[]
   editable?: boolean
   hiddenFields?: string[]
+  titleField?: string
+  descriptionField?: string
+  identifierField?: string
+  statusField?: string
   onClose: () => void
   onRecordChanged: () => void
   onDelete: () => void
@@ -41,11 +49,13 @@ export interface DetailSheetProps {
   hasNext?: boolean
   updateVia?: "direct" | "function"
   updateFunctionName?: string
+  columnLabels?: ColumnLabelMap
   foreignKeyLabels?: Record<string, string>
   enumColorMap?: EnumColorMap
   appearance?: LemmaRecordsAppearance
   density?: LemmaRecordsDensity
   radius?: LemmaRecordsRadius
+  actions?: React.ReactNode
   renderFiles?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
 }
 
@@ -57,9 +67,15 @@ export function DetailSheet({
   mode = "sheet",
   variant = "workspace",
   tabs,
+  headerFields,
+  fieldGroups,
   relatedRecords,
   editable = true,
   hiddenFields,
+  titleField,
+  descriptionField,
+  identifierField,
+  statusField,
   onClose,
   onRecordChanged,
   onDelete,
@@ -69,11 +85,13 @@ export function DetailSheet({
   hasNext,
   updateVia,
   updateFunctionName,
+  columnLabels,
   foreignKeyLabels,
   enumColorMap,
   appearance = "default",
   density = "comfortable",
   radius = "lg",
+  actions,
   renderFiles,
 }: DetailSheetProps) {
   const content = (
@@ -85,10 +103,17 @@ export function DetailSheet({
       mode={editable ? "editable" : "view"}
       variant={variant}
       tabs={tabs}
+      headerFields={headerFields}
+      fieldGroups={fieldGroups}
       relatedRecords={relatedRecords}
       hiddenFields={hiddenFields}
+      titleField={titleField}
+      descriptionField={descriptionField}
+      identifierField={identifierField}
+      statusField={statusField}
       updateVia={updateVia}
       updateFunctionName={updateFunctionName}
+      columnLabels={columnLabels}
       foreignKeyLabels={foreignKeyLabels}
       enumColorMap={enumColorMap}
       appearance={appearance}
@@ -100,6 +125,7 @@ export function DetailSheet({
       className="h-full overflow-y-auto border-0 shadow-none"
       actions={
         <div className="flex items-center gap-1">
+          {actions}
           <Button
             type="button"
             variant="ghost"

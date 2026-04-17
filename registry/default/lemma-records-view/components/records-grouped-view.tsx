@@ -7,11 +7,17 @@ import { Checkbox } from "@/components/ui/checkbox"
 import type { ColumnSchema } from "lemma-sdk"
 import { enumPillClasses, type EnumColorMap } from "./records-enum-utils"
 import {
+  displayColumnLabel,
+  formatRecordPlainText,
   formatRecordFieldValue,
+  pickColumn,
   pickPrimaryColumn,
   pickSecondaryColumns,
+  type ColumnLabelMap,
   type ForeignKeyLabelMap,
+  type RecordPreviewDisplayOptions,
 } from "./records-display-utils"
+import { RecordQuickActionButtons, type RecordQuickAction } from "./records-quick-actions"
 import {
   recordsRadiusClassName,
   type LemmaRecordsAppearance,
@@ -33,6 +39,11 @@ interface GroupedViewProps {
   onRecordClick: (record: Record<string, unknown>) => void
   renderCard?: (record: Record<string, unknown>, columns: ColumnSchema[]) => React.ReactNode
   foreignKeyLabelMap?: ForeignKeyLabelMap
+  columnLabels?: ColumnLabelMap
+  displayOptions?: RecordPreviewDisplayOptions
+  quickActions?: RecordQuickAction[]
+  onQuickAction?: (action: RecordQuickAction, record: Record<string, unknown>, index: number) => void
+  pendingActionKey?: string | null
   enumColorMap?: EnumColorMap
 }
 
@@ -50,6 +61,11 @@ export function GroupedView({
   onRecordClick,
   renderCard,
   foreignKeyLabelMap,
+  columnLabels,
+  displayOptions,
+  quickActions,
+  onQuickAction,
+  pendingActionKey,
   enumColorMap,
 }: GroupedViewProps) {
   const groups = React.useMemo(() => {
@@ -84,11 +100,15 @@ export function GroupedView({
     return entries
   }, [records, groupByColumn])
 
-  const primaryCol = pickPrimaryColumn(visibleColumns)
+  const primaryCol = pickPrimaryColumn(visibleColumns, displayOptions?.primaryField)
   const secondaryCols = pickSecondaryColumns(visibleColumns, primaryCol, {
     groupBy: groupByColumn.name,
     count: layout === "kanban" ? 4 : 5,
+    fields: displayOptions?.secondaryFields,
   })
+  const descriptionCol = pickColumn(visibleColumns, displayOptions?.descriptionField)
+  const badgeCol = pickColumn(visibleColumns, displayOptions?.badgeField)
+  const showFieldLabels = displayOptions?.showFieldLabels ?? false
 
   const groupClass = layout === "kanban"
     ? cn("flex min-w-max pb-2", density === "compact" ? "gap-2" : density === "spacious" ? "gap-4" : "gap-3")
@@ -192,9 +212,29 @@ export function GroupedView({
                         onClick={(e) => e.stopPropagation()}
                         className="mt-0.5"
                       />
-                      <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                        {formatRecordFieldValue(primaryCol ? record[primaryCol.name] : undefined, primaryCol, foreignKeyLabelMap, enumColorMap)}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                            {formatRecordFieldValue(primaryCol ? record[primaryCol.name] : undefined, primaryCol, foreignKeyLabelMap, enumColorMap)}
+                          </span>
+                          {badgeCol && record[badgeCol.name] != null && record[badgeCol.name] !== "" ? (
+                            <span className={cn("shrink-0", badgeCol.type === "ENUM" ? "contents" : "inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground", badgeCol.type === "ENUM" ? undefined : recordsRadiusClassName(radius, "pill"))}>
+                              {formatRecordFieldValue(record[badgeCol.name], badgeCol, foreignKeyLabelMap, enumColorMap)}
+                            </span>
+                          ) : null}
+                        </div>
+                        {descriptionCol ? (
+                          (() => {
+                            const description = formatRecordPlainText(record[descriptionCol.name])
+                            if (!description) return null
+                            return (
+                              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                                {description}
+                              </p>
+                            )
+                          })()
+                        ) : null}
+                      </div>
                     </div>
                     <div className={cn("flex flex-wrap gap-1.5", layout === "kanban" ? "pl-6" : "justify-end")}>
                       {secondaryCols.map((col) => {
@@ -205,11 +245,23 @@ export function GroupedView({
                             key={col.name}
                             className={cn("max-w-full truncate bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground", recordsRadiusClassName(radius, "control"))}
                           >
+                            {showFieldLabels ? `${displayColumnLabel(col.name, columnLabels)}: ` : null}
                             {formatRecordFieldValue(v, col, foreignKeyLabelMap, enumColorMap)}
                           </span>
                         )
                       })}
                     </div>
+                    {quickActions?.length && onQuickAction ? (
+                      <RecordQuickActionButtons
+                        record={record}
+                        recordId={id}
+                        actions={quickActions}
+                        pendingActionKey={pendingActionKey}
+                        onRun={(action, index) => onQuickAction(action, record, index)}
+                        compact
+                        className={layout === "kanban" ? "pl-6" : "pl-6 md:pl-0"}
+                      />
+                    ) : null}
                   </CardContent>
                 </Card>
               )

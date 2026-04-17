@@ -57,9 +57,11 @@ export function LemmaDashboard({
         <SidebarInset>
           <SiteHeader actions={headerActions} breadcrumb={headerBreadcrumb} />
           <div className="flex min-h-0 flex-1 flex-col overflow-auto">
-            <div className="@container/main flex flex-1 flex-col gap-2">
+            <div className="@container/main flex flex-col gap-2 min-h-full">
               <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
                 {cards ? <SectionCards cards={cards} /> : null}
+              </div>
+              <div className="flex-1">
                 {children}
               </div>
             </div>

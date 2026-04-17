@@ -15,18 +15,15 @@
         "remark-gfm",
         "clsx",
         "tailwind-merge",
-        "radix-ui"
+        "radix-ui",
+        "lucide-react"
       ],
-      "cssVars": {
-        "theme": {
-          "assistant-shell-radius": "calc(var(--radius) + 0.125rem)",
-          "assistant-item-radius": "var(--radius)",
-          "assistant-bubble-radius": "var(--radius)",
-          "assistant-inline-radius": "calc(var(--radius) - 0.125rem)"
-        }
-      },
       "registryDependencies": [
-        "select"
+        "select",
+        "badge",
+        "card",
+        "textarea",
+        "button"
       ],
       "files": [
         {
@@ -43,11 +40,6 @@
           "path": "registry/default/lemma-assistant-experience/components/assistant-experience.tsx",
           "type": "registry:component",
           "target": "components/lemma/assistant/assistant-experience.tsx"
-        },
-        {
-          "path": "registry/default/lemma-assistant-experience/styles/lemma-assistant.css",
-          "type": "registry:file",
-          "target": "styles/lemma-assistant.css"
         }
       ]
     },
@@ -63,18 +55,15 @@
         "remark-gfm",
         "clsx",
         "tailwind-merge",
-        "radix-ui"
+        "radix-ui",
+        "lucide-react"
       ],
-      "cssVars": {
-        "theme": {
-          "assistant-shell-radius": "calc(var(--radius) + 0.125rem)",
-          "assistant-item-radius": "var(--radius)",
-          "assistant-bubble-radius": "var(--radius)",
-          "assistant-inline-radius": "calc(var(--radius) - 0.125rem)"
-        }
-      },
       "registryDependencies": [
-        "select"
+        "select",
+        "badge",
+        "card",
+        "textarea",
+        "button"
       ],
       "files": [
         {
@@ -96,11 +85,6 @@
           "path": "registry/default/lemma-assistant-embedded/components/assistant-embedded.tsx",
           "type": "registry:component",
           "target": "components/lemma/assistant/assistant-embedded.tsx"
-        },
-        {
-          "path": "registry/default/lemma-assistant-embedded/styles/lemma-assistant.css",
-          "type": "registry:file",
-          "target": "styles/lemma-assistant.css"
         }
       ]
     },
@@ -752,6 +736,492 @@
           "path": "registry/default/lemma-comments/components/lemma-comments.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-comments.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-inbox",
+      "type": "registry:block",
+      "title": "Lemma Inbox",
+      "description": "A generic triage inbox for any incoming work queue with queue filter tabs, search, priority indicators, assignee resolution via members, and configurable quick actions (direct or function-backed). Covers Zendesk, Intercom, Front, Salesforce lead inbox, etc.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "input",
+        "separator",
+        "skeleton",
+        "tabs"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-inbox/components/inbox-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/inbox-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-inbox/components/inbox-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/inbox-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-inbox/components/lemma-inbox.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-inbox.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-checklist",
+      "type": "registry:block",
+      "title": "Lemma Checklist",
+      "description": "A structured compliance and onboarding checklist tied to a parent record, with completion toggles, required badges, assignee chips, due dates, expandable notes, progress bar, and inline item creation. Supports direct or function-backed mutations.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "checkbox",
+        "input",
+        "separator",
+        "skeleton"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-checklist/components/checklist-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/checklist-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-checklist/components/checklist-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/checklist-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-checklist/components/lemma-checklist.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-checklist.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-detail-panel",
+      "type": "registry:block",
+      "title": "Lemma Detail Panel",
+      "description": "A master-detail panel with sections, tabs, action bar, and status for record detail views. Supports field groups, function/workflow-backed actions, and auto-resolved FK labels. The primary record detail surface for operator desks.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "separator",
+        "skeleton",
+        "tabs",
+        "tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-detail-panel/components/detail-panel-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/detail-panel-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-detail-panel/components/detail-panel-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/detail-panel-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-detail-panel/components/lemma-detail-panel.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-detail-panel.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-status-flow",
+      "type": "registry:block",
+      "title": "Lemma Status Flow",
+      "description": "A visual status lifecycle/flow indicator showing a record's current position in a status pipeline with transition actions. Linear-style status flow pattern for issue trackers, hiring pipelines, and approval workflows.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "skeleton",
+        "tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-status-flow/components/status-flow-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/status-flow-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-status-flow/components/status-flow-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/status-flow-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-status-flow/components/lemma-status-flow.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-status-flow.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-linked-records",
+      "type": "registry:block",
+      "title": "Lemma Linked Records",
+      "description": "Shows records from a related table with inline peek/expand, link/unlink actions, and inline create. Airtable/Notion-style relational power for CRM contacts, ATS interviews, product feedback links, and more.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "dialog",
+        "separator",
+        "sheet",
+        "skeleton",
+        "table"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-linked-records/components/linked-records-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/linked-records-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-linked-records/components/linked-records-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/linked-records-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-linked-records/components/lemma-linked-records.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-linked-records.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-pipeline-funnel",
+      "type": "registry:block",
+      "title": "Lemma Pipeline Funnel",
+      "description": "A stage-based funnel/pipeline visualization with counts, metric totals, conversion rates, and drill-down. CRM/ATS category-defining visualization for deal pipelines, hiring funnels, and campaign stages.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "skeleton",
+        "tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-pipeline-funnel/components/pipeline-funnel-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/pipeline-funnel-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-pipeline-funnel/components/pipeline-funnel-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/pipeline-funnel-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-pipeline-funnel/components/lemma-pipeline-funnel.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-pipeline-funnel.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-page-tree",
+      "type": "registry:block",
+      "title": "Lemma Page Tree",
+      "description": "A hierarchical sidebar for doc-heavy apps with self-referential FK tree building, collapsible nodes, selection highlighting, and inline child creation. Notion/Confluence/Guru-style navigation backbone.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "input",
+        "separator",
+        "skeleton"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-page-tree/components/page-tree-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/page-tree-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-page-tree/components/page-tree-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/page-tree-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-page-tree/components/lemma-page-tree.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-page-tree.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-progress-tracker",
+      "type": "registry:block",
+      "title": "Lemma Progress Tracker",
+      "description": "A user-facing step progress indicator with complete/active/pending/error states, connectors, and optional click navigation. The 'you are on step 3 of 5' pattern for onboarding, hiring, contracts, and compliance flows.",
+      "dependencies": [
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "skeleton"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-progress-tracker/components/progress-tracker-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/progress-tracker-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-progress-tracker/components/lemma-progress-tracker.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-progress-tracker.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-scorecard",
+      "type": "registry:block",
+      "title": "Lemma Scorecard",
+      "description": "A configurable rating panel with criteria rows, score sliders, weighted average computation, and recommendation dropdown. For interview scorecards, performance reviews, and vendor evaluations.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "input",
+        "label",
+        "select",
+        "separator",
+        "skeleton",
+        "slider",
+        "textarea"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-scorecard/components/scorecard-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/scorecard-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-scorecard/components/scorecard-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/scorecard-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-scorecard/components/lemma-scorecard.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-scorecard.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-matrix",
+      "type": "registry:block",
+      "title": "Lemma Matrix",
+      "description": "A 2D pivot grid where rows and columns are both enum/text values and cells contain record counts, status indicators, or compact record lists. For priority matrices (impact x effort), compliance grids, and severity x status views.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "separator",
+        "skeleton",
+        "table",
+        "tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-matrix/components/matrix-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/matrix-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-matrix/components/matrix-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/matrix-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-matrix/components/lemma-matrix.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-matrix.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-org-chart",
+      "type": "registry:block",
+      "title": "Lemma Org Chart",
+      "description": "A hierarchy tree visualization for people, accounts, or goals with self-referential FK tree building, avatar cards, connector lines, and click navigation. For org charts, account hierarchies, and goal alignment trees.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "skeleton",
+        "tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-org-chart/components/org-chart-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/org-chart-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-org-chart/components/org-chart-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/org-chart-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-org-chart/components/lemma-org-chart.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-org-chart.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-diff-viewer",
+      "type": "registry:block",
+      "title": "Lemma Diff Viewer",
+      "description": "A side-by-side or inline comparison of two text/JSON states with line-level diff highlighting, markdown rendering, and context-line folding. For contract redlining, page history, and config changes.",
+      "dependencies": [
+        "lucide-react",
+        "clsx",
+        "tailwind-merge",
+        "react-markdown",
+        "remark-gfm"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "separator",
+        "skeleton",
+        "tabs"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-diff-viewer/components/diff-viewer-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/diff-viewer-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-diff-viewer/components/lemma-diff-viewer.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-diff-viewer.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-schedule-view",
+      "type": "registry:block",
+      "title": "Lemma Schedule View",
+      "description": "A time-slot grid for scheduling interviews, on-call rotations, and travel itineraries with multi-resource columns, absolutely positioned events, current-time indicator, and slot/event click actions. Time-of-day focused, unlike the date-based calendar.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "separator",
+        "skeleton",
+        "tooltip"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-schedule-view/components/schedule-view-enum-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/schedule-view-enum-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-schedule-view/components/schedule-view-style-utils.ts",
+          "type": "registry:component",
+          "target": "components/lemma/schedule-view-style-utils.ts"
+        },
+        {
+          "path": "registry/default/lemma-schedule-view/components/lemma-schedule-view.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-schedule-view.tsx"
         }
       ]
     }

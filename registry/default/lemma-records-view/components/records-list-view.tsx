@@ -7,11 +7,17 @@ import { Checkbox } from "@/components/ui/checkbox"
 import type { ColumnSchema, Table } from "lemma-sdk"
 import { isSystemField, type EnumColorMap } from "./records-enum-utils"
 import {
+  displayColumnLabel,
+  formatRecordPlainText,
   formatRecordFieldValue,
+  pickColumn,
   pickPrimaryColumn,
   pickSecondaryColumns,
+  type ColumnLabelMap,
   type ForeignKeyLabelMap,
+  type RecordPreviewDisplayOptions,
 } from "./records-display-utils"
+import { RecordQuickActionButtons, type RecordQuickAction } from "./records-quick-actions"
 import {
   recordsRadiusClassName,
   type LemmaRecordsAppearance,
@@ -31,6 +37,11 @@ interface ListViewProps {
   onRecordClick: (record: Record<string, unknown>) => void
   renderCard?: (record: Record<string, unknown>, columns: ColumnSchema[]) => React.ReactNode
   foreignKeyLabelMap?: ForeignKeyLabelMap
+  columnLabels?: ColumnLabelMap
+  displayOptions?: RecordPreviewDisplayOptions
+  quickActions?: RecordQuickAction[]
+  onQuickAction?: (action: RecordQuickAction, record: Record<string, unknown>, index: number) => void
+  pendingActionKey?: string | null
   enumColorMap?: EnumColorMap
 }
 
@@ -43,6 +54,11 @@ export function ListView({
   onRecordClick,
   renderCard,
   foreignKeyLabelMap,
+  columnLabels,
+  displayOptions,
+  quickActions,
+  onQuickAction,
+  pendingActionKey,
   enumColorMap,
   appearance = "default",
   density = "comfortable",
@@ -51,8 +67,14 @@ export function ListView({
   const pk = table.primary_key_column || "id"
   const columns = visibleColumns ?? table.columns.filter((c) => !isSystemField(c))
 
-  const primaryCol = pickPrimaryColumn(columns)
-  const secondaryCols = pickSecondaryColumns(columns, primaryCol, { count: 5 })
+  const primaryCol = pickPrimaryColumn(columns, displayOptions?.primaryField)
+  const secondaryCols = pickSecondaryColumns(columns, primaryCol, {
+    count: 5,
+    fields: displayOptions?.secondaryFields,
+  })
+  const descriptionCol = pickColumn(columns, displayOptions?.descriptionField)
+  const badgeCol = pickColumn(columns, displayOptions?.badgeField)
+  const showFieldLabels = displayOptions?.showFieldLabels ?? true
 
   return (
     <div className={cn("flex flex-col", density === "compact" ? "gap-1.5" : density === "spacious" ? "gap-3" : "gap-2")}>
@@ -89,21 +111,55 @@ export function ListView({
                   className="mt-1"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-sm text-foreground truncate">
-                    {formatRecordFieldValue(primaryCol ? record[primaryCol.name] : undefined, primaryCol, foreignKeyLabelMap, enumColorMap)}
-                  </p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                          {formatRecordFieldValue(primaryCol ? record[primaryCol.name] : undefined, primaryCol, foreignKeyLabelMap, enumColorMap)}
+                        </p>
+                        {badgeCol && record[badgeCol.name] != null && record[badgeCol.name] !== "" ? (
+                          <span className={cn("shrink-0", badgeCol.type === "ENUM" ? "contents" : "inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground", badgeCol.type === "ENUM" ? undefined : recordsRadiusClassName(radius, "pill"))}>
+                            {formatRecordFieldValue(record[badgeCol.name], badgeCol, foreignKeyLabelMap, enumColorMap)}
+                          </span>
+                        ) : null}
+                      </div>
+                      {descriptionCol ? (
+                        (() => {
+                          const description = formatRecordPlainText(record[descriptionCol.name])
+                          if (!description) return null
+                          return (
+                            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                              {description}
+                            </p>
+                          )
+                        })()
+                      ) : null}
+                    </div>
+                  </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
                     {secondaryCols.map((col) => {
                       const val = record[col.name]
                       if (val == null || val === "") return null
                       return (
                         <span key={col.name} className="text-xs text-muted-foreground">
-                          <span className="font-medium">{col.name.replace(/_/g, " ")}:</span>{" "}
+                          {showFieldLabels ? <span className="font-medium">{displayColumnLabel(col.name, columnLabels)}:</span> : null}
+                          {showFieldLabels ? " " : null}
                           {formatRecordFieldValue(val, col, foreignKeyLabelMap, enumColorMap)}
                         </span>
                       )
                     })}
                   </div>
+                  {quickActions?.length && onQuickAction ? (
+                    <RecordQuickActionButtons
+                      record={record}
+                      recordId={id}
+                      actions={quickActions}
+                      pendingActionKey={pendingActionKey}
+                      onRun={(action, index) => onQuickAction(action, record, index)}
+                      compact
+                      className="mt-2"
+                    />
+                  ) : null}
                 </div>
               </CardContent>
             )}

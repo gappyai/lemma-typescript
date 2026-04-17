@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Loader2 } from "lucide-react"
+import { Check, ChevronsUpDown, Loader2, Search, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
 import { useRecordForm, useForeignKeyOptions } from "lemma-sdk/react"
 import type { LemmaClient } from "lemma-sdk"
@@ -321,22 +322,15 @@ function FormField({
       </div>
 
       {kind === "foreign-key" ? (
-        <Select value={String(value ?? "")} onValueChange={(v) => onChange(v)}>
-          <SelectTrigger className={cn("h-9", formRadiusClassName(radius, "control"))}>
-            <SelectValue placeholder="Select…">
-              {selectedForeignKeyLabel ?? (strVal ? shortenIdentifier(strVal) : undefined)}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {fkOptions.options.map((opt) => (
-                <SelectItem key={String(opt.value)} value={String(opt.value)}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <SearchableValueSelect
+          value={strVal}
+          selectedLabel={selectedForeignKeyLabel}
+          options={fkOptions.options}
+          placeholder="Select…"
+          searchPlaceholder={`Search ${displayLabel.toLowerCase()}...`}
+          radius={radius}
+          onChange={(nextValue) => onChange(nextValue || null)}
+        />
       ) : kind === "select" && options?.length ? (
         <Select value={strVal || undefined} onValueChange={(v) => onChange(v)}>
           <SelectTrigger className={cn("h-9", formRadiusClassName(radius, "control"))}>
@@ -413,6 +407,109 @@ function shortenIdentifier(value: unknown): string {
     return `${text.slice(0, 8)}…${text.slice(-4)}`
   }
   return text.length > 28 ? `${text.slice(0, 24)}…` : text
+}
+
+function SearchableValueSelect({
+  value,
+  selectedLabel,
+  options,
+  placeholder,
+  searchPlaceholder,
+  radius,
+  onChange,
+}: {
+  value: string
+  selectedLabel?: string
+  options: Array<{ value: unknown; label: string }>
+  placeholder: string
+  searchPlaceholder: string
+  radius: LemmaRecordFormRadius
+  onChange: (value: string | null) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  const [query, setQuery] = React.useState("")
+
+  const filteredOptions = React.useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return options
+    return options.filter((option) => option.label.toLowerCase().includes(needle) || String(option.value).toLowerCase().includes(needle))
+  }, [options, query])
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen)
+        if (!nextOpen) setQuery("")
+      }}
+    >
+      <PopoverTrigger
+        type="button"
+        className={cn(
+          "inline-flex h-9 w-full items-center justify-between gap-3 border border-border bg-background px-3 text-sm transition-colors hover:bg-muted",
+          formRadiusClassName(radius, "control"),
+        )}
+      >
+        <span className="min-w-0 flex-1 truncate text-left">
+          {selectedLabel ?? (value ? shortenIdentifier(value) : <span className="text-muted-foreground">{placeholder}</span>)}
+        </span>
+        <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className={cn("w-[var(--radix-popper-anchor-width)] min-w-72 p-0", formRadiusClassName(radius, "surface"))}>
+        <div className="border-b border-border/40 p-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={searchPlaceholder}
+              className={cn("h-8 pl-8 text-xs", formRadiusClassName(radius, "control"))}
+            />
+          </div>
+        </div>
+        <div className="max-h-72 overflow-auto p-1">
+          {value ? (
+            <button
+              type="button"
+              className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm text-muted-foreground hover:bg-muted/45", formRadiusClassName(radius, "control"))}
+              onClick={() => {
+                onChange(null)
+                setOpen(false)
+                setQuery("")
+              }}
+            >
+              <X className="size-4" />
+              Clear selection
+            </button>
+          ) : null}
+          {filteredOptions.length === 0 ? (
+            <div className="flex min-h-24 items-center justify-center text-sm text-muted-foreground">
+              No options found
+            </div>
+          ) : (
+            filteredOptions.map((option) => {
+              const selected = String(option.value) === value
+              return (
+                <button
+                  key={String(option.value)}
+                  type="button"
+                  className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted/45", formRadiusClassName(radius, "control"), selected ? "bg-muted/60" : null)}
+                  onClick={() => {
+                    onChange(String(option.value))
+                    setOpen(false)
+                    setQuery("")
+                  }}
+                >
+                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  {selected ? <Check className="size-4 text-primary" /> : null}
+                </button>
+              )
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 function formRadiusClassName(

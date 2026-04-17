@@ -40,7 +40,7 @@ export type StatSource =
 
 export type ChartSource =
   | {
-      type: "bar" | "line" | "area"
+      type: "bar" | "line" | "area" | "funnel"
       table: string
       category: string
       value?: string
@@ -62,7 +62,7 @@ export type ChartSource =
       limit?: number
     }
   | {
-      type: "bar" | "line" | "area" | "pie"
+      type: "bar" | "line" | "area" | "pie" | "funnel"
       table?: undefined
       function: string
       input?: Record<string, unknown>
@@ -378,6 +378,9 @@ function ChartCard({
         ) : null}
         {!isLoading && hasData ? (
         <>
+        {source.type === "funnel" ? (
+          <FunnelChartBlock data={data} height={chartHeight} formatValue={formatValue} formatCategory={formatCategory} density={density} />
+        ) : (
         <ResponsiveContainer width="100%" height={chartHeight}>
           {source.type === "bar" ? (
             <BarChart data={data}>
@@ -465,11 +468,82 @@ function ChartCard({
             </PieChart>
           )}
         </ResponsiveContainer>
+        )}
         {footer ? <div className="mt-3 text-xs text-muted-foreground">{footer}</div> : null}
         </>
         ) : null}
       </CardContent>
     </Card>
+  )
+}
+
+function FunnelChartBlock({
+  data,
+  height,
+  formatValue,
+  formatCategory,
+  density,
+}: {
+  data: Array<{ category: string; value: number }>
+  height: number
+  formatValue: (value: number) => string
+  formatCategory: (value: string) => string
+  density: NonNullable<LemmaInsightsProps["density"]>
+}) {
+  const sorted = [...data].sort((a, b) => b.value - a.value)
+  const maxValue = Math.max(...sorted.map((d) => d.value), 1)
+  const stageHeight = density === "compact" ? 36 : density === "spacious" ? 52 : 44
+  const connectorHeight = density === "compact" ? 8 : density === "spacious" ? 16 : 12
+  const fontSize = density === "compact" ? "text-xs" : density === "spacious" ? "text-sm" : "text-xs"
+
+  return (
+    <div className="flex flex-col items-center justify-center overflow-hidden" style={{ height }}>
+      {sorted.map((item, i) => {
+        const widthPct = Math.max((item.value / maxValue) * 100, 10)
+        const conversionRate = i > 0 ? ((item.value / sorted[i - 1].value) * 100).toFixed(1) : null
+        const nextWidth = i < sorted.length - 1 ? Math.max((sorted[i + 1].value / maxValue) * 100, 10) : null
+        return (
+          <React.Fragment key={i}>
+            {conversionRate !== null && (
+              <div className={cn("flex items-center justify-center", density === "compact" ? "h-4" : "h-5")}>
+                <span className="text-[10px] font-medium text-muted-foreground">{conversionRate}%</span>
+              </div>
+            )}
+            <div className="flex justify-center w-full">
+              <div
+                className={cn("flex items-center justify-center rounded-sm font-medium text-white", fontSize)}
+                style={{
+                  width: `${widthPct}%`,
+                  height: stageHeight,
+                  backgroundColor: CHART_COLORS[i % CHART_COLORS.length],
+                }}
+              >
+                <span className="truncate px-3">
+                  {formatCategory(item.category)}: {formatValue(item.value)}
+                </span>
+              </div>
+            </div>
+            {nextWidth !== null && (
+              <div className="flex justify-center w-full" style={{ height: connectorHeight }}>
+                <svg
+                  width="100%"
+                  height={connectorHeight}
+                  viewBox={`0 0 100 ${connectorHeight}`}
+                  preserveAspectRatio="none"
+                  style={{ overflow: "visible" }}
+                >
+                  <polygon
+                    points={`${(100 - widthPct) / 2},0 ${100 - (100 - widthPct) / 2},0 ${100 - (100 - nextWidth) / 2},${connectorHeight} ${(100 - nextWidth) / 2},${connectorHeight}`}
+                    fill={CHART_COLORS[i % CHART_COLORS.length]}
+                    opacity={0.7}
+                  />
+                </svg>
+              </div>
+            )}
+          </React.Fragment>
+        )
+      })}
+    </div>
   )
 }
 

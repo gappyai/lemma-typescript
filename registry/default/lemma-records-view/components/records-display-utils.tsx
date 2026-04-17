@@ -5,6 +5,14 @@ import type { ColumnSchema } from "lemma-sdk"
 import { enumPillClasses, isSystemField, type EnumColorMap } from "./records-enum-utils"
 
 export type ForeignKeyLabelMap = Record<string, Record<string, string>>
+export type ColumnLabelMap = Record<string, string>
+export interface RecordPreviewDisplayOptions {
+  primaryField?: string
+  secondaryFields?: string[]
+  descriptionField?: string
+  badgeField?: string
+  showFieldLabels?: boolean
+}
 
 const PRIMARY_FIELD_NAMES = ["title", "name", "label", "subject", "full_name", "primary_email"]
 
@@ -19,7 +27,20 @@ export function shortenIdentifier(value: unknown): string {
   return text.length > 28 ? `${text.slice(0, 24)}…` : text
 }
 
-export function pickPrimaryColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
+export function displayColumnLabel(columnName: string, columnLabels?: ColumnLabelMap): string {
+  return columnLabels?.[columnName] ?? columnName.replace(/_/g, " ")
+}
+
+export function pickColumn(columns: ColumnSchema[], columnName?: string): ColumnSchema | undefined {
+  if (!columnName) return undefined
+  return columns.find((column) => column.name === columnName)
+}
+
+export function pickPrimaryColumn(columns: ColumnSchema[], preferredField?: string): ColumnSchema | undefined {
+  if (preferredField) {
+    const preferred = columns.find((column) => column.name === preferredField)
+    if (preferred) return preferred
+  }
   return (
     columns.find((column) => PRIMARY_FIELD_NAMES.includes(column.name)) ??
     columns.find((column) => !isSystemField(column) && !column.foreign_key) ??
@@ -31,8 +52,19 @@ export function pickPrimaryColumn(columns: ColumnSchema[]): ColumnSchema | undef
 export function pickSecondaryColumns(
   columns: ColumnSchema[],
   primaryColumn?: ColumnSchema,
-  options: { groupBy?: string; count?: number } = {},
+  options: { groupBy?: string; count?: number; fields?: string[] } = {},
 ): ColumnSchema[] {
+  if (options.fields?.length) {
+    const explicit = options.fields
+      .map((fieldName) => columns.find((column) => column.name === fieldName))
+      .filter((column): column is ColumnSchema => Boolean(column))
+      .filter((column) => column.name !== primaryColumn?.name)
+      .filter((column) => column.name !== options.groupBy)
+      .filter((column) => !isSystemField(column))
+      .filter((column) => column.type !== "VECTOR")
+    if (explicit.length > 0) return explicit
+  }
+
   const count = options.count ?? 4
   return columns
     .filter((column) => !isSystemField(column))
@@ -74,4 +106,12 @@ export function formatRecordFieldValue(
   }
 
   return text
+}
+
+export function formatRecordPlainText(value: unknown): string {
+  if (value == null || value === "") return ""
+  if (value instanceof Date) return value.toLocaleString()
+  if (Array.isArray(value)) return value.map(formatRecordPlainText).filter(Boolean).join(", ")
+  if (typeof value === "object") return JSON.stringify(value)
+  return String(value)
 }

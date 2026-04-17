@@ -1,9 +1,10 @@
 "use client"
 
 import * as React from "react"
-import { Calendar, Database, FileText, Link2, RefreshCw, Trash2 } from "lucide-react"
+import { Calendar, Check, ChevronsUpDown, Database, FileText, Link2, RefreshCw, Search, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
@@ -12,10 +13,12 @@ import type { ColumnSchema, LemmaClient, Table } from "lemma-sdk"
 import { cn } from "@/lib/utils"
 import { enumPillClasses, isSystemField, typeBadgeClasses, type EnumColorMap } from "./records-enum-utils"
 import {
+  displayColumnLabel,
   formatRecordFieldValue,
   pickPrimaryColumn,
   pickSecondaryColumns,
   shortenIdentifier,
+  type ColumnLabelMap,
 } from "./records-display-utils"
 import {
   recordsRadiusClassName,
@@ -27,6 +30,11 @@ import {
 export type RecordDetailVariant = "summary" | "workspace" | "activity"
 export type RecordDetailMode = "view" | "editable"
 export type RecordDetailTab = "details" | "related" | "activity" | "files"
+export type RecordDetailLayout = "default" | "embedded"
+export interface RecordDetailFieldGroup {
+  label: string
+  fields: string[]
+}
 
 export interface RecordDetailRelatedRecord {
   tableName: string
@@ -49,15 +57,23 @@ export interface RecordDetailProps {
   mode?: RecordDetailMode
   variant?: RecordDetailVariant
   tabs?: RecordDetailTab[]
+  headerFields?: string[]
+  fieldGroups?: RecordDetailFieldGroup[]
   relatedRecords?: RecordDetailRelatedRecord[]
   hiddenFields?: string[]
+  titleField?: string
+  descriptionField?: string
+  identifierField?: string
+  statusField?: string
   updateVia?: "direct" | "function"
   updateFunctionName?: string
+  columnLabels?: ColumnLabelMap
   foreignKeyLabels?: Record<string, string>
   enumColorMap?: EnumColorMap
   appearance?: LemmaRecordsAppearance
   density?: LemmaRecordsDensity
   radius?: LemmaRecordsRadius
+  layout?: RecordDetailLayout
   actions?: React.ReactNode
   renderFiles?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
   className?: string
@@ -73,15 +89,23 @@ export function RecordDetail({
   mode = "editable",
   variant = "workspace",
   tabs,
+  headerFields,
+  fieldGroups,
   relatedRecords = [],
   hiddenFields = [],
+  titleField,
+  descriptionField,
+  identifierField,
+  statusField,
   updateVia,
   updateFunctionName,
+  columnLabels,
   foreignKeyLabels,
   enumColorMap,
   appearance = "default",
   density = "comfortable",
   radius = "lg",
+  layout = "default",
   actions,
   renderFiles,
   className,
@@ -101,12 +125,51 @@ export function RecordDetail({
   const systemColumns = columns.filter((column) => isSystemField(column))
   const primaryColumn = pickPrimaryColumn(userColumns)
   const secondaryColumns = pickSecondaryColumns(userColumns, primaryColumn, { count: 3 })
-  const title = formatPlainValue(primaryColumn ? record[primaryColumn.name] : undefined) || "Untitled record"
+  const resolvedTitleField = React.useMemo(
+    () => titleField ?? detectTitleColumn(userColumns)?.name,
+    [titleField, userColumns],
+  )
+  const resolvedDescriptionField = React.useMemo(
+    () => descriptionField ?? detectDescriptionColumn(userColumns)?.name,
+    [descriptionField, userColumns],
+  )
+  const resolvedStatusField = React.useMemo(
+    () => statusField ?? detectStatusColumn(userColumns)?.name,
+    [statusField, userColumns],
+  )
+  const resolvedFieldGroups = React.useMemo<RecordDetailFieldGroup[]>(() => {
+    if (fieldGroups?.length) return fieldGroups
+    const excluded = new Set(
+      [resolvedTitleField, resolvedDescriptionField, resolvedStatusField, identifierField]
+        .filter((value): value is string => Boolean(value)),
+    )
+    const displayable = userColumns.filter((column) => !excluded.has(column.name))
+    if (displayable.length === 0) return []
+    return [{ label: "Details", fields: displayable.map((column) => column.name) }]
+  }, [fieldGroups, identifierField, resolvedDescriptionField, resolvedStatusField, resolvedTitleField, userColumns])
+  const headerColumns = React.useMemo(() => {
+    if (headerFields?.length) {
+      return headerFields
+        .map((fieldName) => userColumns.find((column) => column.name === fieldName))
+        .filter((column): column is ColumnSchema => Boolean(column))
+    }
+    return secondaryColumns
+  }, [headerFields, secondaryColumns, userColumns])
+  const title = formatPlainValue(
+    resolvedTitleField ? record[resolvedTitleField] : primaryColumn ? record[primaryColumn.name] : undefined,
+  ) || "Untitled record"
+  const description = formatPlainValue(resolvedDescriptionField ? record[resolvedDescriptionField] : undefined)
+  const statusColumn = resolvedStatusField
+    ? userColumns.find((column) => column.name === resolvedStatusField)
+    : undefined
+  const statusValue = resolvedStatusField ? record[resolvedStatusField] : undefined
+  const identifierValue = identifierField ? record[identifierField] : recordId
   const activeTabs = React.useMemo(() => {
     const requested = tabs?.length ? tabs : relatedRecords.length ? ["details", "related", "activity"] : ["details", "activity"]
     return requested.filter((tab, index, allTabs) => allTabs.indexOf(tab) === index)
   }, [relatedRecords.length, tabs])
   const defaultTab = activeTabs[0] ?? "details"
+  const isEmbedded = layout === "embedded"
 
   return (
     <section
@@ -114,57 +177,162 @@ export function RecordDetail({
       data-density={density}
       data-radius={radius}
       className={cn(
-        "lemma-record-detail min-h-0 min-w-lg overflow-hidden",
+        "lemma-record-detail min-h-0 min-w-0 overflow-hidden",
         detailSurfaceClassName(appearance, radius),
         className,
       )}
     >
-      <div className={cn("flex flex-col", density === "compact" ? "gap-3 p-4" : density === "spacious" ? "gap-5 p-7" : "gap-4 p-6")}>
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className={cn("flex shrink-0 items-center justify-center border border-border/50 bg-muted/35 text-muted-foreground", recordsRadiusClassName(radius, "control"), density === "compact" ? "size-9" : "size-10")}>
-              <Database className="size-4" />
+      <div className={cn("flex flex-col", isEmbedded ? "gap-4 p-4" : density === "compact" ? "gap-3 p-4" : density === "spacious" ? "gap-5 p-7" : "gap-4 p-6")}>
+        {isEmbedded ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className={cn("flex shrink-0 items-center justify-center border border-border/50 bg-muted/35 text-muted-foreground", recordsRadiusClassName(radius, "control"), density === "compact" ? "size-9" : "size-10")}>
+                  <Database className="size-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {statusValue != null && statusValue !== "" ? (
+                      statusColumn?.type === "ENUM" && statusColumn.options?.length ? (
+                        <span className={enumPillClasses(String(statusValue), statusColumn.options, enumColorMap)}>
+                          {String(statusValue)}
+                        </span>
+                      ) : (
+                        <span className={cn("inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground", recordsRadiusClassName(radius, "pill"))}>
+                          {String(statusValue)}
+                        </span>
+                      )
+                    ) : null}
+                    {identifierValue != null && identifierValue !== "" ? (
+                      <span className={cn("inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground", recordsRadiusClassName(radius, "pill"))}>
+                        {shortenIdentifier(identifierValue)}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80">
+                    {table.name.replace(/_/g, " ")}
+                  </p>
+                </div>
+              </div>
+              {actions || onDelete ? (
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                  {actions}
+                  {onDelete ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={onDelete}
+                    >
+                      <Trash2 data-icon="inline-start" />
+                      Delete
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className={cn("truncate font-semibold tracking-tight text-foreground", density === "compact" ? "text-lg" : "text-xl")}>
-                  {title}
-                </h2>
-                <span className={cn("inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground", recordsRadiusClassName(radius, "pill"))}>
-                  {shortenIdentifier(recordId)}
-                </span>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span>{table.name}</span>
-                {secondaryColumns.map((column) => {
-                  const value = record[column.name]
-                  if (value == null || value === "") return null
-                  return (
-                    <span key={column.name} className={cn("inline-flex max-w-64 items-center gap-1 truncate bg-muted/35 px-2 py-0.5", recordsRadiusClassName(radius, "pill"))}>
-                      <span className="text-muted-foreground/75">{column.name.replace(/_/g, " ")}</span>
-                       <span className="truncate text-foreground">{formatRecordFieldValue(value, column, undefined, enumColorMap)}</span>
-                    </span>
-                  )
-                })}
-              </div>
+              <h2
+                className={cn(
+                  "break-words tracking-tight text-foreground",
+                  density === "compact"
+                    ? "text-[1.45rem] font-semibold leading-[1.08]"
+                    : "text-[1.7rem] font-semibold leading-[1.04]",
+                )}
+              >
+                {title}
+              </h2>
+              {description ? (
+                <p className="mt-3 max-w-3xl break-words text-sm leading-6 text-muted-foreground">{description}</p>
+              ) : null}
+              {headerColumns.length > 0 ? (
+                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  {headerColumns.map((column) => {
+                    const value = record[column.name]
+                    if (value == null || value === "") return null
+                    return (
+                      <span
+                        key={column.name}
+                        className={cn(
+                          "inline-flex max-w-full items-center gap-1.5 border border-border/35 bg-muted/25 px-2.5 py-1",
+                          recordsRadiusClassName(radius, "pill"),
+                        )}
+                      >
+                        <span className="text-muted-foreground/75">{displayColumnLabel(column.name, columnLabels)}</span>
+                        <span className="break-words text-foreground">
+                          {formatRecordFieldValue(value, column, undefined, enumColorMap)}
+                        </span>
+                      </span>
+                    )
+                  })}
+                </div>
+              ) : null}
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {actions}
-            {onDelete ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={onDelete}
-              >
-                <Trash2 data-icon="inline-start" />
-                Delete
-              </Button>
-            ) : null}
+        ) : (
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className={cn("flex shrink-0 items-center justify-center border border-border/50 bg-muted/35 text-muted-foreground", recordsRadiusClassName(radius, "control"), density === "compact" ? "size-9" : "size-10")}>
+                <Database className="size-4" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  {statusValue != null && statusValue !== "" ? (
+                    statusColumn?.type === "ENUM" && statusColumn.options?.length ? (
+                      <span className={enumPillClasses(String(statusValue), statusColumn.options, enumColorMap)}>
+                        {String(statusValue)}
+                      </span>
+                    ) : (
+                      <span className={cn("inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground", recordsRadiusClassName(radius, "pill"))}>
+                        {String(statusValue)}
+                      </span>
+                    )
+                  ) : null}
+                  {identifierValue != null && identifierValue !== "" ? (
+                    <span className={cn("inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground", recordsRadiusClassName(radius, "pill"))}>
+                      {shortenIdentifier(identifierValue)}
+                    </span>
+                  ) : null}
+                </div>
+                <h2 className={cn("mt-2 break-words tracking-tight text-foreground", density === "compact" ? "text-xl font-semibold leading-tight" : "text-[2rem] font-semibold leading-tight")}>
+                  {title}
+                </h2>
+                {description ? (
+                  <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p>
+                ) : null}
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span>{table.name}</span>
+                  {headerColumns.map((column) => {
+                    const value = record[column.name]
+                    if (value == null || value === "") return null
+                    return (
+                      <span key={column.name} className={cn("inline-flex max-w-64 items-center gap-1 bg-muted/35 px-2 py-0.5 truncate", recordsRadiusClassName(radius, "pill"))}>
+                        <span className="text-muted-foreground/75">{displayColumnLabel(column.name, columnLabels)}</span>
+                        <span className="truncate text-foreground">{formatRecordFieldValue(value, column, undefined, enumColorMap)}</span>
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {actions}
+              {onDelete ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={onDelete}
+                >
+                  <Trash2 data-icon="inline-start" />
+                  Delete
+                </Button>
+              ) : null}
+            </div>
           </div>
-        </div>
+        )}
 
         <Tabs defaultValue={defaultTab} className="min-h-0">
           {activeTabs.length > 1 ? (
@@ -188,12 +356,15 @@ export function RecordDetail({
                 recordId={recordId}
                 mode={mode}
                 variant={variant}
+                fieldGroups={resolvedFieldGroups}
+                columnLabels={columnLabels}
                 updateVia={updateVia}
                 updateFunctionName={updateFunctionName}
                 foreignKeyLabels={foreignKeyLabels}
                 enumColorMap={enumColorMap}
                 density={density}
                 radius={radius}
+                layout={layout}
                 onRecordChanged={onRecordChanged}
               />
             </TabsContent>
@@ -215,7 +386,7 @@ export function RecordDetail({
 
           {activeTabs.includes("activity") ? (
             <TabsContent value="activity" className="mt-4">
-              <ActivityTab record={record} columns={systemColumns} appearance={appearance} density={density} radius={radius} />
+              <ActivityTab record={record} columns={systemColumns} columnLabels={columnLabels} appearance={appearance} density={density} radius={radius} />
             </TabsContent>
           ) : null}
 
@@ -249,12 +420,15 @@ function DetailsTab({
   recordId,
   mode,
   variant,
+  fieldGroups,
+  columnLabels,
   updateVia,
   updateFunctionName,
   foreignKeyLabels,
   enumColorMap,
   density,
   radius,
+  layout,
   onRecordChanged,
 }: {
   record: Record<string, unknown>
@@ -265,40 +439,88 @@ function DetailsTab({
   recordId: string
   mode: RecordDetailMode
   variant: RecordDetailVariant
+  fieldGroups: RecordDetailFieldGroup[]
+  columnLabels?: ColumnLabelMap
   updateVia?: "direct" | "function"
   updateFunctionName?: string
   foreignKeyLabels?: Record<string, string>
   enumColorMap?: EnumColorMap
   density: LemmaRecordsDensity
   radius: LemmaRecordsRadius
+  layout: RecordDetailLayout
   onRecordChanged?: () => void
 }) {
-  const fieldColumns = columns.filter((column) => column.name !== "id" && column.name !== "sort_order")
-  const gridClassName = variant === "summary"
+  const gridClassName = variant === "summary" || mode === "view"
     ? "grid-cols-1"
     : "grid-cols-1 md:grid-cols-2"
 
   return (
-    <div className={cn("grid", gridClassName, density === "compact" ? "gap-2" : density === "spacious" ? "gap-4" : "gap-3")}>
-      {fieldColumns.map((column) => (
-        <RecordField
-          key={column.name}
-          record={record}
-          column={column}
-          client={client}
-          podId={podId}
-          tableName={tableName}
-          recordId={recordId}
-          mode={mode}
-          updateVia={updateVia}
-          updateFunctionName={updateFunctionName}
-          foreignKeyLabels={foreignKeyLabels}
-          enumColorMap={enumColorMap}
-          density={density}
-          radius={radius}
-          onRecordChanged={onRecordChanged}
-        />
-      ))}
+    <div className={cn("flex flex-col", density === "compact" ? "gap-3" : density === "spacious" ? "gap-5" : "gap-4")}>
+      {fieldGroups.map((group) => {
+        const groupColumns = group.fields
+          .map((fieldName) => columns.find((column) => column.name === fieldName))
+          .filter((column): column is ColumnSchema => Boolean(column))
+
+        if (groupColumns.length === 0) return null
+
+        return (
+          <section key={group.label}>
+            <div className="mb-3 flex items-center gap-3">
+              <p className="shrink-0 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{group.label}</p>
+              <span className="h-px flex-1 bg-border/30" />
+            </div>
+            {mode === "view" ? (
+              <div className="divide-y divide-border/30">
+                {groupColumns.map((column) => (
+                  <RecordField
+                    key={column.name}
+                    record={record}
+                    column={column}
+                    label={displayColumnLabel(column.name, columnLabels)}
+                    client={client}
+                    podId={podId}
+                    tableName={tableName}
+                    recordId={recordId}
+                    mode={mode}
+                    updateVia={updateVia}
+                    updateFunctionName={updateFunctionName}
+                    foreignKeyLabels={foreignKeyLabels}
+                    enumColorMap={enumColorMap}
+                    density={density}
+                    radius={radius}
+                    layout={layout}
+                    onRecordChanged={onRecordChanged}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className={cn("grid", gridClassName, density === "compact" ? "gap-2" : density === "spacious" ? "gap-4" : "gap-3")}>
+                {groupColumns.map((column) => (
+                  <RecordField
+                    key={column.name}
+                    record={record}
+                    column={column}
+                    label={displayColumnLabel(column.name, columnLabels)}
+                    client={client}
+                    podId={podId}
+                    tableName={tableName}
+                    recordId={recordId}
+                    mode={mode}
+                    updateVia={updateVia}
+                    updateFunctionName={updateFunctionName}
+                    foreignKeyLabels={foreignKeyLabels}
+                    enumColorMap={enumColorMap}
+                    density={density}
+                    radius={radius}
+                    layout={layout}
+                    onRecordChanged={onRecordChanged}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )
+      })}
     </div>
   )
 }
@@ -306,6 +528,7 @@ function DetailsTab({
 function RecordField({
   record,
   column,
+  label,
   client,
   podId,
   tableName,
@@ -317,10 +540,12 @@ function RecordField({
   enumColorMap,
   density,
   radius,
+  layout,
   onRecordChanged,
 }: {
   record: Record<string, unknown>
   column: ColumnSchema
+  label: string
   client: LemmaClient
   podId?: string
   tableName: string
@@ -332,6 +557,7 @@ function RecordField({
   enumColorMap?: EnumColorMap
   density: LemmaRecordsDensity
   radius: LemmaRecordsRadius
+  layout: RecordDetailLayout
   onRecordChanged?: () => void
 }) {
   const value = record[column.name]
@@ -341,11 +567,60 @@ function RecordField({
     onRecordChanged?.()
   }
 
+  if (mode === "view") {
+    return (
+      layout === "embedded" ? (
+        <div className="grid gap-2 py-3 sm:grid-cols-[minmax(8rem,10rem)_minmax(0,1fr)] sm:items-start sm:gap-4">
+          <p className="text-[11px] font-medium leading-5 text-muted-foreground">
+            {label}
+          </p>
+          <div className="min-w-0">
+            <ReadOnlyFieldValue
+              value={value}
+              column={column}
+              client={client}
+              podId={podId}
+              tableName={tableName}
+              labelField={foreignKeyLabels?.[column.name]}
+              enumColorMap={enumColorMap}
+              radius={radius}
+              layout={layout}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className={cn("grid gap-2 py-3", density === "compact" ? "sm:grid-cols-[minmax(6.5rem,8rem)_minmax(0,1fr)]" : "sm:grid-cols-[minmax(7.5rem,9rem)_minmax(0,1fr)] sm:gap-4")}>
+          <div className="flex items-center gap-2 sm:pt-1">
+            <p className="truncate text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              {label}
+            </p>
+            <span className={typeBadgeClasses(column)}>
+              {column.foreign_key ? "ref" : column.type.toLowerCase()}
+            </span>
+          </div>
+          <div className="min-w-0">
+            <ReadOnlyFieldValue
+              value={value}
+              column={column}
+              client={client}
+              podId={podId}
+              tableName={tableName}
+              labelField={foreignKeyLabels?.[column.name]}
+              enumColorMap={enumColorMap}
+              radius={radius}
+              layout={layout}
+            />
+          </div>
+        </div>
+      )
+    )
+  }
+
   return (
     <div className={cn("group border border-border/40 bg-muted/15", recordsRadiusClassName(radius, "surface"), density === "compact" ? "p-3" : density === "spacious" ? "p-4" : "p-3.5")}>
       <div className="mb-2 flex items-center gap-2">
         <p className="truncate text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {column.name.replace(/_/g, " ")}
+          {label}
         </p>
         <span className={typeBadgeClasses(column)}>
           {column.foreign_key ? "ref" : column.type.toLowerCase()}
@@ -374,6 +649,7 @@ function RecordField({
           labelField={foreignKeyLabels?.[column.name]}
           enumColorMap={enumColorMap}
           radius={radius}
+          layout={layout}
         />
       )}
       {updateMutation.error ? (
@@ -392,6 +668,7 @@ function ReadOnlyFieldValue({
   labelField,
   enumColorMap,
   radius,
+  layout = "default",
 }: {
   value: unknown
   column: ColumnSchema
@@ -401,6 +678,7 @@ function ReadOnlyFieldValue({
   labelField?: string
   enumColorMap?: EnumColorMap
   radius: LemmaRecordsRadius
+  layout?: RecordDetailLayout
 }) {
   const fkOptions = useForeignKeyOptions({
     client,
@@ -413,7 +691,13 @@ function ReadOnlyFieldValue({
   const resolvedLabel = fkOptions.options.find((option) => String(option.value) === String(value))?.label
 
   if (value == null || value === "") return <p className="text-sm italic text-muted-foreground">Empty</p>
-  if (column.foreign_key) return <p className="truncate text-sm font-medium text-foreground">{resolvedLabel ?? shortenIdentifier(value)}</p>
+  if (column.foreign_key) {
+    return (
+      <p className={cn("text-sm font-medium text-foreground", layout === "embedded" ? "break-words leading-6" : "truncate")}>
+        {resolvedLabel ?? shortenIdentifier(value)}
+      </p>
+    )
+  }
   if (column.type === "JSON") {
     const text = typeof value === "string" ? value : JSON.stringify(value, null, 2)
     return (
@@ -424,13 +708,17 @@ function ReadOnlyFieldValue({
   }
   if (column.type === "DATE" || column.type === "DATETIME") {
     return (
-      <p className="flex items-center gap-1.5 text-sm text-foreground">
+      <p className={cn("flex items-center gap-1.5 text-sm text-foreground", layout === "embedded" && "leading-6")}>
         <Calendar className="size-3.5 text-muted-foreground" />
         {formatTimestamp(value)}
       </p>
     )
   }
-  return <div className="break-words text-sm text-foreground">{formatRecordFieldValue(value, column, undefined, enumColorMap)}</div>
+  return (
+    <div className={cn("break-words text-sm text-foreground", layout === "embedded" && "leading-6")}>
+      {formatRecordFieldValue(value, column, undefined, enumColorMap)}
+    </div>
+  )
 }
 
 function EditableFieldValue({
@@ -475,22 +763,14 @@ function EditableFieldValue({
   if (column.foreign_key) {
     const selectedLabel = fkOptions.options.find((option) => String(option.value) === draft)?.label
     return (
-      <Select value={draft} onValueChange={(nextValue) => void onSave(nextValue)} disabled={disabled}>
-        <SelectTrigger className={cn("h-8", controlClassName)}>
-          <SelectValue placeholder="Select...">
-            {selectedLabel ?? (draft ? shortenIdentifier(draft) : undefined)}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {fkOptions.options.map((option) => (
-              <SelectItem key={String(option.value)} value={String(option.value)}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      <SearchableForeignKeySelect
+        value={draft}
+        selectedLabel={selectedLabel}
+        options={fkOptions.options}
+        radius={radius}
+        disabled={disabled}
+        onChange={(nextValue) => void onSave(nextValue || null)}
+      />
     )
   }
 
@@ -706,12 +986,14 @@ function RelatedRecordsPanel({
 function ActivityTab({
   record,
   columns,
+  columnLabels,
   appearance,
   density,
   radius,
 }: {
   record: Record<string, unknown>
   columns: ColumnSchema[]
+  columnLabels?: ColumnLabelMap
   appearance: LemmaRecordsAppearance
   density: LemmaRecordsDensity
   radius: LemmaRecordsRadius
@@ -720,7 +1002,7 @@ function ActivityTab({
     .filter((column) => column.name === "created_at" || column.name === "updated_at" || /activity|contacted|closed|sent|received/i.test(column.name))
     .map((column) => ({
       key: column.name,
-      label: sentenceCase(column.name),
+      label: displayColumnLabel(column.name, columnLabels),
       value: record[column.name],
     }))
     .filter((event) => event.value != null && event.value !== "")
@@ -797,6 +1079,18 @@ function relatedPanelClassName(appearance: LemmaRecordsAppearance) {
   return "bg-card/80"
 }
 
+function detectTitleColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
+  return columns.find((column) => /title|name|subject|label|full_name|primary_email/i.test(column.name))
+}
+
+function detectDescriptionColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
+  return columns.find((column) => /description|summary|body|content|notes|reason/i.test(column.name) && column.type === "TEXT")
+}
+
+function detectStatusColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
+  return columns.find((column) => /status|stage|state/i.test(column.name))
+}
+
 function formatPlainValue(value: unknown): string {
   if (value == null || value === "") return ""
   if (value instanceof Date) return formatTimestamp(value)
@@ -839,4 +1133,107 @@ function parseJsonDraft(value: string): unknown {
   } catch {
     return value
   }
+}
+
+function SearchableForeignKeySelect({
+  value,
+  selectedLabel,
+  options,
+  radius,
+  disabled,
+  onChange,
+}: {
+  value: string
+  selectedLabel?: string
+  options: Array<{ value: unknown; label: string }>
+  radius: LemmaRecordsRadius
+  disabled?: boolean
+  onChange: (value: string | null) => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  const [query, setQuery] = React.useState("")
+
+  const filteredOptions = React.useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return options
+    return options.filter((option) => option.label.toLowerCase().includes(needle) || String(option.value).toLowerCase().includes(needle))
+  }, [options, query])
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (disabled) return
+        setOpen(nextOpen)
+        if (!nextOpen) setQuery("")
+      }}
+    >
+      <PopoverTrigger
+        type="button"
+        disabled={disabled}
+        className={cn(
+          "inline-flex h-8 w-full items-center justify-between gap-3 border border-border/70 bg-background/70 px-3 text-sm transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50",
+          recordsRadiusClassName(radius, "control"),
+        )}
+      >
+        <span className="min-w-0 flex-1 truncate text-left">
+          {selectedLabel ?? (value ? shortenIdentifier(value) : <span className="text-muted-foreground">Select...</span>)}
+        </span>
+        <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+      </PopoverTrigger>
+      <PopoverContent align="start" className={cn("w-[var(--radix-popper-anchor-width)] min-w-72 p-0", recordsRadiusClassName(radius, "surface"))}>
+        <div className="border-b border-border/40 p-2">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search..."
+              className={cn("h-8 pl-8 text-xs", recordsRadiusClassName(radius, "control"))}
+            />
+          </div>
+        </div>
+        <div className="max-h-72 overflow-auto p-1">
+          {value ? (
+            <button
+              type="button"
+              className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm text-muted-foreground hover:bg-muted/45", recordsRadiusClassName(radius, "control"))}
+              onClick={() => {
+                onChange(null)
+                setOpen(false)
+                setQuery("")
+              }}
+            >
+              <X className="size-4" />
+              Clear selection
+            </button>
+          ) : null}
+          {filteredOptions.length === 0 ? (
+            <div className="flex min-h-24 items-center justify-center text-sm text-muted-foreground">
+              No options found
+            </div>
+          ) : (
+            filteredOptions.map((option) => {
+              const selected = String(option.value) === value
+              return (
+                <button
+                  key={String(option.value)}
+                  type="button"
+                  className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted/45", recordsRadiusClassName(radius, "control"), selected ? "bg-muted/60" : null)}
+                  onClick={() => {
+                    onChange(String(option.value))
+                    setOpen(false)
+                    setQuery("")
+                  }}
+                >
+                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  {selected ? <Check className="size-4 text-primary" /> : null}
+                </button>
+              )
+            })
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
 }

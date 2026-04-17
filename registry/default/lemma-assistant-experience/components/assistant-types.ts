@@ -6,6 +6,10 @@ import type {
   AssistantToolInvocation,
 } from "lemma-sdk/react";
 
+export type LemmaAssistantAppearance = "default" | "minimal" | "borderless" | "contained";
+export type LemmaAssistantDensity = "compact" | "comfortable" | "spacious";
+export type LemmaAssistantRadius = "none" | "sm" | "md" | "lg" | "xl";
+
 export interface AssistantConversationListItem {
   id: string;
   title?: string | null;
@@ -72,6 +76,7 @@ export interface EmptyStateSuggestion {
 }
 
 export interface AssistantExperienceCustomizationProps {
+  className?: string;
   title?: ReactNode;
   subtitle?: ReactNode;
   badge?: ReactNode | null;

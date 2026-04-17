@@ -77,6 +77,19 @@ export function LemmaCalendar({
   const tableState = useTable({ client, podId, tableName, enabled })
   const table = tableState.table
 
+  const dateColumn = React.useMemo(
+    () => table?.columns.find((c) => c.name === dateField),
+    [table, dateField],
+  )
+  const isDateOnly = dateColumn?.type === "DATE"
+
+  const formatDateFilter = React.useCallback((d: Date) => {
+    if (isDateOnly) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    }
+    return d.toISOString()
+  }, [isDateOnly])
+
   const dateRange = React.useMemo(() => {
     const year = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -99,16 +112,11 @@ export function LemmaCalendar({
     tableName,
     enabled: !!table && enabled,
     filters: [
-      { field: dateField, op: ">=", value: dateRange.start.toISOString() },
-      { field: dateField, op: "<=", value: dateRange.end.toISOString() },
+      { field: dateField, op: "gte", value: formatDateFilter(dateRange.start) },
+      { field: dateField, op: "lte", value: formatDateFilter(dateRange.end) },
     ],
     limit: 500,
   })
-
-  const dateColumn = React.useMemo(
-    () => table?.columns.find((c) => c.name === dateField),
-    [table, dateField],
-  )
   const endColumn = React.useMemo(
     () => endDateField ? table?.columns.find((c) => c.name === endDateField) : undefined,
     [table, endDateField],
