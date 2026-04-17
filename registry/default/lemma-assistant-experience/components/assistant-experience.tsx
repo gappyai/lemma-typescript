@@ -769,7 +769,7 @@ function markdownComponentsForMessage(isUserMessage: boolean): Components {
 
   return {
     p: ({ node: _node, className, ...props }) => (
-      <p className={cn("my-2 leading-7 first:mt-0 last:mb-0", className)} {...props} />
+      <p className={cn("my-2 leading-6 first:mt-0 last:mb-0", className)} {...props} />
     ),
     ul: ({ node: _node, className, ...props }) => (
       <ul className={cn("my-3 list-disc space-y-1 pl-5 first:mt-0 last:mb-0", className)} {...props} />
@@ -778,16 +778,16 @@ function markdownComponentsForMessage(isUserMessage: boolean): Components {
       <ol className={cn("my-3 list-decimal space-y-1 pl-5 first:mt-0 last:mb-0", className)} {...props} />
     ),
     li: ({ node: _node, className, ...props }) => (
-      <li className={cn("pl-1 leading-7", className)} {...props} />
+      <li className={cn("pl-1 leading-6", className)} {...props} />
     ),
     h1: ({ node: _node, className, ...props }) => (
-      <h1 className={cn("mb-3 mt-5 text-xl font-semibold tracking-tight first:mt-0", textClassName, className)} {...props} />
+      <p className={cn("mb-2 mt-3 text-sm font-semibold leading-6 first:mt-0", textClassName, className)} {...props} />
     ),
     h2: ({ node: _node, className, ...props }) => (
-      <h2 className={cn("mb-2.5 mt-5 text-lg font-semibold tracking-tight first:mt-0", textClassName, className)} {...props} />
+      <p className={cn("mb-2 mt-3 text-sm font-semibold leading-6 first:mt-0", textClassName, className)} {...props} />
     ),
     h3: ({ node: _node, className, ...props }) => (
-      <h3 className={cn("mb-2 mt-4 text-base font-semibold tracking-tight first:mt-0", textClassName, className)} {...props} />
+      <p className={cn("mb-2 mt-3 text-sm font-semibold leading-6 first:mt-0", textClassName, className)} {...props} />
     ),
     strong: ({ node: _node, className, ...props }) => (
       <strong className={cn("font-semibold", textClassName, className)} {...props} />
@@ -805,7 +805,9 @@ function markdownComponentsForMessage(isUserMessage: boolean): Components {
       <pre className={cn("my-3 overflow-x-auto rounded-md border p-3 text-xs first:mt-0 last:mb-0", borderClassName, codeClassName, className)} {...props} />
     ),
     table: ({ node: _node, className, ...props }) => (
-      <table className={cn("my-3 w-full border-collapse overflow-hidden text-sm first:mt-0 last:mb-0", className)} {...props} />
+      <div className="my-3 w-full overflow-x-auto first:mt-0 last:mb-0">
+        <table className={cn("w-full min-w-max border-collapse text-sm", className)} {...props} />
+      </div>
     ),
     th: ({ node: _node, className, ...props }) => (
       <th className={cn("border px-2 py-1.5 text-left font-semibold", borderClassName, tableHeaderClassName, className)} {...props} />
@@ -851,25 +853,48 @@ function defaultMessageContent({ message }: AssistantMessageRenderArgs): ReactNo
   const isUserMessage = message.role === "user";
 
   return (
-    <div className={cn("max-w-prose text-sm leading-7", isUserMessage ? "text-primary-foreground" : "text-foreground")}>
+    <div className={cn("min-w-0 max-w-full overflow-hidden break-words text-sm leading-6", isUserMessage ? "text-primary-foreground" : "text-foreground")}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         skipHtml
         components={markdownComponentsForMessage(isUserMessage)}
       >
-        {message.content}
+        {normalizeAssistantMarkdown(message.content)}
       </ReactMarkdown>
     </div>
   );
+}
+
+function normalizeAssistantMarkdown(content: string): string {
+  const trimmed = content.trim();
+  const isCompactMarkdown = trimmed.split(/\r?\n/).length <= 2 && /(?:[ \t]---[ \t]|[ \t]#{1,6}\s|\|\s+\|)/.test(trimmed);
+  const normalized = trimmed
+    .replace(/[ \t]+---[ \t]+/g, "\n\n")
+    .replace(/([.!?)\]])[ \t]+(?=#{1,6}\s)/g, "$1\n\n")
+    .replace(/[ \t]+(?=#{1,6}\s)/g, "\n\n")
+    .replace(/\|\s+\|/g, "|\n|")
+    .replace(/\|\s+(?=\|?\s*:?-{3,})/g, "|\n")
+    .replace(/(\|\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|)\s+/g, "$1\n");
+
+  if (!isCompactMarkdown) return normalized;
+
+  return normalized
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/(^|\n)([^|\n]{3,120}?)\s+(\|[^\n]+\|)(?=\n\|?\s*:?-{3,})/g, "$1$2\n\n$3");
 }
 
 function parseAssistantSuggestionCards(content: string): {
   headline: string;
   cards: Array<{ title: string; description: string; icon: ReactNode }>;
 } | null {
-  if (!/\bI can (assist|help) with\b/i.test(content)) return null;
-
   const lines = content.split(/\r?\n/);
+  const hasStandaloneIntro = lines.some((line) => {
+    const normalized = stripInlineMarkdown(line).replace(/^#{1,6}\s+/, "").trim();
+    return /^I can (assist|help) with:?$/i.test(normalized);
+  });
+  if (!hasStandaloneIntro) return null;
+  if (lines.some((line) => /^\s*\|.*\|\s*$/.test(line))) return null;
+
   const introLines: string[] = [];
   const outroLines: string[] = [];
   const cards: Array<{ title: string; description: string; icon: ReactNode }> = [];
