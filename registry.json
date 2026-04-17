@@ -173,6 +173,11 @@
           "target": "components/lemma/records-style-utils.ts"
         },
         {
+          "path": "registry/default/lemma-records-view/components/records-quick-actions.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/records-quick-actions.tsx"
+        },
+        {
           "path": "registry/default/lemma-records-view/components/records-editable-cell.tsx",
           "type": "registry:component",
           "target": "components/lemma/records-editable-cell.tsx"
