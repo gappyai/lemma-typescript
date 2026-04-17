@@ -35,7 +35,6 @@ These are the blocks we should actively position as the default Lemma v1 kit.
 
 | Block | Decision | Why |
 | --- | --- | --- |
-| `lemma-dashboard` | Ship as core | Gives the kit a real app shell and ties the rest together. |
 | `lemma-records-view` | Ship as core | This is the closest thing to the product center of gravity. |
 | `lemma-record-form` | Ship as core | Essential create/edit surface and good pair with records view. |
 | `lemma-global-search` | Ship as core | Strong differentiator and important for the Airtable/Notion/Linear feel. |
@@ -44,7 +43,7 @@ These are the blocks we should actively position as the default Lemma v1 kit.
 | `lemma-file-viewer` | Ship as core | Makes files immediately useful and works well with records. |
 | `lemma-members` | Ship as core | Strong primitive set for people, assignees, ownership, and collaboration. |
 | `lemma-comments` | Ship as core | Important for collaborative business apps and already useful. |
-| `lemma-insights` | Ship as core | Gives teams dashboards and reporting out of the box. |
+| `lemma-insights` | Ship as core | Gives teams reporting out of the box. |
 | `lemma-assistant-experience` | Ship as core | Strong flagship AI surface and worth treating as the canonical assistant block. |
 | `lemma-notification-bell` | Ship as core, lower priority | Useful shell primitive once the rest of the app is in place. |
 | `lemma-user-menu` | Ship as core, lower priority | Useful shell primitive, but needs tighter identity wiring. |

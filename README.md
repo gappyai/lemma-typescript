@@ -232,7 +232,6 @@ Current registry items:
 | Area | Items |
 | --- | --- |
 | Assistant | `lemma-assistant-experience`, `lemma-assistant-embedded` |
-| App shell | `lemma-dashboard` |
 | Navigation | `lemma-breadcrumbs`, `lemma-global-search` |
 | Records | `lemma-records-view`, `lemma-record-form` |
 | Files | `lemma-file-browser`, `lemma-file-viewer` |

@@ -89,9 +89,9 @@ Goal: make the Lemma shadcn registry feel like a coherent Airtable + Notion + Li
 
 - Define a small token contract for workspace surfaces: page background, chrome, raised cards, board columns, active rows, pills, and chart series.
 - Ensure every registry block works against host app tokens instead of assuming a dark/light look.
-- Create one high-quality “operator desk” example per major block: records, form, insights, assistant, and dashboard.
+- Create one high-quality operator desk example per major block: records, form, insights, and assistant.
 - Add visual affordances that make records feel product-grade out of the box: row hover actions, selected row toolbar, empty states, error states, grouped boards, and real pagination copy.
-- Align assistant, dashboard, records, and insights around the same spacing, radius, and typography rhythm.
+- Align assistant, records, insights, and local app-shell examples around the same spacing, radius, and typography rhythm.
 
 ## Known Limitations After This Pass
 

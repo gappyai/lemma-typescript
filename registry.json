@@ -90,46 +90,6 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-dashboard",
-      "type": "registry:block",
-      "title": "Lemma Dashboard",
-      "description": "A dashboard shell with sidebar navigation, site header, KPI section cards, and Lemma component integration. Inspired by shadcn dashboard-01.",
-      "dependencies": [
-        "lemma-sdk",
-        "lucide-react"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "card",
-        "separator",
-        "sidebar"
-      ],
-      "files": [
-        {
-          "path": "registry/default/lemma-dashboard/components/app-sidebar.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/app-sidebar.tsx"
-        },
-        {
-          "path": "registry/default/lemma-dashboard/components/site-header.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/site-header.tsx"
-        },
-        {
-          "path": "registry/default/lemma-dashboard/components/section-cards.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/section-cards.tsx"
-        },
-        {
-          "path": "registry/default/lemma-dashboard/components/lemma-dashboard.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-dashboard.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "lemma-records-view",
       "type": "registry:block",
       "title": "Lemma Records View",
