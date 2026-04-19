@@ -38,12 +38,14 @@ export type { ParsedTaskStreamEvent } from "./task-events.js";
 export { parseAssistantStreamEvent, upsertConversationMessage } from "./assistant-events.js";
 export type { ParsedAssistantStreamEvent } from "./assistant-events.js";
 export {
+  DEFAULT_RECORD_FORM_HIDDEN_FIELDS,
   buildRecordFormValues,
   buildRecordPayload,
   buildRecordSchemaFields,
   formatRecordValueForForm,
   getEditableRecordFields,
   getRecordFieldKind,
+  orderRecordSchemaFields,
 } from "./record-form.js";
 export type {
   BuildRecordPayloadOptions,
@@ -51,6 +53,18 @@ export type {
   RecordSchemaField,
   RecordSchemaFieldKind,
 } from "./record-form.js";
+export {
+  buildDefaultRecordDetailFieldGroups,
+  detectRecordDescriptionColumn,
+  detectRecordStatusColumn,
+  detectRecordTitleColumn,
+  formatRecordDateDisplayValue,
+  formatRecordDisplayValue,
+  formatRecordPlainValue,
+  humanizeRecordFieldName,
+  isDefaultRecordDetailHiddenField,
+} from "./record-display.js";
+export type { RecordDetailFieldGroupDefinition } from "./record-display.js";
 export {
   buildSchemaFormFields,
   buildSchemaFormPayload,

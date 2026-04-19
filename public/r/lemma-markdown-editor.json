@@ -2,7 +2,7 @@
   "$schema": "https://ui.shadcn.com/schema/registry-item.json",
   "name": "lemma-markdown-editor",
   "title": "Lemma Markdown Editor",
-  "description": "A markdown write/preview/split editor for notes, comments, specs, and file content fields.",
+  "description": "A basic markdown write/preview/split editor for notes, comments, specs, and interim document fields while the richer document system evolves.",
   "dependencies": [
     "lucide-react",
     "react-markdown",

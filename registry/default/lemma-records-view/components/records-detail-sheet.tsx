@@ -9,8 +9,10 @@ import type { LemmaClient, Table } from "lemma-sdk"
 import { cn } from "@/lib/utils"
 import {
   RecordDetail,
+  type RecordDetailBuiltinTab,
   type RecordDetailFieldGroup,
   type RecordDetailRelatedRecord,
+  type RecordDetailSectionVisibilityRule,
   type RecordDetailTab,
   type RecordDetailVariant,
 } from "./records-detail"
@@ -57,6 +59,10 @@ export interface DetailSheetProps {
   radius?: LemmaRecordsRadius
   actions?: React.ReactNode
   renderFiles?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  renderComments?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  renderActivity?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  sectionLabels?: Partial<Record<RecordDetailBuiltinTab, React.ReactNode>>
+  sectionVisibility?: Partial<Record<RecordDetailBuiltinTab, RecordDetailSectionVisibilityRule>>
 }
 
 export function DetailSheet({
@@ -93,6 +99,10 @@ export function DetailSheet({
   radius = "lg",
   actions,
   renderFiles,
+  renderComments,
+  renderActivity,
+  sectionLabels,
+  sectionVisibility,
 }: DetailSheetProps) {
   const content = (
     <RecordDetail
@@ -120,32 +130,43 @@ export function DetailSheet({
       density={density}
       radius={radius}
       renderFiles={renderFiles}
+      renderComments={renderComments}
+      renderActivity={renderActivity}
+      sectionLabels={sectionLabels}
+      sectionVisibility={sectionVisibility}
       onRecordChanged={onRecordChanged}
       onDelete={onDelete}
-      className="h-full overflow-y-auto border-0 shadow-none"
+      layout="embedded"
+      className="h-full border-0 shadow-none"
       actions={
-        <div className="flex items-center gap-1">
-          {actions}
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={onPrevious}
-            disabled={!hasPrevious}
-          >
-            <ChevronLeft />
-            <span className="sr-only">Previous record</span>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            onClick={onNext}
-            disabled={!hasNext}
-          >
-            <ChevronRight />
-            <span className="sr-only">Next record</span>
-          </Button>
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          {actions ? (
+            <div className="min-w-0 max-w-full flex-1 overflow-hidden">
+              {actions}
+            </div>
+          ) : null}
+          <div className="flex shrink-0 items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={onPrevious}
+              disabled={!hasPrevious}
+            >
+              <ChevronLeft />
+              <span className="sr-only">Previous record</span>
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              onClick={onNext}
+              disabled={!hasNext}
+            >
+              <ChevronRight />
+              <span className="sr-only">Next record</span>
+            </Button>
+          </div>
         </div>
       }
     />
@@ -156,7 +177,7 @@ export function DetailSheet({
       <Dialog open onOpenChange={(open) => !open && onClose()}>
         <DialogContent
           className={cn(
-            "min-w-lg max-h-[88vh] max-w-5xl gap-0 overflow-hidden p-0",
+            "!h-[92vh] !max-h-[92vh] !w-[calc(100vw-2rem)] !max-w-[82rem] gap-0 overflow-hidden p-0",
             detailOverlayClassName(appearance, radius),
           )}
         >
@@ -170,7 +191,7 @@ export function DetailSheet({
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent
         className={cn(
-          "w-full min-w-lg gap-0 overflow-hidden p-0 sm:max-w-3xl lg:max-w-4xl",
+          "!w-[calc(100vw-1rem)] !max-w-[64rem] gap-0 overflow-hidden p-0",
           detailOverlayClassName(appearance, radius),
         )}
       >

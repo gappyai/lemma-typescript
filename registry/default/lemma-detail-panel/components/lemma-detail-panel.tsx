@@ -1,62 +1,50 @@
 "use client"
 
 import * as React from "react"
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  ExternalLink,
-  FileText,
-  Loader2,
-  RefreshCw,
-  X,
-} from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { AlertCircle, FileText, Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  useRecord,
-  useTable,
-  useUpdateRecord,
-} from "lemma-sdk/react"
-import type { LemmaClient, ColumnSchema, DatastoreDataType } from "lemma-sdk"
+import { useRecord, useTable, useUpdateRecord } from "lemma-sdk/react"
+import { type LemmaClient, type Table } from "lemma-sdk"
 import { cn } from "@/lib/utils"
-import { enumPillClasses, type EnumColorMap } from "./detail-panel-enum-utils"
 import {
-  detailPanelRadiusClassName,
-  type LemmaDetailPanelAppearance,
-  type LemmaDetailPanelDensity,
-  type LemmaDetailPanelRadius,
-} from "./detail-panel-style-utils"
+  RecordDetail,
+  type RecordDetailBuiltinTab,
+  type RecordDetailCustomTab,
+  type RecordDetailFieldGroup,
+  type RecordDetailLayout,
+  type RecordDetailMode,
+  type RecordDetailRelatedRecord,
+  type RecordDetailSectionVisibilityRule,
+  type RecordDetailVariant,
+} from "@/components/lemma/records-detail"
+import {
+  createRecordActionInput,
+  resolveRecordActionMode,
+  resolveRecordActionValues,
+  type RecordAction,
+  type RecordActionMode,
+} from "@/components/lemma/records-quick-actions"
+import { recordsRadiusClassName, type LemmaRecordsAppearance, type LemmaRecordsDensity, type LemmaRecordsRadius } from "@/components/lemma/records-style-utils"
+import type { EnumColorMap } from "@/components/lemma/records-enum-utils"
 
+export type LemmaDetailPanelAppearance = LemmaRecordsAppearance
+export type LemmaDetailPanelDensity = LemmaRecordsDensity
+export type LemmaDetailPanelRadius = LemmaRecordsRadius
+export type FieldGroup = RecordDetailFieldGroup
+export type DetailTab = RecordDetailCustomTab
+
+export type { EnumColorMap } from "@/components/lemma/records-enum-utils"
 export type {
-  LemmaDetailPanelAppearance,
-  LemmaDetailPanelDensity,
-  LemmaDetailPanelRadius,
-} from "./detail-panel-style-utils"
-export type { EnumColorMap } from "./detail-panel-enum-utils"
+  RecordDetailBuiltinTab,
+  RecordDetailLayout,
+  RecordDetailMode,
+  RecordDetailRelatedRecord,
+  RecordDetailSectionVisibilityRule,
+  RecordDetailVariant,
+} from "@/components/lemma/records-detail"
 
-export interface FieldGroup {
-  label: string
-  fields: string[]
-}
-
-export interface DetailAction {
-  label: string
-  icon?: React.ComponentType<{ className?: string }>
-  variant?: "default" | "outline" | "destructive" | "ghost"
-  functionName?: string
-  workflowName?: string
-  buildInput?: (record: Record<string, unknown>) => Record<string, unknown>
-}
-
-export interface DetailTab {
-  id: string
-  label: string
-  content: React.ReactNode
-}
+export type DetailAction = RecordAction
 
 export interface LemmaDetailPanelProps {
   client: LemmaClient
@@ -64,18 +52,29 @@ export interface LemmaDetailPanelProps {
   tableName: string
   recordId?: string
   enabled?: boolean
-
+  mode?: RecordDetailMode
+  variant?: RecordDetailVariant
+  layout?: RecordDetailLayout
   headerFields?: string[]
   fieldGroups?: FieldGroup[]
+  detailTabs?: RecordDetailBuiltinTab[]
   tabs?: DetailTab[]
+  relatedRecords?: RecordDetailRelatedRecord[]
+  renderFiles?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  renderComments?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  renderActivity?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  sectionLabels?: Partial<Record<RecordDetailBuiltinTab, React.ReactNode>>
+  sectionVisibility?: Partial<Record<RecordDetailBuiltinTab, RecordDetailSectionVisibilityRule>>
   actions?: DetailAction[]
-  actionMode?: "direct" | "function"
+  actionMode?: RecordActionMode
+  updateVia?: "direct" | "function"
+  updateFunctionName?: string
   statusField?: string
   titleField?: string
   descriptionField?: string
   identifierField?: string
+  foreignKeyLabels?: Record<string, string>
   enumColorMap?: EnumColorMap
-
   onNavigate?: (type: string, id: string) => void
   onRecordChange?: (record: Record<string, unknown>) => void
   appearance?: LemmaDetailPanelAppearance
@@ -85,87 +84,34 @@ export interface LemmaDetailPanelProps {
   className?: string
 }
 
-function isDateLikeType(type: DatastoreDataType): boolean {
-  return type === "DATE" || type === "DATETIME"
-}
-
-function isEnumType(type: DatastoreDataType): boolean {
-  return type === "ENUM"
-}
-
-function isBooleanType(type: DatastoreDataType): boolean {
-  return type === "BOOLEAN"
-}
-
-function isJsonType(type: DatastoreDataType): boolean {
-  return type === "JSON"
-}
-
-function isFkColumn(column: ColumnSchema): boolean {
-  return column.foreign_key != null
-}
-
-function formatDateValue(value: unknown): string {
-  if (value == null || value === "") return "Not set"
-  const d = value instanceof Date ? value : new Date(String(value))
-  if (Number.isNaN(d.getTime())) return String(value)
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(d)
-}
-
-function formatDisplayValue(value: unknown): string {
-  if (value == null || value === "") return "Not set"
-  if (typeof value === "boolean") return value ? "Yes" : "No"
-  if (typeof value === "number") return value.toLocaleString()
-  if (Array.isArray(value)) return value.map(formatDisplayValue).join(", ")
-  if (typeof value === "object") return JSON.stringify(value)
-  return String(value)
-}
-
-function detectTitleColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
-  return columns.find((c) =>
-    !c.system && !c.auto && !c.computed && /title|name|subject|label/i.test(c.name)
-  )
-}
-
-function detectDescriptionColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
-  return columns.find((c) =>
-    !c.system && !c.auto && !c.computed && /description|summary|body|content|notes|reason/i.test(c.name) && c.type === "TEXT"
-  )
-}
-
-function sentenceCase(value: string): string {
-  return value
-    .replace(/[_\.]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (m) => m.toUpperCase())
-}
-
-function shouldHideField(name: string): boolean {
-  return name === "id" || name === "created_at" || name === "updated_at"
-}
-
 export function LemmaDetailPanel({
   client,
   podId,
   tableName,
   recordId,
   enabled = true,
+  mode = "view",
+  variant = "summary",
+  layout = "embedded",
   headerFields,
   fieldGroups,
+  detailTabs,
   tabs,
+  relatedRecords = [],
+  renderFiles,
+  renderComments,
+  renderActivity,
+  sectionLabels,
+  sectionVisibility,
   actions,
   actionMode,
+  updateVia,
+  updateFunctionName,
   statusField,
   titleField,
   descriptionField,
   identifierField,
+  foreignKeyLabels,
   enumColorMap,
   onNavigate,
   onRecordChange,
@@ -176,8 +122,6 @@ export function LemmaDetailPanel({
   className,
 }: LemmaDetailPanelProps) {
   const tableState = useTable({ client, podId, tableName, enabled })
-  const table = tableState.table
-
   const recordState = useRecord({
     client,
     podId,
@@ -185,7 +129,10 @@ export function LemmaDetailPanel({
     recordId: recordId ?? null,
     enabled: enabled && !!recordId,
   })
+
+  const table = tableState.table
   const record = recordState.record
+  const error = tableState.error ?? recordState.error
 
   const scopedClient = React.useMemo(
     () => (podId ? client.withPod(podId) : client),
@@ -197,180 +144,60 @@ export function LemmaDetailPanel({
     podId,
     tableName,
     recordId: recordId ?? null,
-    enabled: !!recordId && enabled,
+    enabled: enabled && !!recordId,
+    updateVia,
+    updateFunctionName,
   })
 
-  const resolvedTitleField = React.useMemo(() => {
-    if (titleField) return titleField
-    if (!table) return undefined
-    const detected = detectTitleColumn(table.columns)
-    return detected?.name
-  }, [titleField, table])
+  const resolvedTabs = React.useMemo(() => {
+    const builtins = detailTabs?.length
+      ? detailTabs
+      : defaultDetailTabs({
+          includeRelated: relatedRecords.length > 0,
+          includeFiles: Boolean(renderFiles),
+        })
 
-  const resolvedDescriptionField = React.useMemo(() => {
-    if (descriptionField) return descriptionField
-    if (!table) return undefined
-    const detected = detectDescriptionColumn(table.columns)
-    return detected?.name
-  }, [descriptionField, table])
-
-  const resolvedFieldGroups = React.useMemo<FieldGroup[]>(() => {
-    if (fieldGroups) return fieldGroups
-    if (!table) return []
-    const displayable = table.columns.filter(
-      (c) =>
-        !c.system &&
-        !c.auto &&
-        !c.computed &&
-        !shouldHideField(c.name) &&
-        c.name !== resolvedTitleField &&
-        c.name !== resolvedDescriptionField &&
-        c.name !== statusField &&
-        c.name !== identifierField,
-    )
-    if (displayable.length === 0) return []
-    return [
-      {
-        label: "Details",
-        fields: displayable.map((c) => c.name),
-      },
-    ]
-  }, [fieldGroups, table, resolvedTitleField, resolvedDescriptionField, statusField, identifierField])
-
-  const [collapsedGroups, setCollapsedGroups] = React.useState<Set<string>>(new Set())
-
-  const toggleGroup = React.useCallback((label: string) => {
-    setCollapsedGroups((prev) => {
-      const next = new Set(prev)
-      if (next.has(label)) {
-        next.delete(label)
-      } else {
-        next.add(label)
-      }
-      return next
-    })
-  }, [])
-
-  const getColumn = React.useCallback(
-    (fieldName: string): ColumnSchema | undefined =>
-      table?.columns.find((c) => c.name === fieldName),
-    [table],
-  )
-
-  const resolveFkLabel = React.useCallback(
-    (_column: ColumnSchema, value: unknown): string => {
-      if (value == null) return "Not set"
-      if (typeof value === "object" && value !== null && !Array.isArray(value)) {
-        const obj = value as Record<string, unknown>
-        const label = obj.name ?? obj.title ?? obj.label ?? obj.id
-        return label != null ? String(label) : JSON.stringify(value)
-      }
-      return String(value)
-    },
-    [],
-  )
-
-  const renderFieldValue = React.useCallback(
-    (fieldName: string, value: unknown) => {
-      const column = getColumn(fieldName)
-      if (!column) return formatDisplayValue(value)
-
-      if (isEnumType(column.type as DatastoreDataType) && column.options?.length) {
-        if (value == null || value === "") return "Not set"
-        return (
-          <span className={enumPillClasses(String(value), column.options, enumColorMap)}>
-            {String(value)}
-          </span>
-        )
-      }
-
-      if (isBooleanType(column.type as DatastoreDataType)) {
-        if (value == null) return "Not set"
-        return value ? (
-          <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-            <Check className="size-3.5" /> Yes
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1 text-muted-foreground">
-            <X className="size-3.5" /> No
-          </span>
-        )
-      }
-
-      if (isDateLikeType(column.type as DatastoreDataType)) {
-        return formatDateValue(value)
-      }
-
-      if (isJsonType(column.type as DatastoreDataType)) {
-        if (value == null) return "Not set"
-        return (
-          <pre className="max-h-32 overflow-auto whitespace-pre-wrap break-all font-mono text-xs">
-            {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
-          </pre>
-        )
-      }
-
-      if (isFkColumn(column)) {
-        return resolveFkLabel(column, value)
-      }
-
-      return formatDisplayValue(value)
-    },
-    [getColumn, enumColorMap, resolveFkLabel],
-  )
-
-  const statusColumn = React.useMemo(
-    () => statusField ? getColumn(statusField) : undefined,
-    [statusField, getColumn],
-  )
-
-  const statusValue = record?.[statusField ?? ""]
-  const identifierValue = identifierField ? record?.[identifierField] : undefined
-  const titleValue = resolvedTitleField ? record?.[resolvedTitleField] : undefined
-  const descriptionValue = resolvedDescriptionField ? record?.[resolvedDescriptionField] : undefined
+    return [...builtins, ...(tabs ?? [])]
+  }, [detailTabs, relatedRecords.length, renderFiles, tabs])
 
   const [actionLoading, setActionLoading] = React.useState<string | null>(null)
+
+  const refreshRecord = React.useCallback(async () => {
+    const refreshed = await recordState.refresh()
+    if (refreshed) {
+      onRecordChange?.(refreshed)
+    }
+  }, [onRecordChange, recordState])
 
   const handleAction = React.useCallback(
     async (action: DetailAction) => {
       if (!record || record.id == null) return
-      const recordIdStr = String(record.id)
+
+      const recordIdValue = String(record.id)
+      const context = { tableName, scope: "detail" as const, record, recordId: recordIdValue }
+      const mode = resolveRecordActionMode(action, actionMode)
+
       setActionLoading(action.label)
       try {
-        if (action.functionName) {
-          const input = action.buildInput?.(record) ?? {
-            id: recordIdStr,
-            record_id: recordIdStr,
-            record,
-          }
-          await scopedClient.functions.runs.create(action.functionName, { input })
-        } else if (action.workflowName) {
-          const input = action.buildInput?.(record) ?? {
-            id: recordIdStr,
-            record_id: recordIdStr,
-            record,
-          }
-          await scopedClient.workflows.runs.start(action.workflowName, input)
-        } else if (actionMode === "function") {
-          const input = action.buildInput?.(record) ?? {
-            id: recordIdStr,
-            record_id: recordIdStr,
-            record,
-          }
-          await scopedClient.functions.runs.create(tableName, { input })
+        if (mode === "function") {
+          const functionName = action.functionName ?? tableName
+          await scopedClient.functions.runs.create(functionName, { input: createRecordActionInput(action, context) })
+        } else if (mode === "workflow") {
+          if (!action.workflowName) throw new Error(`Action "${action.label}" requires workflowName in workflow mode.`)
+          await scopedClient.workflows.runs.start(action.workflowName, createRecordActionInput(action, context))
         } else {
-          const input = action.buildInput?.(record) ?? {}
-          await updateHook.update(input)
+          await updateHook.update({
+            ...resolveRecordActionValues(action, record),
+            ...(action.buildInput?.(record, context) ?? {}),
+          })
         }
-        const refreshed = await recordState.refresh()
-        if (refreshed) {
-          onRecordChange?.(refreshed)
-        }
+
+        await refreshRecord()
       } finally {
         setActionLoading(null)
       }
     },
-    [record, actionMode, scopedClient, tableName, updateHook, recordState, onRecordChange],
+    [actionMode, record, refreshRecord, scopedClient, tableName, updateHook],
   )
 
   React.useEffect(() => {
@@ -381,44 +208,36 @@ export function LemmaDetailPanel({
 
   if (!recordId) {
     return (
-      <div
-        data-appearance={appearance}
-        data-density={density}
-        data-radius={radius}
-        className={cn("lemma-detail-panel flex h-full min-h-0 flex-col", rootClassName(appearance), className)}
-      >
-        <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-          <span className={cn("flex size-11 items-center justify-center border border-border/60 bg-muted/40 text-muted-foreground", detailPanelRadiusClassName(radius, "pill"))}>
-            <FileText className="size-5" />
-          </span>
-          <div className="flex flex-col gap-1">
-            <p className="font-medium text-foreground">Select a record</p>
-            <p className="max-w-sm text-sm text-muted-foreground">Select a record to view details</p>
-          </div>
-        </div>
-      </div>
+      <DetailPanelState
+        appearance={appearance}
+        radius={radius}
+        className={className}
+        icon={FileText}
+        title="Select a record"
+        description="Select a record to view details."
+      />
     )
   }
 
-  if (recordState.isLoading || tableState.isLoading) {
+  if (tableState.isLoading || recordState.isLoading) {
     return (
       <div
         data-appearance={appearance}
         data-density={density}
         data-radius={radius}
-        className={cn("lemma-detail-panel flex h-full min-h-0 flex-col", rootClassName(appearance), className)}
+        className={detailPanelSurfaceClassName(appearance, radius, className)}
       >
-        <div className={cn(headerPaddingClassName(density), "border-b border-border/40")}>
+        <div className={cn("border-b border-border/40", density === "compact" ? "px-4 py-3" : density === "spacious" ? "px-6 py-5" : "px-5 py-4")}>
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-20" />
             <Skeleton className="h-5 w-16" />
           </div>
-          <Skeleton className="mt-2 h-6 w-3/4" />
-          <Skeleton className="mt-1.5 h-4 w-1/2" />
+          <Skeleton className="mt-3 h-8 w-3/4" />
+          <Skeleton className="mt-2 h-4 w-1/2" />
         </div>
-        <div className={cn(contentPaddingClassName(density), "flex flex-col gap-3")}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between">
+        <div className={cn("flex flex-col gap-3", density === "compact" ? "p-4" : density === "spacious" ? "p-6" : "p-5")}>
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="flex items-center justify-between gap-4">
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-32" />
             </div>
@@ -428,217 +247,168 @@ export function LemmaDetailPanel({
     )
   }
 
-  if (recordState.error) {
+  if (error) {
     return (
-      <div
-        data-appearance={appearance}
-        data-density={density}
-        data-radius={radius}
-        className={cn("lemma-detail-panel flex h-full min-h-0 flex-col", rootClassName(appearance), className)}
-      >
-        <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-          <span className={cn("flex size-11 items-center justify-center border border-border/60 bg-muted/40 text-destructive", detailPanelRadiusClassName(radius, "pill"))}>
-            <AlertCircle className="size-5" />
-          </span>
-          <div className="flex flex-col gap-1">
-            <p className="font-medium text-foreground">Failed to load record</p>
-            <p className="max-w-sm text-sm text-muted-foreground">{recordState.error.message}</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => recordState.refresh()}>
+      <DetailPanelState
+        appearance={appearance}
+        radius={radius}
+        className={className}
+        icon={AlertCircle}
+        title="Failed to load record"
+        description={error.message}
+        tone="error"
+        action={(
+          <Button variant="outline" size="sm" onClick={() => void refreshRecord()}>
             <RefreshCw className="mr-2 size-3.5" />
             Retry
           </Button>
-        </div>
-      </div>
+        )}
+      />
     )
   }
 
-  if (!record) {
+  if (!table || !record) {
     return (
-      <div
-        data-appearance={appearance}
-        data-density={density}
-        data-radius={radius}
-        className={cn("lemma-detail-panel flex h-full min-h-0 flex-col", rootClassName(appearance), className)}
-      >
-        <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-          <span className={cn("flex size-11 items-center justify-center border border-border/60 bg-muted/40 text-muted-foreground", detailPanelRadiusClassName(radius, "pill"))}>
-            <FileText className="size-5" />
-          </span>
-          <div className="flex flex-col gap-1">
-            <p className="font-medium text-foreground">Record not found</p>
-            <p className="max-w-sm text-sm text-muted-foreground">The requested record could not be found.</p>
-          </div>
-        </div>
-      </div>
+      <DetailPanelState
+        appearance={appearance}
+        radius={radius}
+        className={className}
+        icon={FileText}
+        title="Record not found"
+        description="The requested record could not be found."
+      />
     )
   }
 
-  const statusBadge = statusField && statusColumn?.options?.length && statusValue != null
-    ? enumPillClasses(String(statusValue), statusColumn.options, enumColorMap)
-    : null
+  const actionNodes = actions?.length ? (
+    <>
+      {actions.map((action) => {
+        const Icon = action.icon
+        const isLoading = actionLoading === action.label
+        return (
+          <Button
+            key={action.label}
+            type="button"
+            variant={action.variant ?? "outline"}
+            size="sm"
+            disabled={isLoading}
+            className={cn("gap-1.5", recordsRadiusClassName(radius, "control"))}
+            onClick={() => void handleAction(action)}
+          >
+            {isLoading ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : Icon ? (
+              <Icon className="size-3.5" />
+            ) : null}
+            {action.label}
+          </Button>
+        )
+      })}
+    </>
+  ) : undefined
 
   return (
-    <div
-      data-appearance={appearance}
-      data-density={density}
-      data-radius={radius}
-      className={cn("lemma-detail-panel flex h-full min-h-0 flex-col", rootClassName(appearance), className)}
-    >
-      <div className={cn("shrink-0 border-b border-border/40", headerPaddingClassName(density))}>
-        <div className="flex items-center gap-2">
-          {statusBadge && (
-            <span className={statusBadge}>{String(statusValue)}</span>
+    <RecordDetail
+      record={record}
+      table={table}
+      client={client}
+      podId={podId}
+      mode={mode}
+      variant={variant}
+      tabs={resolvedTabs}
+      headerFields={headerFields}
+      fieldGroups={fieldGroups}
+      relatedRecords={relatedRecords}
+      titleField={titleField}
+      descriptionField={descriptionField}
+      identifierField={identifierField}
+      statusField={statusField}
+      updateVia={updateVia}
+      updateFunctionName={updateFunctionName}
+      foreignKeyLabels={foreignKeyLabels}
+      enumColorMap={enumColorMap}
+      appearance={appearance}
+      density={density}
+      radius={radius}
+      layout={layout}
+      actions={actionNodes}
+      renderFiles={renderFiles}
+      renderComments={renderComments}
+      renderActivity={renderActivity}
+      sectionLabels={sectionLabels}
+      sectionVisibility={sectionVisibility}
+      className={className}
+      onRecordChanged={() => void refreshRecord()}
+      onForeignKeyNavigate={(column, id) => {
+        const reference = column.foreign_key?.references ?? ""
+        const refTable = reference.split(".")[0] || column.name
+        onNavigate?.(refTable, id)
+      }}
+      titleOverride={title}
+    />
+  )
+}
+
+function DetailPanelState({
+  appearance,
+  radius,
+  className,
+  icon: Icon,
+  title,
+  description,
+  tone = "default",
+  action,
+}: {
+  appearance: LemmaDetailPanelAppearance
+  radius: LemmaDetailPanelRadius
+  className?: string
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  description: string
+  tone?: "default" | "error"
+  action?: React.ReactNode
+}) {
+  return (
+    <div className={detailPanelSurfaceClassName(appearance, radius, className)}>
+      <div className="flex h-full min-h-[18rem] flex-col items-center justify-center gap-3 px-6 py-8 text-center">
+        <span
+          className={cn(
+            "flex size-11 items-center justify-center border border-border/60 bg-muted/40",
+            recordsRadiusClassName(radius, "pill"),
+            tone === "error" ? "text-destructive" : "text-muted-foreground",
           )}
-          {identifierValue != null && identifierValue !== "" && (
-            <Badge variant="outline" className={cn("text-xs font-mono", detailPanelRadiusClassName(radius, "pill"))}>
-              {String(identifierValue)}
-            </Badge>
-          )}
+        >
+          <Icon className="size-5" />
+        </span>
+        <div className="flex flex-col gap-1">
+          <p className="font-medium text-foreground">{title}</p>
+          <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
         </div>
-        <h2 className="mt-1.5 truncate text-lg font-semibold text-foreground">
-          {title ?? (titleValue != null && titleValue !== "" ? String(titleValue) : "Untitled")}
-        </h2>
-        {descriptionValue != null && descriptionValue !== "" && (
-          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-            {String(descriptionValue)}
-          </p>
-        )}
+        {action}
       </div>
-
-      {actions && actions.length > 0 && (
-        <div className={cn("shrink-0 flex flex-wrap gap-2 border-b border-border/40", actionBarPaddingClassName(density))}>
-          {actions.map((action) => {
-            const Icon = action.icon
-            const isLoading = actionLoading === action.label
-            return (
-              <Button
-                key={action.label}
-                variant={action.variant ?? "outline"}
-                size="sm"
-                onClick={() => handleAction(action)}
-                disabled={isLoading}
-                className={cn("h-8 gap-1.5 text-xs", detailPanelRadiusClassName(radius, "control"))}
-              >
-                {isLoading ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : Icon ? (
-                  <Icon className="size-3.5" />
-                ) : null}
-                {action.label}
-              </Button>
-            )
-          })}
-        </div>
-      )}
-
-      <div className={cn("flex-1 overflow-auto", contentPaddingClassName(density))}>
-        {resolvedFieldGroups.map((group) => {
-          const collapsed = collapsedGroups.has(group.label)
-          return (
-            <div key={group.label} className="mb-4">
-              <button
-                type="button"
-                className="flex w-full items-center gap-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground hover:text-foreground"
-                onClick={() => toggleGroup(group.label)}
-              >
-                {collapsed ? (
-                  <ChevronRight className="size-3.5" />
-                ) : (
-                  <ChevronDown className="size-3.5" />
-                )}
-                {group.label}
-              </button>
-              {!collapsed && (
-                <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2.5">
-                  {group.fields.map((fieldName) => {
-                    const column = getColumn(fieldName)
-                    const value = record[fieldName]
-                    const isFk = column && isFkColumn(column)
-                    return (
-                      <div key={fieldName} className="min-w-0">
-                        <p className="truncate text-xs text-muted-foreground">
-                          {column ? sentenceCase(column.name) : sentenceCase(fieldName)}
-                        </p>
-                        <div className="mt-0.5 truncate text-sm text-foreground">
-                          {isFk && onNavigate && value != null ? (
-                            <button
-                              type="button"
-                              className="inline-flex items-center gap-1 text-primary hover:underline"
-                              onClick={() => {
-                                const ref = column!.foreign_key?.references ?? ""
-                                const refTable = ref.split(".")[0]
-                                const fkId = typeof value === "object" && value !== null && !Array.isArray(value)
-                                  ? String((value as Record<string, unknown>).id ?? value)
-                                  : String(value)
-                                onNavigate(refTable, fkId)
-                              }}
-                            >
-                              {renderFieldValue(fieldName, value)}
-                              <ExternalLink className="size-3 shrink-0" />
-                            </button>
-                          ) : (
-                            renderFieldValue(fieldName, value)
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-
-      {tabs && tabs.length > 0 && (
-        <div className={cn("shrink-0 border-t border-border/40", tabPaddingClassName(density))}>
-          <Tabs defaultValue={tabs[0].id} className="w-full">
-            <TabsList className="h-8 w-full justify-start">
-              {tabs.map((tab) => (
-                <TabsTrigger key={tab.id} value={tab.id} className="text-xs">
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {tabs.map((tab) => (
-              <TabsContent key={tab.id} value={tab.id} className="mt-2">
-                {tab.content}
-              </TabsContent>
-            ))}
-          </Tabs>
-        </div>
-      )}
     </div>
   )
 }
 
-function rootClassName(appearance: LemmaDetailPanelAppearance) {
-  if (appearance === "contained") return "bg-card"
-  if (appearance === "minimal" || appearance === "borderless") return "bg-transparent"
-  return "bg-background"
+function detailPanelSurfaceClassName(
+  appearance: LemmaDetailPanelAppearance,
+  radius: LemmaDetailPanelRadius,
+  className?: string,
+) {
+  return cn(
+    "lemma-detail-panel flex h-full min-h-0 flex-col overflow-hidden",
+    recordsRadiusClassName(radius, "surface"),
+    appearance === "minimal" ? "bg-transparent" : "bg-card",
+    appearance === "borderless" || appearance === "minimal" ? "border-0 shadow-none" : "border border-border/50 shadow-sm",
+    appearance === "contained" && "border-border/70 bg-card",
+    className,
+  )
 }
 
-function headerPaddingClassName(density: LemmaDetailPanelDensity) {
-  if (density === "compact") return "px-3 py-2"
-  if (density === "spacious") return "px-5 py-4"
-  return "px-4 py-3"
-}
-
-function actionBarPaddingClassName(density: LemmaDetailPanelDensity) {
-  if (density === "compact") return "px-3 py-1.5"
-  if (density === "spacious") return "px-5 py-3"
-  return "px-4 py-2"
-}
-
-function contentPaddingClassName(density: LemmaDetailPanelDensity) {
-  if (density === "compact") return "p-3"
-  if (density === "spacious") return "p-5"
-  return "p-4"
-}
-
-function tabPaddingClassName(density: LemmaDetailPanelDensity) {
-  if (density === "compact") return "px-3 py-2"
-  if (density === "spacious") return "px-5 py-4"
-  return "px-4 py-3"
+function defaultDetailTabs(options: { includeRelated: boolean; includeFiles: boolean }): RecordDetailBuiltinTab[] {
+  const tabs: RecordDetailBuiltinTab[] = ["details"]
+  if (options.includeRelated) tabs.push("related")
+  tabs.push("activity")
+  if (options.includeFiles) tabs.push("files")
+  return tabs
 }

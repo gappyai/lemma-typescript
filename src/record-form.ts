@@ -37,6 +37,14 @@ export interface BuildRecordPayloadResult {
   isValid: boolean;
 }
 
+export const DEFAULT_RECORD_FORM_HIDDEN_FIELDS = [
+  "id",
+  "created_at",
+  "updated_at",
+  "creator_user_id",
+  "sort_order",
+] as const;
+
 function sentenceCase(value: string): string {
   return value
     .replace(/_/g, " ")
@@ -147,6 +155,20 @@ export function buildRecordSchemaFields(table: Table): RecordSchemaField[] {
 
 export function getEditableRecordFields(table: Table): RecordSchemaField[] {
   return buildRecordSchemaFields(table).filter((field) => !field.readOnly);
+}
+
+export function orderRecordSchemaFields<T extends { name: string }>(
+  fields: T[],
+  fieldOrder?: string[],
+): T[] {
+  if (!fieldOrder?.length) return fields;
+
+  const ordered = fieldOrder
+    .map((name) => fields.find((field) => field.name === name))
+    .filter((field): field is T => field !== undefined);
+  const remaining = fields.filter((field) => !fieldOrder.includes(field.name));
+
+  return [...ordered, ...remaining];
 }
 
 export function formatRecordValueForForm(column: ColumnSchema, value: unknown): unknown {

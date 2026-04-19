@@ -1,16 +1,24 @@
 "use client"
 
 import * as React from "react"
-import { Calendar, Check, ChevronsUpDown, Database, FileText, Link2, RefreshCw, Search, Trash2, X } from "lucide-react"
+import { Calendar, Database, ExternalLink, FileText, Link2, RefreshCw, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
 import { useForeignKeyOptions, useReferencingRecords, useUpdateRecord } from "lemma-sdk/react"
-import type { ColumnSchema, LemmaClient, Table } from "lemma-sdk"
+import {
+  buildDefaultRecordDetailFieldGroups,
+  detectRecordDescriptionColumn,
+  detectRecordStatusColumn,
+  detectRecordTitleColumn,
+  formatRecordPlainValue,
+  getRecordFieldKind,
+  humanizeRecordFieldName,
+  type ColumnSchema,
+  type LemmaClient,
+  type Table,
+} from "lemma-sdk"
 import { cn } from "@/lib/utils"
+import { RecordFieldInput, type SharedRecordFormFieldDescriptor } from "@/components/lemma/record-form-fields"
 import { enumPillClasses, isSystemField, typeBadgeClasses, type EnumColorMap } from "./records-enum-utils"
 import {
   displayColumnLabel,
@@ -29,11 +37,24 @@ import {
 
 export type RecordDetailVariant = "summary" | "workspace" | "activity"
 export type RecordDetailMode = "view" | "editable"
-export type RecordDetailTab = "details" | "related" | "activity" | "files"
+export type RecordDetailBuiltinTab = "details" | "related" | "comments" | "activity" | "files"
+export interface RecordDetailCustomTab {
+  id: string
+  label: React.ReactNode
+  content: React.ReactNode
+}
+export type RecordDetailTab = RecordDetailBuiltinTab | RecordDetailCustomTab
 export type RecordDetailLayout = "default" | "embedded"
+export type RecordDetailSectionVisibilityRule = boolean | ((context: RecordDetailSectionVisibilityContext) => boolean)
 export interface RecordDetailFieldGroup {
   label: string
   fields: string[]
+}
+
+export interface RecordDetailSectionVisibilityContext {
+  record: Record<string, unknown>
+  table: Table
+  recordId: string
 }
 
 export interface RecordDetailRelatedRecord {
@@ -76,9 +97,15 @@ export interface RecordDetailProps {
   layout?: RecordDetailLayout
   actions?: React.ReactNode
   renderFiles?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  renderComments?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  renderActivity?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  sectionLabels?: Partial<Record<RecordDetailBuiltinTab, React.ReactNode>>
+  sectionVisibility?: Partial<Record<RecordDetailBuiltinTab, RecordDetailSectionVisibilityRule>>
   className?: string
   onRecordChanged?: () => void
   onDelete?: () => void
+  onForeignKeyNavigate?: (column: ColumnSchema, id: string) => void
+  titleOverride?: React.ReactNode
 }
 
 export function RecordDetail({
@@ -108,9 +135,15 @@ export function RecordDetail({
   layout = "default",
   actions,
   renderFiles,
+  renderComments,
+  renderActivity,
+  sectionLabels,
+  sectionVisibility,
   className,
   onRecordChanged,
   onDelete,
+  onForeignKeyNavigate,
+  titleOverride,
 }: RecordDetailProps) {
   const primaryKey = table.primary_key_column || "id"
   const recordId = String(record[primaryKey] ?? "")
@@ -126,26 +159,25 @@ export function RecordDetail({
   const primaryColumn = pickPrimaryColumn(userColumns)
   const secondaryColumns = pickSecondaryColumns(userColumns, primaryColumn, { count: 3 })
   const resolvedTitleField = React.useMemo(
-    () => titleField ?? detectTitleColumn(userColumns)?.name,
+    () => titleField ?? detectRecordTitleColumn(userColumns)?.name,
     [titleField, userColumns],
   )
   const resolvedDescriptionField = React.useMemo(
-    () => descriptionField ?? detectDescriptionColumn(userColumns)?.name,
+    () => descriptionField ?? detectRecordDescriptionColumn(userColumns)?.name,
     [descriptionField, userColumns],
   )
   const resolvedStatusField = React.useMemo(
-    () => statusField ?? detectStatusColumn(userColumns)?.name,
+    () => statusField ?? detectRecordStatusColumn(userColumns)?.name,
     [statusField, userColumns],
   )
   const resolvedFieldGroups = React.useMemo<RecordDetailFieldGroup[]>(() => {
     if (fieldGroups?.length) return fieldGroups
-    const excluded = new Set(
-      [resolvedTitleField, resolvedDescriptionField, resolvedStatusField, identifierField]
-        .filter((value): value is string => Boolean(value)),
-    )
-    const displayable = userColumns.filter((column) => !excluded.has(column.name))
-    if (displayable.length === 0) return []
-    return [{ label: "Details", fields: displayable.map((column) => column.name) }]
+    return buildDefaultRecordDetailFieldGroups(userColumns, {
+      titleField: resolvedTitleField,
+      descriptionField: resolvedDescriptionField,
+      statusField: resolvedStatusField,
+      identifierField,
+    })
   }, [fieldGroups, identifierField, resolvedDescriptionField, resolvedStatusField, resolvedTitleField, userColumns])
   const headerColumns = React.useMemo(() => {
     if (headerFields?.length) {
@@ -155,20 +187,33 @@ export function RecordDetail({
     }
     return secondaryColumns
   }, [headerFields, secondaryColumns, userColumns])
-  const title = formatPlainValue(
+  const title = formatRecordPlainValue(
     resolvedTitleField ? record[resolvedTitleField] : primaryColumn ? record[primaryColumn.name] : undefined,
   ) || "Untitled record"
-  const description = formatPlainValue(resolvedDescriptionField ? record[resolvedDescriptionField] : undefined)
+  const titleContent = titleOverride ?? title
+  const description = formatRecordPlainValue(resolvedDescriptionField ? record[resolvedDescriptionField] : undefined)
   const statusColumn = resolvedStatusField
     ? userColumns.find((column) => column.name === resolvedStatusField)
     : undefined
   const statusValue = resolvedStatusField ? record[resolvedStatusField] : undefined
   const identifierValue = identifierField ? record[identifierField] : recordId
+  const sectionContext = React.useMemo<RecordDetailSectionVisibilityContext>(
+    () => ({ record, table, recordId }),
+    [record, recordId, table],
+  )
   const activeTabs = React.useMemo(() => {
-    const requested = tabs?.length ? tabs : relatedRecords.length ? ["details", "related", "activity"] : ["details", "activity"]
-    return requested.filter((tab, index, allTabs) => allTabs.indexOf(tab) === index)
-  }, [relatedRecords.length, tabs])
-  const defaultTab = activeTabs[0] ?? "details"
+    return normalizeRecordDetailTabs(tabs, {
+      includeRelated: relatedRecords.length > 0,
+      includeComments: Boolean(renderComments),
+      includeFiles: Boolean(renderFiles),
+      sectionLabels,
+    }).filter((tab) => {
+      if (!tab.builtin) return true
+      return resolveDetailSectionVisibility(sectionVisibility?.[tab.id as RecordDetailBuiltinTab], sectionContext)
+    })
+  }, [relatedRecords.length, renderComments, renderFiles, sectionContext, sectionLabels, sectionVisibility, tabs])
+  const activeTabIds = React.useMemo(() => new Set(activeTabs.map((tab) => tab.id)), [activeTabs])
+  const defaultTab = activeTabs[0]?.id ?? "details"
   const isEmbedded = layout === "embedded"
 
   return (
@@ -177,95 +222,106 @@ export function RecordDetail({
       data-density={density}
       data-radius={radius}
       className={cn(
-        "lemma-record-detail min-h-0 min-w-0 overflow-hidden",
+        "lemma-record-detail flex min-h-0 min-w-0 flex-col overflow-hidden",
         detailSurfaceClassName(appearance, radius),
         className,
       )}
     >
-      <div className={cn("flex flex-col", isEmbedded ? "gap-4 p-4" : density === "compact" ? "gap-3 p-4" : density === "spacious" ? "gap-5 p-7" : "gap-4 p-6")}>
+      <div className={cn("flex min-h-0 flex-1 flex-col overflow-y-auto", isEmbedded ? "gap-4 p-4" : density === "compact" ? "gap-3 p-4" : density === "spacious" ? "gap-5 p-7" : "gap-4 p-6")}>
         {isEmbedded ? (
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-3">
-                <div className={cn("flex shrink-0 items-center justify-center border border-border/50 bg-muted/35 text-muted-foreground", recordsRadiusClassName(radius, "control"), density === "compact" ? "size-9" : "size-10")}>
-                  <Database className="size-4" />
+          <div
+            className={cn(
+              "sticky top-0 z-10 -mx-4 -mt-4 border-b border-border/30 px-4 py-4 backdrop-blur",
+              appearance === "minimal" ? "bg-background/95" : "bg-card/95",
+            )}
+          >
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className={cn("flex shrink-0 items-center justify-center border border-border/50 bg-muted/35 text-muted-foreground", recordsRadiusClassName(radius, "control"), density === "compact" ? "size-9" : "size-10")}>
+                    <Database className="size-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {statusValue != null && statusValue !== "" ? (
+                        statusColumn?.type === "ENUM" && statusColumn.options?.length ? (
+                          <span className={enumPillClasses(String(statusValue), statusColumn.options, enumColorMap)}>
+                            {String(statusValue)}
+                          </span>
+                        ) : (
+                          <span className={cn("inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground", recordsRadiusClassName(radius, "pill"))}>
+                            {String(statusValue)}
+                          </span>
+                        )
+                      ) : null}
+                      {identifierValue != null && identifierValue !== "" ? (
+                        <span className={cn("inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground", recordsRadiusClassName(radius, "pill"))}>
+                          {shortenIdentifier(identifierValue)}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80">
+                      {table.name.replace(/_/g, " ")}
+                    </p>
+                  </div>
                 </div>
                 <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {statusValue != null && statusValue !== "" ? (
-                      statusColumn?.type === "ENUM" && statusColumn.options?.length ? (
-                        <span className={enumPillClasses(String(statusValue), statusColumn.options, enumColorMap)}>
-                          {String(statusValue)}
-                        </span>
-                      ) : (
-                        <span className={cn("inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 text-[11px] font-medium text-foreground", recordsRadiusClassName(radius, "pill"))}>
-                          {String(statusValue)}
-                        </span>
-                      )
-                    ) : null}
-                    {identifierValue != null && identifierValue !== "" ? (
-                      <span className={cn("inline-flex items-center border border-border/50 bg-muted/40 px-2 py-0.5 font-mono text-[11px] text-muted-foreground", recordsRadiusClassName(radius, "pill"))}>
-                        {shortenIdentifier(identifierValue)}
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80">
-                    {table.name.replace(/_/g, " ")}
-                  </p>
+                  <h2
+                    className={cn(
+                      "break-words tracking-tight text-foreground",
+                      density === "compact"
+                        ? "text-[1.45rem] font-semibold leading-[1.08]"
+                        : "text-[1.7rem] font-semibold leading-[1.04]",
+                    )}
+                  >
+                    {titleContent}
+                  </h2>
+                  {description ? (
+                    <p className="mt-3 max-w-3xl break-words text-sm leading-6 text-muted-foreground">{description}</p>
+                  ) : null}
+                  {headerColumns.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {headerColumns.map((column) => {
+                        const value = record[column.name]
+                        if (value == null || value === "") return null
+                        return (
+                          <span
+                            key={column.name}
+                            className={cn(
+                              "inline-flex max-w-full items-center gap-1.5 border border-border/35 bg-muted/25 px-2.5 py-1",
+                              recordsRadiusClassName(radius, "pill"),
+                            )}
+                          >
+                            <span className="text-muted-foreground/75">{displayColumnLabel(column.name, columnLabels)}</span>
+                            <span className="break-words text-foreground">
+                              {formatRecordFieldValue(value, column, undefined, enumColorMap)}
+                            </span>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  ) : null}
                 </div>
               </div>
               {actions || onDelete ? (
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-                  {actions}
+                <div className="flex min-w-0 flex-col gap-2 border-t border-border/30 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  {actions ? (
+                    <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+                      {actions}
+                    </div>
+                  ) : null}
                   {onDelete ? (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      className="shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                       onClick={onDelete}
                     >
                       <Trash2 data-icon="inline-start" />
                       Delete
                     </Button>
                   ) : null}
-                </div>
-              ) : null}
-            </div>
-            <div className="min-w-0">
-              <h2
-                className={cn(
-                  "break-words tracking-tight text-foreground",
-                  density === "compact"
-                    ? "text-[1.45rem] font-semibold leading-[1.08]"
-                    : "text-[1.7rem] font-semibold leading-[1.04]",
-                )}
-              >
-                {title}
-              </h2>
-              {description ? (
-                <p className="mt-3 max-w-3xl break-words text-sm leading-6 text-muted-foreground">{description}</p>
-              ) : null}
-              {headerColumns.length > 0 ? (
-                <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  {headerColumns.map((column) => {
-                    const value = record[column.name]
-                    if (value == null || value === "") return null
-                    return (
-                      <span
-                        key={column.name}
-                        className={cn(
-                          "inline-flex max-w-full items-center gap-1.5 border border-border/35 bg-muted/25 px-2.5 py-1",
-                          recordsRadiusClassName(radius, "pill"),
-                        )}
-                      >
-                        <span className="text-muted-foreground/75">{displayColumnLabel(column.name, columnLabels)}</span>
-                        <span className="break-words text-foreground">
-                          {formatRecordFieldValue(value, column, undefined, enumColorMap)}
-                        </span>
-                      </span>
-                    )
-                  })}
                 </div>
               ) : null}
             </div>
@@ -296,7 +352,7 @@ export function RecordDetail({
                   ) : null}
                 </div>
                 <h2 className={cn("mt-2 break-words tracking-tight text-foreground", density === "compact" ? "text-xl font-semibold leading-tight" : "text-[2rem] font-semibold leading-tight")}>
-                  {title}
+                  {titleContent}
                 </h2>
                 {description ? (
                   <p className="mt-2 max-w-3xl text-sm text-muted-foreground">{description}</p>
@@ -334,19 +390,19 @@ export function RecordDetail({
           </div>
         )}
 
-        <Tabs defaultValue={defaultTab} className="min-h-0">
+        <Tabs defaultValue={defaultTab} className="min-h-0 w-full flex-1 flex-col">
           {activeTabs.length > 1 ? (
-            <TabsList className={cn("w-full justify-start", recordsRadiusClassName(radius, "control"))}>
+            <TabsList className={cn("w-full shrink-0 justify-start overflow-x-auto", recordsRadiusClassName(radius, "control"))}>
               {activeTabs.map((tab) => (
-                <TabsTrigger key={tab} value={tab} className="capitalize">
-                  {tab}
+                <TabsTrigger key={tab.id} value={tab.id}>
+                  {tab.label}
                 </TabsTrigger>
               ))}
             </TabsList>
           ) : null}
 
-          {activeTabs.includes("details") ? (
-            <TabsContent value="details" className="mt-4">
+          {activeTabIds.has("details") ? (
+            <TabsContent value="details" className="mt-4 min-w-0">
               <DetailsTab
                 record={record}
                 columns={userColumns}
@@ -366,12 +422,13 @@ export function RecordDetail({
                 radius={radius}
                 layout={layout}
                 onRecordChanged={onRecordChanged}
+                onForeignKeyNavigate={onForeignKeyNavigate}
               />
             </TabsContent>
           ) : null}
 
-          {activeTabs.includes("related") ? (
-            <TabsContent value="related" className="mt-4">
+          {activeTabIds.has("related") ? (
+            <TabsContent value="related" className="mt-4 min-w-0">
               <RelatedTab
                 recordId={recordId}
                 configs={relatedRecords}
@@ -384,14 +441,34 @@ export function RecordDetail({
             </TabsContent>
           ) : null}
 
-          {activeTabs.includes("activity") ? (
-            <TabsContent value="activity" className="mt-4">
-              <ActivityTab record={record} columns={systemColumns} columnLabels={columnLabels} appearance={appearance} density={density} radius={radius} />
+          {activeTabIds.has("activity") ? (
+            <TabsContent value="activity" className="mt-4 min-w-0">
+              {renderActivity ? (
+                renderActivity({ record, table, recordId })
+              ) : (
+                <ActivityTab record={record} columns={systemColumns} columnLabels={columnLabels} appearance={appearance} density={density} radius={radius} />
+              )}
             </TabsContent>
           ) : null}
 
-          {activeTabs.includes("files") ? (
-            <TabsContent value="files" className="mt-4">
+          {activeTabIds.has("comments") ? (
+            <TabsContent value="comments" className="mt-4 min-w-0">
+              {renderComments ? (
+                renderComments({ record, table, recordId })
+              ) : (
+                <EmptyDetailState
+                  icon={Link2}
+                  title="Comments are ready to connect"
+                  description="Pass renderComments to plug in lemma-comments or a record-specific discussion surface."
+                  appearance={appearance}
+                  radius={radius}
+                />
+              )}
+            </TabsContent>
+          ) : null}
+
+          {activeTabIds.has("files") ? (
+            <TabsContent value="files" className="mt-4 min-w-0">
               {renderFiles ? (
                 renderFiles({ record, table, recordId })
               ) : (
@@ -405,10 +482,79 @@ export function RecordDetail({
               )}
             </TabsContent>
           ) : null}
+
+          {activeTabs
+            .filter((tab) => !tab.builtin)
+            .map((tab) => (
+              <TabsContent key={tab.id} value={tab.id} className="mt-4 min-w-0">
+                {tab.content}
+              </TabsContent>
+            ))}
         </Tabs>
       </div>
     </section>
   )
+}
+
+function normalizeRecordDetailTabs(
+  tabs: RecordDetailTab[] | undefined,
+  options: {
+    includeRelated: boolean
+    includeComments: boolean
+    includeFiles: boolean
+    sectionLabels?: Partial<Record<RecordDetailBuiltinTab, React.ReactNode>>
+  },
+): Array<{ id: string; label: React.ReactNode; builtin: boolean; content?: React.ReactNode }> {
+  const requestedTabs = tabs?.length
+    ? tabs
+    : defaultRecordDetailTabs(options)
+
+  const normalizedTabs = requestedTabs.map((tab) => {
+    if (typeof tab === "string") {
+      return {
+        id: tab,
+        label: options.sectionLabels?.[tab] ?? recordDetailTabLabel(tab),
+        builtin: true,
+      }
+    }
+
+    return {
+      id: tab.id,
+      label: tab.label,
+      builtin: false,
+      content: tab.content,
+    }
+  })
+
+  return normalizedTabs.filter(
+    (tab, index, allTabs) => allTabs.findIndex((candidate) => candidate.id === tab.id) === index,
+  )
+}
+
+function defaultRecordDetailTabs(options: { includeRelated: boolean; includeComments: boolean; includeFiles: boolean }): RecordDetailBuiltinTab[] {
+  const tabs: RecordDetailBuiltinTab[] = ["details"]
+  if (options.includeRelated) tabs.push("related")
+  if (options.includeComments) tabs.push("comments")
+  tabs.push("activity")
+  if (options.includeFiles) tabs.push("files")
+  return tabs
+}
+
+function recordDetailTabLabel(tab: RecordDetailBuiltinTab): string {
+  if (tab === "details") return "Details"
+  if (tab === "related") return "Related"
+  if (tab === "comments") return "Comments"
+  if (tab === "activity") return "Activity"
+  return "Files"
+}
+
+function resolveDetailSectionVisibility(
+  rule: RecordDetailSectionVisibilityRule | undefined,
+  context: RecordDetailSectionVisibilityContext,
+): boolean {
+  if (typeof rule === "boolean") return rule
+  if (typeof rule === "function") return rule(context)
+  return true
 }
 
 function DetailsTab({
@@ -430,6 +576,7 @@ function DetailsTab({
   radius,
   layout,
   onRecordChanged,
+  onForeignKeyNavigate,
 }: {
   record: Record<string, unknown>
   columns: ColumnSchema[]
@@ -449,6 +596,7 @@ function DetailsTab({
   radius: LemmaRecordsRadius
   layout: RecordDetailLayout
   onRecordChanged?: () => void
+  onForeignKeyNavigate?: (column: ColumnSchema, id: string) => void
 }) {
   const gridClassName = variant === "summary" || mode === "view"
     ? "grid-cols-1"
@@ -490,6 +638,7 @@ function DetailsTab({
                     radius={radius}
                     layout={layout}
                     onRecordChanged={onRecordChanged}
+                    onForeignKeyNavigate={onForeignKeyNavigate}
                   />
                 ))}
               </div>
@@ -514,6 +663,7 @@ function DetailsTab({
                     radius={radius}
                     layout={layout}
                     onRecordChanged={onRecordChanged}
+                    onForeignKeyNavigate={onForeignKeyNavigate}
                   />
                 ))}
               </div>
@@ -542,6 +692,7 @@ function RecordField({
   radius,
   layout,
   onRecordChanged,
+  onForeignKeyNavigate,
 }: {
   record: Record<string, unknown>
   column: ColumnSchema
@@ -559,6 +710,7 @@ function RecordField({
   radius: LemmaRecordsRadius
   layout: RecordDetailLayout
   onRecordChanged?: () => void
+  onForeignKeyNavigate?: (column: ColumnSchema, id: string) => void
 }) {
   const value = record[column.name]
   const updateMutation = useUpdateRecord({ client, podId, tableName, recordId, updateVia, updateFunctionName })
@@ -585,6 +737,7 @@ function RecordField({
               enumColorMap={enumColorMap}
               radius={radius}
               layout={layout}
+              onForeignKeyNavigate={onForeignKeyNavigate}
             />
           </div>
         </div>
@@ -609,6 +762,7 @@ function RecordField({
               enumColorMap={enumColorMap}
               radius={radius}
               layout={layout}
+              onForeignKeyNavigate={onForeignKeyNavigate}
             />
           </div>
         </div>
@@ -634,7 +788,6 @@ function RecordField({
           podId={podId}
           tableName={tableName}
           labelField={foreignKeyLabels?.[column.name]}
-          enumColorMap={enumColorMap}
           radius={radius}
           disabled={updateMutation.isSubmitting}
           onSave={save}
@@ -650,6 +803,7 @@ function RecordField({
           enumColorMap={enumColorMap}
           radius={radius}
           layout={layout}
+          onForeignKeyNavigate={onForeignKeyNavigate}
         />
       )}
       {updateMutation.error ? (
@@ -669,6 +823,7 @@ function ReadOnlyFieldValue({
   enumColorMap,
   radius,
   layout = "default",
+  onForeignKeyNavigate,
 }: {
   value: unknown
   column: ColumnSchema
@@ -679,6 +834,7 @@ function ReadOnlyFieldValue({
   enumColorMap?: EnumColorMap
   radius: LemmaRecordsRadius
   layout?: RecordDetailLayout
+  onForeignKeyNavigate?: (column: ColumnSchema, id: string) => void
 }) {
   const fkOptions = useForeignKeyOptions({
     client,
@@ -688,13 +844,36 @@ function ReadOnlyFieldValue({
     labelField,
     enabled: !!column.foreign_key,
   })
-  const resolvedLabel = fkOptions.options.find((option) => String(option.value) === String(value))?.label
+  const foreignKeyReference = resolveForeignKeyReference(value)
+  const resolvedLabel = foreignKeyReference.label
+    ?? fkOptions.options.find((option) => String(option.value) === foreignKeyReference.id)?.label
 
   if (value == null || value === "") return <p className="text-sm italic text-muted-foreground">Empty</p>
   if (column.foreign_key) {
+    const foreignKeyId = foreignKeyReference.id
+    const foreignKeyLabel = resolvedLabel ?? shortenIdentifier(foreignKeyId ?? value)
+
+    if (foreignKeyId && onForeignKeyNavigate) {
+      return (
+        <button
+          type="button"
+          className={cn(
+            "inline-flex max-w-full items-center gap-1.5 text-left text-sm font-medium text-primary hover:underline",
+            layout === "embedded" ? "break-words leading-6" : "truncate",
+          )}
+          onClick={() => onForeignKeyNavigate(column, foreignKeyId)}
+        >
+          <span className={cn("min-w-0", layout === "embedded" ? "break-words" : "truncate")}>
+            {foreignKeyLabel}
+          </span>
+          <ExternalLink className="size-3.5 shrink-0" />
+        </button>
+      )
+    }
+
     return (
       <p className={cn("text-sm font-medium text-foreground", layout === "embedded" ? "break-words leading-6" : "truncate")}>
-        {resolvedLabel ?? shortenIdentifier(value)}
+        {foreignKeyLabel}
       </p>
     )
   }
@@ -728,7 +907,6 @@ function EditableFieldValue({
   podId,
   tableName,
   labelField,
-  enumColorMap,
   radius,
   disabled,
   onSave,
@@ -739,115 +917,65 @@ function EditableFieldValue({
   podId?: string
   tableName: string
   labelField?: string
-  enumColorMap?: EnumColorMap
   radius: LemmaRecordsRadius
   disabled?: boolean
   onSave: (value: unknown) => Promise<void>
 }) {
-  const [draft, setDraft] = React.useState(value == null ? "" : String(value))
-  const fkOptions = useForeignKeyOptions({
-    client,
-    podId,
-    tableName,
-    columnName: column.name,
-    labelField,
-    enabled: !!column.foreign_key,
-  })
+  const [draft, setDraft] = React.useState<unknown>(value)
+  const fieldKind = getRecordFieldKind(column)
+  const field = React.useMemo<SharedRecordFormFieldDescriptor>(
+    () => ({
+      name: column.name,
+      label: humanizeRecordFieldName(column.name),
+      kind: fieldKind,
+      column,
+      options: column.options ?? undefined,
+    }),
+    [column, fieldKind],
+  )
 
   React.useEffect(() => {
-    setDraft(value == null ? "" : String(value))
+    setDraft(value)
   }, [value])
 
-  const controlClassName = cn("border-border/70 bg-background/70", recordsRadiusClassName(radius, "control"))
+  const commitOnChange = fieldKind === "foreign-key" || fieldKind === "select" || fieldKind === "boolean"
+  const commitOnBlur = !commitOnChange
 
-  if (column.foreign_key) {
-    const selectedLabel = fkOptions.options.find((option) => String(option.value) === draft)?.label
-    return (
-      <SearchableForeignKeySelect
-        value={draft}
-        selectedLabel={selectedLabel}
-        options={fkOptions.options}
-        radius={radius}
-        disabled={disabled}
-        onChange={(nextValue) => void onSave(nextValue || null)}
-      />
-    )
-  }
-
-  if (column.type === "ENUM" && column.options?.length) {
-    return (
-      <Select value={draft || undefined} onValueChange={(nextValue) => void onSave(nextValue)} disabled={disabled}>
-        <SelectTrigger className={cn("h-8", controlClassName)}>
-          <SelectValue placeholder="Select..." />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectGroup>
-            {column.options.map((option) => (
-              <SelectItem key={option} value={option}>
-                <span className={enumPillClasses(option, column.options!, enumColorMap)}>{option}</span>
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
-    )
-  }
-
-  if (column.type === "BOOLEAN") {
-    const checked = draft === "true" || draft === "1"
-    return (
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className={cn("h-8 justify-start", controlClassName)}
-        disabled={disabled}
-        onClick={() => void onSave(!checked)}
-      >
-        {checked ? "Yes" : "No"}
-      </Button>
-    )
-  }
-
-  if (column.type === "JSON") {
-    return (
-      <Textarea
-        value={draft}
-        rows={5}
-        disabled={disabled}
-        className={cn("font-mono text-xs", controlClassName)}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => void onSave(parseJsonDraft(draft))}
-      />
-    )
-  }
-
-  if (column.type === "DATE" || column.type === "DATETIME") {
-    return (
-      <Input
-        type={column.type === "DATE" ? "date" : "datetime-local"}
-        value={draft}
-        disabled={disabled}
-        className={cn("h-8", controlClassName)}
-        onChange={(event) => setDraft(event.target.value)}
-        onBlur={() => void onSave(draft || null)}
-      />
-    )
-  }
+  const commitDraft = React.useCallback(
+    async (nextValue: unknown) => {
+      await onSave(coerceEditableFieldValue(nextValue, column, fieldKind))
+    },
+    [column, fieldKind, onSave],
+  )
 
   return (
-    <Input
+    <RecordFieldInput
+      field={field}
       value={draft}
-      type={column.type === "INTEGER" || column.type === "FLOAT" ? "number" : "text"}
-      disabled={disabled}
-      className={cn("h-8", controlClassName)}
-      onChange={(event) => setDraft(event.target.value)}
-      onBlur={() => void onSave(coerceDraftValue(draft, column))}
-      onKeyDown={(event) => {
-        if (event.key === "Enter") {
-          event.currentTarget.blur()
+      onChange={(nextValue) => {
+        setDraft(nextValue)
+        if (commitOnChange) {
+          void commitDraft(nextValue)
         }
       }}
+      client={client}
+      podId={podId}
+      tableName={tableName}
+      labelField={labelField}
+      radius={radius}
+      controlSize="sm"
+      controlClassName="border-border/70 bg-background/70"
+      disabled={disabled}
+      onBlur={commitOnBlur ? () => void commitDraft(draft) : undefined}
+      onKeyDown={
+        commitOnBlur && fieldKind !== "textarea" && fieldKind !== "json"
+          ? (event) => {
+              if (event.key === "Enter") {
+                event.currentTarget.blur()
+              }
+            }
+          : undefined
+      }
     />
   )
 }
@@ -936,7 +1064,7 @@ function RelatedRecordsPanel({
     <div className={cn("border border-border/40", relatedPanelClassName(appearance), recordsRadiusClassName(radius, "surface"))}>
       <div className="flex items-center justify-between gap-3 border-b border-border/25 px-3 py-2.5">
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">{config.label ?? sentenceCase(config.tableName)}</p>
+          <p className="truncate text-sm font-medium text-foreground">{config.label ?? humanizeRecordFieldName(config.tableName)}</p>
           <p className="text-xs text-muted-foreground">{config.foreignKey} links back to this record</p>
         </div>
         <span className={cn("shrink-0 bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground", recordsRadiusClassName(radius, "pill"))}>
@@ -956,8 +1084,8 @@ function RelatedRecordsPanel({
         ) : (
           <div className="flex flex-col gap-1">
             {related.records.map((childRecord, index) => {
-              const title = formatPlainValue(primaryColumn ? childRecord[primaryColumn.name] : undefined) || "Untitled"
-              const subtitle = subtitleColumn ? formatPlainValue(childRecord[subtitleColumn.name]) : null
+              const title = formatRecordPlainValue(primaryColumn ? childRecord[primaryColumn.name] : undefined) || "Untitled"
+              const subtitle = subtitleColumn ? formatRecordPlainValue(childRecord[subtitleColumn.name]) : null
               return (
                 <button
                   key={String(childRecord.id ?? index)}
@@ -1079,25 +1207,6 @@ function relatedPanelClassName(appearance: LemmaRecordsAppearance) {
   return "bg-card/80"
 }
 
-function detectTitleColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
-  return columns.find((column) => /title|name|subject|label|full_name|primary_email/i.test(column.name))
-}
-
-function detectDescriptionColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
-  return columns.find((column) => /description|summary|body|content|notes|reason/i.test(column.name) && column.type === "TEXT")
-}
-
-function detectStatusColumn(columns: ColumnSchema[]): ColumnSchema | undefined {
-  return columns.find((column) => /status|stage|state/i.test(column.name))
-}
-
-function formatPlainValue(value: unknown): string {
-  if (value == null || value === "") return ""
-  if (value instanceof Date) return formatTimestamp(value)
-  if (typeof value === "object") return JSON.stringify(value)
-  return String(value)
-}
-
 function formatTimestamp(value: unknown): string {
   if (value == null || value === "") return "—"
   const date = value instanceof Date ? value : new Date(String(value))
@@ -1111,129 +1220,40 @@ function formatTimestamp(value: unknown): string {
   })
 }
 
-function sentenceCase(value: string): string {
-  return value
-    .replace(/[_\.]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (match) => match.toUpperCase())
-}
-
-function coerceDraftValue(value: string, column: ColumnSchema): unknown {
-  if (value === "") return null
-  if (column.type === "INTEGER") return Number.parseInt(value, 10)
-  if (column.type === "FLOAT") return Number.parseFloat(value)
-  return value
-}
-
-function parseJsonDraft(value: string): unknown {
-  if (!value.trim()) return null
-  try {
-    return JSON.parse(value)
-  } catch {
-    return value
+function resolveForeignKeyReference(value: unknown): { id: string | null; label?: string } {
+  if (value == null || value === "") {
+    return { id: null }
   }
+
+  if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+    const objectValue = value as Record<string, unknown>
+    const label = objectValue.name ?? objectValue.title ?? objectValue.label
+    return {
+      id: objectValue.id != null ? String(objectValue.id) : null,
+      label: label != null ? String(label) : undefined,
+    }
+  }
+
+  return { id: String(value) }
 }
 
-function SearchableForeignKeySelect({
-  value,
-  selectedLabel,
-  options,
-  radius,
-  disabled,
-  onChange,
-}: {
-  value: string
-  selectedLabel?: string
-  options: Array<{ value: unknown; label: string }>
-  radius: LemmaRecordsRadius
-  disabled?: boolean
-  onChange: (value: string | null) => void
-}) {
-  const [open, setOpen] = React.useState(false)
-  const [query, setQuery] = React.useState("")
+function coerceEditableFieldValue(value: unknown, column: ColumnSchema, fieldKind: string): unknown {
+  if (fieldKind === "boolean") {
+    return value === true
+  }
 
-  const filteredOptions = React.useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (!needle) return options
-    return options.filter((option) => option.label.toLowerCase().includes(needle) || String(option.value).toLowerCase().includes(needle))
-  }, [options, query])
+  if (fieldKind === "json") {
+    if (typeof value !== "string" || !value.trim()) return null
+    try {
+      return JSON.parse(value)
+    } catch {
+      return value
+    }
+  }
 
-  return (
-    <Popover
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (disabled) return
-        setOpen(nextOpen)
-        if (!nextOpen) setQuery("")
-      }}
-    >
-      <PopoverTrigger
-        type="button"
-        disabled={disabled}
-        className={cn(
-          "inline-flex h-8 w-full items-center justify-between gap-3 border border-border/70 bg-background/70 px-3 text-sm transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50",
-          recordsRadiusClassName(radius, "control"),
-        )}
-      >
-        <span className="min-w-0 flex-1 truncate text-left">
-          {selectedLabel ?? (value ? shortenIdentifier(value) : <span className="text-muted-foreground">Select...</span>)}
-        </span>
-        <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
-      </PopoverTrigger>
-      <PopoverContent align="start" className={cn("w-[var(--radix-popper-anchor-width)] min-w-72 p-0", recordsRadiusClassName(radius, "surface"))}>
-        <div className="border-b border-border/40 p-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search..."
-              className={cn("h-8 pl-8 text-xs", recordsRadiusClassName(radius, "control"))}
-            />
-          </div>
-        </div>
-        <div className="max-h-72 overflow-auto p-1">
-          {value ? (
-            <button
-              type="button"
-              className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm text-muted-foreground hover:bg-muted/45", recordsRadiusClassName(radius, "control"))}
-              onClick={() => {
-                onChange(null)
-                setOpen(false)
-                setQuery("")
-              }}
-            >
-              <X className="size-4" />
-              Clear selection
-            </button>
-          ) : null}
-          {filteredOptions.length === 0 ? (
-            <div className="flex min-h-24 items-center justify-center text-sm text-muted-foreground">
-              No options found
-            </div>
-          ) : (
-            filteredOptions.map((option) => {
-              const selected = String(option.value) === value
-              return (
-                <button
-                  key={String(option.value)}
-                  type="button"
-                  className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted/45", recordsRadiusClassName(radius, "control"), selected ? "bg-muted/60" : null)}
-                  onClick={() => {
-                    onChange(String(option.value))
-                    setOpen(false)
-                    setQuery("")
-                  }}
-                >
-                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                  {selected ? <Check className="size-4 text-primary" /> : null}
-                </button>
-              )
-            })
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
+  const stringValue = value == null ? "" : String(value)
+  if (!stringValue) return null
+  if (column.type === "INTEGER") return Number.parseInt(stringValue, 10)
+  if (column.type === "FLOAT") return Number.parseFloat(stringValue)
+  return stringValue
 }

@@ -16,13 +16,17 @@ Business-facing guide for building Lemma desks. Each recipe shows the hooks to u
 | Update a record from a button | `useUpdateRecord` | One-shot update with loading/error state |
 | Delete a record from a button | `useDeleteRecord` | One-shot delete with loading/error state |
 | Bulk create/update/delete | `useBulkRecords` | Shared loading state across batch operations |
+| Add an org member into a pod | `useAddPodMember` | Canonical pod membership add flow for stock members/admin UI |
+| Change a pod member's role | `useUpdatePodMemberRole` | One-shot role transition with loading/error state |
+| Remove a pod member | `useRemovePodMember` | Canonical pod membership removal flow |
 | Create/update through a function | `useRecordForm({ submitVia: "function" })` | Routes payload through business logic |
 | Run a function on click | `useFunctionRun` | Tracks loading, output, polling |
 | Show all comments for an issue | `useReferencingRecords` | "Give me rows in table X where FK = Y" |
 | Show related data in one query | `useRelatedRecords` | Auto-joins FK columns, returns nested objects |
 | Join tables for a list view | `useJoinedRecords({ baseTable, joins })` | Shorthand cross-table joins |
 | Discover what references a record | `useReverseRelatedRecords` | Auto-discovers reverse FK relationships |
-| Run a workflow | `useWorkflowStart` | Start, poll, resume, get input schema |
+| Run a workflow with its input schema | `useWorkflowStart` | Start, poll, resume, and inspect the workflow definition's input schema |
+| Start or poll a known workflow run | `useWorkflowRun` | Lighter-weight run surface when you already know the workflow name |
 | Gate the app with auth | `AuthGuard` + `useAuth` | Cookie/session auth, pod membership, access requests |
 
 ### When to use function-aware hooks
@@ -416,7 +420,85 @@ function BulkAssign({ client, selectedIds, sprintId }: {
 }
 ```
 
-### 9. Function Runner Panel
+### 9. Pod Membership Admin Actions
+
+Read pod members, add existing organization members into the pod, change roles, and remove access.
+
+```tsx
+import { PodRole, type LemmaClient } from "lemma-sdk";
+import {
+  useAddPodMember,
+  useMembers,
+  useOrganizationMembers,
+  useRemovePodMember,
+  useUpdatePodMemberRole,
+} from "lemma-sdk/react";
+
+function PodMembersAdmin({
+  client,
+  podId,
+  organizationId,
+}: {
+  client: LemmaClient;
+  podId: string;
+  organizationId: string;
+}) {
+  const podMembers = useMembers({ client, podId });
+  const organizationMembers = useOrganizationMembers({ client, organizationId });
+  const addMember = useAddPodMember({ client, podId, defaultRole: PodRole.POD_USER });
+  const updateRole = useUpdatePodMemberRole({ client, podId });
+  const removeMember = useRemovePodMember({ client, podId });
+
+  const addableMembers = organizationMembers.members.filter(
+    (orgMember) => !podMembers.members.some((podMember) => podMember.user_id === orgMember.user_id),
+  );
+
+  return (
+    <div>
+      <h2>Pod Members</h2>
+      {podMembers.members.map((member) => (
+        <div key={member.user_id}>
+          <span>{member.user_name ?? member.user_email ?? member.user_id}</span>
+          <select
+            value={member.role}
+            onChange={(e) =>
+              void updateRole.updateRole(e.target.value as PodRole, {
+                memberId: member.user_id,
+              })
+            }
+          >
+            {Object.values(PodRole).map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
+            ))}
+          </select>
+          <button onClick={() => void removeMember.remove({ memberId: member.user_id })}>
+            Remove
+          </button>
+        </div>
+      ))}
+
+      <h3>Add From Organization</h3>
+      {addableMembers.map((member) => (
+        <button
+          key={member.id}
+          onClick={() =>
+            void addMember.add({
+              organizationMemberId: member.id,
+              role: PodRole.POD_USER,
+            })
+          }
+        >
+          Add {[member.user?.first_name, member.user?.last_name].filter(Boolean).join(" ") || member.user?.email || member.user_id}
+        </button>
+      ))}
+    </div>
+  );
+}
+```
+
+### 10. Function Runner Panel
 
 Run a function from a button, show loading state and output.
 
@@ -448,7 +530,7 @@ function TriageButton({ client, issueId }: { client: LemmaClient; issueId: strin
 }
 ```
 
-### 10. Workflow Launcher
+### 11. Workflow Launcher
 
 Start a workflow with a form for its input schema.
 
@@ -496,6 +578,14 @@ All mutation hooks share these conventions:
 - `error: Error | null` — Normalized error from the last failed mutation.
 - `reset()` — Clear the result, error, and loading state.
 - `onSuccess` / `onError` callbacks (stable across re-renders).
+
+Pod membership mutations follow the same shape:
+
+- `useAddPodMember().add({ organizationMemberId, role })`
+- `useUpdatePodMemberRole().updateRole(role, { memberId })`
+- `useRemovePodMember().remove({ memberId })`
+
+The current generated client supports adding an existing organization member into a pod. Direct email-to-pod invite is not yet exposed in this checked-in SDK surface.
 
 ### Function-aware options
 

@@ -16,69 +16,37 @@ Guide for AI agents building desks and features with the Lemma SDK.
 - `docs/hooks-guide.md` — Business-facing hook recipes and decision guide
 - `examples/` — Working example apps (inbox-crm)
 - `registry/` — Shadcn registry component source
-- `registry.json` — Registry manifest (22 blocks)
+- `registry.json` — Registry manifest (18 canonical blocks)
 
 ## Registry blocks
 
-The shadcn registry ships **22 blocks**. All blocks accept `appearance`, `density`, and `radius` props for cross-cutting visual control.
+The shadcn registry ships **18 canonical blocks**. All surviving blocks accept `appearance`, `density`, and `radius` props where applicable for cross-cutting visual control.
 
-### Shell blocks
-- **lemma-dashboard** — App shell with sidebar, header, KPI cards, nav groups, breadcrumbs, header actions
-- **lemma-breadcrumbs** — Workspace breadcrumb navigation with `filePathToBreadcrumbItems()` and `recordBreadcrumbItems()` helpers
+### Core operator blocks
+- **lemma-records-view** — Canonical records workspace with grid, list, grouped, kanban, and linear views, `triage`/`issues`/`crm`/`docs` presets, inline editing, detail routing/sheets, and schema-aware create flows.
+- **lemma-detail-panel** — Standalone wrapper around the same canonical record-detail renderer used by `lemma-records-view`.
+- **lemma-record-form** — Canonical schema-aware create/edit form with shared field controls, grouped sections, FK search, and direct/function submit modes.
+- **lemma-status-flow** — Linear/Jira-style status and transition primitive for headers, rows, and detail pages.
 
-### Data blocks (for operators, not admins)
-- **lemma-records-view** — Business-grade records workspace with:
-  - Grid, list, grouped, kanban, and linear view modes
-  - Inline editable cells, enum pill badges, FK labels
-  - Filter builder dialog (field/operator/value AND logic)
-  - Detail sheet with field view, FK resolution, reverse lookup sections, prev/next nav
-  - Create form sheet (schema-aware, hides system fields, supports `submitVia: "function"`)
-  - Props: `tableName`, `visibleColumns`, `hiddenFields`, `columnLabels`, `renderCell`, `renderCard`, `groupBy`, `defaultView`, `paginationMode`, `createMode`, `detailMode`, `detailVariant`, `detailTabs`, `detailRelatedRecords`, `foreignKeyLabels`, `onCreateOptions`, `onUpdateOptions`, `searchFields`, `enumColorMap`
+### Search, files, and pages
+- **lemma-global-search** — Command-bar style record and file search surface.
+- **lemma-breadcrumbs** — Route, record, and file-path breadcrumbs with helper builders.
+- **lemma-file-browser** — Pod-level file workspace for folders, search, upload, and delete.
+- **lemma-file-viewer** — Pod file preview surface for image, PDF, text, markdown, HTML, and download fallbacks.
+- **lemma-markdown-editor** — Write/preview/split markdown editor.
+- **lemma-page-tree** — Hierarchical page navigation for Notion-style workspaces.
 
-- **lemma-record-form** — Standalone schema-aware form:
-  - Hides id, created_at, updated_at, system/auto/computed fields
-  - FK fields → searchable select; Enum → colored pills; JSON → monospace textarea
-  - Modes: `inline` | `modal` | `sheet`
-  - Supports `submitVia: "function"`, `fieldGroups`, `fieldOrder`, `foreignKeyLabels`
-  - Props: `tableName`, `recordId?`, `mode?`, `submitVia?`, `submitFunctionName?`, `submitFunctionInput?`, `fieldGroups?`, `fieldOrder?`, `hiddenFields?`, `visibleFields?`, `foreignKeyLabels?`, `initialValues?`
+### Collaboration and analytics
+- **lemma-comments** — Record-scoped thread surface with direct/function-backed submission.
+- **lemma-activity-feed** — Unified event/history feed across one or more tables.
+- **lemma-insights** — Stats and chart cards for count/sum/avg/funnel-style reporting.
+- **lemma-workflow-runner** — Workflow run history and step-progress viewer.
 
-- **lemma-insights** — Dashboard-style stats and charts:
-  - Stat cards: count/sum/avg from table queries, or function outputs
-  - Chart cards: bar/line/area/pie from table aggregation or function outputs
-  - Props: `stats[]`, `charts[]`, `columns`, `aggregationMode`
-  - Dependency: `recharts`
-
-### Assistant blocks
-- **lemma-assistant-experience** — Full assistant UI with message bubbles, tool invocation cards, file attachments, model picker, empty state suggestions
-- **lemma-assistant-embedded** — Embedded assistant variant wrapping the experience view with `useAssistantController`
-
-### Workflow and approval blocks
-- **lemma-approval-queue** — Split-panel approval workflow with function-backed approve/reject/request-changes actions
-- **lemma-email-workbench** — Three-panel AI-draft email review workbench (drafts, thread context, compose/preview)
-- **lemma-workflow-runner** — Visual workflow run viewer with step-by-step progress timeline
-
-### Date and schedule blocks
-- **lemma-calendar** — Month/week calendar mapping records onto dates via `dateField`/`endDateField`
-- **lemma-timeline** — Gantt-style timeline view with horizontal bars, color coding, progress, assignees
-
-### Activity and communication blocks
-- **lemma-activity-feed** — Unified audit feed aggregating events from multiple tables with type badges and date grouping
-- **lemma-comments** — Record-scoped comment thread with function-backed submission
-
-### File blocks
-- **lemma-file-browser** — Datastore file browser with directory navigation, search, upload, delete
-- **lemma-file-viewer** — Inline file preview (image, PDF, markdown, text, HTML)
-- **lemma-attachment-viewer** — File attachments linked to a record with upload support
-- **lemma-markdown-editor** — Markdown write/preview/split editor
-
-### Search and navigation blocks
-- **lemma-global-search** — Command-bar global search across record tables and files with assistant handoff
-
-### User and notification blocks
-- **lemma-members** — Member chips, avatar groups, searchable member select, user field resolver
-  - Exports: `LemmaMemberChip`, `LemmaAvatarGroup`, `LemmaMemberSelect`, `LemmaUserField`
-- **lemma-notification-bell** — Bell icon with unread count badge and notification popover
-- **lemma-user-menu** — User avatar with dropdown menu and sign-out
+### Assistant and shell
+- **lemma-assistant-experience** — Full assistant surface with conversation list, model picker, tool cards, and file presentation.
+- **lemma-members** — Member primitives plus a stock members admin workspace for role changes, removal, and add-from-organization flows.
+- **lemma-notification-bell** — Notification popover shell primitive.
+- **lemma-user-menu** — User/auth shell primitive.
 
 ## Build
 
@@ -121,6 +89,9 @@ When building a desk, choose hooks based on what the UI needs:
 - One-shot update → `useUpdateRecord`
 - One-shot delete → `useDeleteRecord`
 - Bulk operations → `useBulkRecords`
+- Add existing org member to pod → `useAddPodMember`
+- Update pod member role → `useUpdatePodMemberRole`
+- Remove pod member from pod → `useRemovePodMember`
 
 **Running functions/workflows:**
 - Run a function → `useFunctionRun`
@@ -152,6 +123,9 @@ When building a desk, choose hooks based on what the UI needs:
 
 **Members and auth:**
 - Pod members → `useMembers`
+- Add existing org member into pod → `useAddPodMember`
+- Change pod member role → `useUpdatePodMemberRole`
+- Remove pod member → `useRemovePodMember`
 - Organization members → `useOrganizationMembers`
 - Current user → `useCurrentUser`
 - Pod access → `usePodAccess`

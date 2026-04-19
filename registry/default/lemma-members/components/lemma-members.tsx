@@ -1,23 +1,50 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Search, User, X } from "lucide-react"
+import { AlertCircle, Check, ChevronsUpDown, Loader2, RefreshCw, Search, ShieldPlus, User, UserPlus, Users, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useMembers } from "lemma-sdk/react"
-import type { LemmaClient, PodMember } from "lemma-sdk"
+import {
+  useAddPodMember,
+  useMembers,
+  useOrganizationMembers,
+  useRemovePodMember,
+  useUpdatePodMemberRole,
+} from "lemma-sdk/react"
+import { PodRole, type LemmaClient, type OrganizationMember, type PodMember } from "lemma-sdk"
 import { cn } from "@/lib/utils"
 
 export type LemmaMemberAppearance = "default" | "minimal" | "borderless" | "contained"
 export type LemmaMemberDensity = "compact" | "comfortable" | "spacious"
 export type LemmaMemberRadius = "none" | "sm" | "md" | "lg" | "xl"
 export type LemmaMemberChipSize = "sm" | "md" | "lg"
+
+export interface LemmaMembersProps {
+  client: LemmaClient
+  podId?: string
+  organizationId?: string
+  enabled?: boolean
+  title?: React.ReactNode
+  description?: React.ReactNode
+  searchPlaceholder?: string
+  allowRoleEdit?: boolean
+  allowRemove?: boolean
+  allowAdd?: boolean
+  defaultAddRole?: PodRole
+  currentUserId?: string | null
+  appearance?: LemmaMemberAppearance
+  density?: LemmaMemberDensity
+  radius?: LemmaMemberRadius
+  className?: string
+}
 
 export interface LemmaMemberChipProps {
   member?: PodMember | null
@@ -65,6 +92,355 @@ export interface LemmaUserFieldProps {
   radius?: LemmaMemberRadius
   size?: LemmaMemberChipSize
   className?: string
+}
+
+export function LemmaMembers({
+  client,
+  podId,
+  organizationId,
+  enabled = true,
+  title = "Members",
+  description = "Manage who has access to this pod and what role they have.",
+  searchPlaceholder = "Search members...",
+  allowRoleEdit = true,
+  allowRemove = true,
+  allowAdd = true,
+  defaultAddRole = PodRole.POD_USER,
+  currentUserId,
+  appearance = "default",
+  density = "comfortable",
+  radius = "lg",
+  className,
+}: LemmaMembersProps) {
+  const membersState = useMembers({ client, podId, enabled })
+  const organizationMembersState = useOrganizationMembers({
+    client,
+    organizationId: organizationId ?? "",
+    enabled: enabled && !!organizationId,
+  })
+
+  const resolvedPodId = podId ?? client.podId ?? null
+  const [query, setQuery] = React.useState("")
+  const [addRole, setAddRole] = React.useState<PodRole>(defaultAddRole)
+  const [actionKey, setActionKey] = React.useState<string | null>(null)
+  const [actionError, setActionError] = React.useState<string | null>(null)
+
+  const addPodMember = useAddPodMember({
+    client,
+    podId,
+    enabled: enabled && allowAdd,
+    defaultRole: addRole,
+    onError: (error) => {
+      setActionError(error instanceof Error ? error.message : "Failed to add member.")
+    },
+  })
+
+  const updatePodMemberRole = useUpdatePodMemberRole({
+    client,
+    podId,
+    enabled: enabled && allowRoleEdit,
+    onError: (error) => {
+      setActionError(error instanceof Error ? error.message : "Failed to update member role.")
+    },
+  })
+
+  const removePodMember = useRemovePodMember({
+    client,
+    podId,
+    enabled: enabled && allowRemove,
+    onError: (error) => {
+      setActionError(error instanceof Error ? error.message : "Failed to remove member.")
+    },
+  })
+
+  React.useEffect(() => {
+    setAddRole(defaultAddRole)
+  }, [defaultAddRole])
+
+  const filteredMembers = React.useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return membersState.members
+    return membersState.members.filter((member) => {
+      const haystack = [member.user_name, member.user_email, member.user_id, member.role].filter(Boolean).join(" ").toLowerCase()
+      return haystack.includes(needle)
+    })
+  }, [membersState.members, query])
+
+  const addableOrganizationMembers = React.useMemo(() => {
+    const existingUserIds = new Set(membersState.members.map((member) => member.user_id))
+    const candidates = organizationMembersState.members.filter((member) => !existingUserIds.has(member.user_id))
+    const needle = query.trim().toLowerCase()
+    if (!needle) return candidates
+    return candidates.filter((member) => {
+      const haystack = [
+        organizationMemberLabel(member),
+        member.user?.email,
+        member.user_id,
+        member.role,
+      ].filter(Boolean).join(" ").toLowerCase()
+      return haystack.includes(needle)
+    })
+  }, [membersState.members, organizationMembersState.members, query])
+
+  const refreshAll = React.useCallback(async () => {
+    await Promise.all([
+      membersState.refresh(),
+      organizationId && allowAdd ? organizationMembersState.refresh() : Promise.resolve([]),
+    ])
+  }, [allowAdd, membersState, organizationId, organizationMembersState])
+
+  const handleRoleChange = React.useCallback(async (member: PodMember, nextRole: PodRole) => {
+    if (!resolvedPodId || member.role === nextRole) return
+    setActionKey(`role:${member.user_id}`)
+    setActionError(null)
+    try {
+      const updated = await updatePodMemberRole.updateRole(nextRole, {
+        memberId: member.user_id,
+      })
+      if (updated) {
+        await membersState.refresh()
+      }
+    } finally {
+      setActionKey(null)
+    }
+  }, [membersState, resolvedPodId, updatePodMemberRole])
+
+  const handleRemove = React.useCallback(async (member: PodMember) => {
+    if (!resolvedPodId) return
+    setActionKey(`remove:${member.user_id}`)
+    setActionError(null)
+    try {
+      const removed = await removePodMember.remove({ memberId: member.user_id })
+      if (removed) {
+        await refreshAll()
+      }
+    } finally {
+      setActionKey(null)
+    }
+  }, [refreshAll, removePodMember, resolvedPodId])
+
+  const handleAdd = React.useCallback(async (member: OrganizationMember) => {
+    if (!resolvedPodId) return
+    setActionKey(`add:${member.id}`)
+    setActionError(null)
+    try {
+      const added = await addPodMember.add({
+        organizationMemberId: member.id,
+        role: addRole,
+      })
+      if (added) {
+        await refreshAll()
+      }
+    } finally {
+      setActionKey(null)
+    }
+  }, [addPodMember, addRole, refreshAll, resolvedPodId])
+
+  const isLoading = membersState.isLoading || (!!organizationId && allowAdd && organizationMembersState.isLoading)
+  const isUnavailable = !resolvedPodId
+
+  return (
+    <section
+      data-appearance={appearance}
+      data-density={density}
+      data-radius={radius}
+      className={cn(
+        "lemma-members flex min-h-0 flex-col gap-4",
+        className,
+      )}
+    >
+      <div className={cn("border", chipClassName(appearance), radiusClassName(radius, "surface"), density === "compact" ? "p-4" : density === "spacious" ? "p-6" : "p-5")}>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className={cn("flex size-9 items-center justify-center bg-muted text-muted-foreground", radiusClassName(radius, "pill"))}>
+                <Users className="size-4" />
+              </span>
+              <div>
+                <h2 className="text-lg font-semibold tracking-tight text-foreground">{title}</h2>
+                <p className="text-sm text-muted-foreground">{description}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="secondary">{membersState.total || membersState.members.length} pod members</Badge>
+              {organizationId ? (
+                <Badge variant="secondary">{organizationMembersState.total || organizationMembersState.members.length} org members</Badge>
+              ) : null}
+            </div>
+          </div>
+          <div className="flex w-full flex-col gap-2 lg:w-auto lg:min-w-80">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={searchPlaceholder}
+                className={cn("pl-9", triggerClassName(appearance, density, radius))}
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <Button variant="outline" size="sm" className={radiusClassName(radius, "control")} onClick={() => void refreshAll()}>
+                <RefreshCw className="size-3.5" />
+                Refresh
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {actionError ? (
+        <div className={cn("flex items-start gap-2 border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive", radiusClassName(radius, "surface"))}>
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <span>{actionError}</span>
+        </div>
+      ) : null}
+
+      {isUnavailable ? (
+        <EmptyMembersState
+          icon={ShieldPlus}
+          title="Pod context is required"
+          description="Pass podId or use a pod-scoped client to manage members."
+          appearance={appearance}
+          radius={radius}
+        />
+      ) : isLoading ? (
+        <MembersWorkspaceSkeleton appearance={appearance} radius={radius} />
+      ) : membersState.error ? (
+        <EmptyMembersState
+          icon={AlertCircle}
+          title="Failed to load members"
+          description={membersState.error.message}
+          appearance={appearance}
+          radius={radius}
+        />
+      ) : (
+        <div className={cn("grid gap-4", organizationId && allowAdd ? "xl:grid-cols-[minmax(0,1.7fr)_minmax(20rem,1fr)]" : "grid-cols-1")}>
+          <div className={cn("border", chipClassName(appearance), radiusClassName(radius, "surface"))}>
+            <div className="flex items-center justify-between gap-3 border-b border-border/40 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Pod Members</p>
+                <p className="text-xs text-muted-foreground">People who can access and operate this pod.</p>
+              </div>
+              <Badge variant="secondary">{filteredMembers.length}</Badge>
+            </div>
+            <div className="divide-y divide-border/30">
+              {filteredMembers.length === 0 ? (
+                <EmptyMembersState
+                  icon={Users}
+                  title="No members found"
+                  description={query ? "Try a broader search term." : "Add people from the organization to get started."}
+                  appearance={appearance}
+                  radius={radius}
+                  compact
+                />
+              ) : (
+                filteredMembers.map((member) => {
+                  const roleActionKey = `role:${member.user_id}`
+                  const removeActionKey = `remove:${member.user_id}`
+                  const isRoleLoading = actionKey === roleActionKey
+                  const isRemoveLoading = actionKey === removeActionKey
+                  const canRemove = allowRemove && member.user_id !== currentUserId
+
+                  return (
+                    <div key={member.user_id} className={cn("flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between", density === "compact" ? "md:py-2.5" : null)}>
+                      <div className="min-w-0">
+                        <LemmaMemberChip member={member} appearance="minimal" radius={radius} size="lg" />
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        {allowRoleEdit ? (
+                          <PodRoleSelect
+                            value={member.role}
+                            disabled={isRoleLoading}
+                            radius={radius}
+                            onValueChange={(nextRole) => void handleRoleChange(member, nextRole)}
+                          />
+                        ) : (
+                          <Badge variant="secondary">{formatPodRole(member.role)}</Badge>
+                        )}
+                        {canRemove ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={isRemoveLoading}
+                            className={cn("text-destructive hover:text-destructive", radiusClassName(radius, "control"))}
+                            onClick={() => void handleRemove(member)}
+                          >
+                            {isRemoveLoading ? <Loader2 className="size-3.5 animate-spin" /> : <X className="size-3.5" />}
+                            Remove
+                          </Button>
+                        ) : currentUserId && member.user_id === currentUserId ? (
+                          <Badge variant="secondary">You</Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          {organizationId && allowAdd ? (
+            <div className={cn("border", chipClassName(appearance), radiusClassName(radius, "surface"))}>
+              <div className="flex items-center justify-between gap-3 border-b border-border/40 px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Add From Organization</p>
+                  <p className="text-xs text-muted-foreground">Bring existing organization members into this pod.</p>
+                </div>
+                <Badge variant="secondary">{addableOrganizationMembers.length}</Badge>
+              </div>
+              <div className="space-y-4 p-4">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">New member role</p>
+                  <PodRoleSelect value={addRole} radius={radius} onValueChange={setAddRole} />
+                </div>
+
+                {organizationMembersState.error ? (
+                  <div className="text-sm text-destructive">{organizationMembersState.error.message}</div>
+                ) : addableOrganizationMembers.length === 0 ? (
+                  <EmptyMembersState
+                    icon={UserPlus}
+                    title="No addable members"
+                    description={query ? "Try a broader search term." : "Everyone in the organization is already in this pod."}
+                    appearance={appearance}
+                    radius={radius}
+                    compact
+                  />
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {addableOrganizationMembers.slice(0, 8).map((member) => {
+                      const isAdding = actionKey === `add:${member.id}`
+                      return (
+                        <div key={member.id} className={cn("flex items-center justify-between gap-3 border border-border/40 bg-muted/15 px-3 py-2", radiusClassName(radius, "control"))}>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-foreground">{organizationMemberLabel(member)}</p>
+                            <p className="truncate text-xs text-muted-foreground">{member.user?.email ?? member.user_id}</p>
+                          </div>
+                          <Button
+                            size="sm"
+                            disabled={isAdding}
+                            className={radiusClassName(radius, "control")}
+                            onClick={() => void handleAdd(member)}
+                          >
+                            {isAdding ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
+                            Add
+                          </Button>
+                        </div>
+                      )
+                    })}
+                    {addableOrganizationMembers.length > 8 ? (
+                      <p className="text-xs text-muted-foreground">
+                        Showing 8 of {addableOrganizationMembers.length} available organization members.
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </section>
+  )
 }
 
 export function LemmaMemberChip({
@@ -301,6 +677,109 @@ export function LemmaUserField({
 export function memberLabel(member?: PodMember | null) {
   if (!member) return ""
   return member.user_name || member.user_email || member.user_id
+}
+
+function organizationMemberLabel(member: OrganizationMember) {
+  const firstName = member.user?.first_name?.trim()
+  const lastName = member.user?.last_name?.trim()
+  const fullName = [firstName, lastName].filter(Boolean).join(" ").trim()
+  return fullName || member.user?.email || member.user_id
+}
+
+function formatPodRole(role: PodRole) {
+  if (role === PodRole.POD_ADMIN) return "Admin"
+  if (role === PodRole.POD_EDITOR) return "Editor"
+  if (role === PodRole.POD_VIEWER) return "Viewer"
+  return "Member"
+}
+
+function PodRoleSelect({
+  value,
+  radius,
+  disabled,
+  onValueChange,
+}: {
+  value: PodRole
+  radius: LemmaMemberRadius
+  disabled?: boolean
+  onValueChange: (role: PodRole) => void
+}) {
+  return (
+    <Select value={value} onValueChange={(nextRole) => onValueChange(nextRole as PodRole)} disabled={disabled}>
+      <SelectTrigger className={cn("min-w-32", radiusClassName(radius, "control"))}>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={PodRole.POD_ADMIN}>Admin</SelectItem>
+        <SelectItem value={PodRole.POD_EDITOR}>Editor</SelectItem>
+        <SelectItem value={PodRole.POD_USER}>Member</SelectItem>
+        <SelectItem value={PodRole.POD_VIEWER}>Viewer</SelectItem>
+      </SelectContent>
+    </Select>
+  )
+}
+
+function EmptyMembersState({
+  icon: Icon,
+  title,
+  description,
+  appearance,
+  radius,
+  compact = false,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  description: string
+  appearance: LemmaMemberAppearance
+  radius: LemmaMemberRadius
+  compact?: boolean
+}) {
+  return (
+    <div className={cn(
+      "flex flex-col items-center justify-center gap-3 px-6 text-center",
+      compact ? "min-h-40 py-6" : "min-h-64 py-10",
+      appearance === "minimal" || appearance === "borderless" ? "bg-transparent" : "bg-muted/15",
+      radiusClassName(radius, "surface"),
+    )}>
+      <span className={cn("flex size-10 items-center justify-center bg-muted text-muted-foreground", radiusClassName(radius, "pill"))}>
+        <Icon className="size-4" />
+      </span>
+      <div>
+        <p className="font-medium text-foreground">{title}</p>
+        <p className="mt-1 max-w-md text-sm text-muted-foreground">{description}</p>
+      </div>
+    </div>
+  )
+}
+
+function MembersWorkspaceSkeleton({
+  appearance,
+  radius,
+}: {
+  appearance: LemmaMemberAppearance
+  radius: LemmaMemberRadius
+}) {
+  return (
+    <div className={cn("border p-4", chipClassName(appearance), radiusClassName(radius, "surface"))}>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-9 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-36" />
+                <Skeleton className="h-3 w-48" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-9 w-28" />
+              <Skeleton className="h-9 w-20" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function getInitials(value: string) {

@@ -63,9 +63,9 @@ import {
   useAgentRun,
   useConversationMessages,
   useConversations,
+  useRecordForm,
   useRecords,
-  useSchemaForm,
-  useWorkflowStart,
+  useWorkflowRun,
 } from "lemma-sdk/react";
 ```
 
@@ -76,14 +76,14 @@ import {
 | Auth | `AuthGuard`, `useAuth`, `useCurrentUser`, `usePodAccess` | Stable | Gate an app, read signed-in user state, or request pod access. |
 | Tables | `useTables`, `useTable`, `useRecords`, `useRecord`, `useJoinedRecords`, `useRelatedRecords`, `useReverseRelatedRecords`, `useReferencingRecords` | Stable | Build custom table browsers, details views, related-record views, and relational reads. |
 | Record mutations | `useCreateRecord`, `useUpdateRecord`, `useDeleteRecord`, `useBulkRecords` | Stable | Create, update, delete, or bulk-delete rows from headless UI. Function-backed mutations via `createVia`/`updateVia` options. |
-| Record forms | `useRecordSchema`, `useRecordForm`, `useForeignKeyOptions`, `useSchemaForm` | Stable | Render schema-driven forms, enum fields, and foreign-key selectors. `useRecordForm` supports `submitVia: "function"`, `visibleFields`, `hiddenFields`. |
+| Record forms | `useRecordSchema`, `useRecordForm`, `useForeignKeyOptions`, `useSchemaForm` | Stable | Render schema-driven record forms, enum fields, and foreign-key selectors. `useRecordForm` is the canonical table-bound form hook; `useSchemaForm` remains available for raw JSON-schema flows. |
 | Files | `useFiles`, `useFile`, `useFileSearch`, `useFileTree`, `useFilePreview` | Stable | Browse datastore folders, resolve file metadata, search indexed files, load directory trees, and preview converted or raw file content. |
 | Assistant | `useConversations`, `useConversation`, `useConversationMessages`, `useAssistantRun`, `useAssistantSession`, `useAssistantRuntime`, `useAssistantController` | Stable except controller/runtime | Build custom chat, conversation lists, streaming output, and final-output views. |
 | Agents | `useAgentRun`, `useAgentRuns`, `useAgentInputSchema`, `useTaskSession` | Stable except raw session | Start agent tasks, submit follow-up input, read task history, and inspect input/output schemas. |
 | Workflows | `useWorkflowStart`, `useWorkflowRun`, `useWorkflowRuns`, `useWorkflowResume` | Stable | Start, poll, resume, cancel, retry, and inspect workflow runs. |
 | Workflow compatibility | `useFlowSession`, `useFlowRunHistory` | Deprecated naming | Kept for existing callers; prefer workflow-named hooks for new code. |
 | Functions | `useFunctionRun`, `useFunctionRuns`, `useFunctionSession` | Stable except raw session | Run functions, poll function runs, and list function history. |
-| Members and org | `useMembers`, `useOrganizationMembers` | Stable | Read pod and organization member lists. `useMembers` is intentionally read-only. |
+| Members and org | `useMembers`, `useAddPodMember`, `useUpdatePodMemberRole`, `useRemovePodMember`, `useOrganizationMembers` | Stable | Read pod and organization members, add existing org members into a pod, update pod roles, and remove pod access. The current checked-in client does not yet expose direct email-to-pod invites. |
 
 ### Common Hook Shapes
 
@@ -217,30 +217,35 @@ After running `npx lemma-sdk init-shadcn`, install blocks like:
 
 ```bash
 npx shadcn@latest add @lemma/lemma-records-view
+npx shadcn@latest add @lemma/lemma-detail-panel
 npx shadcn@latest add @lemma/lemma-record-form
 npx shadcn@latest add @lemma/lemma-global-search
 npx shadcn@latest add @lemma/lemma-file-browser
+npx shadcn@latest add @lemma/lemma-file-viewer
+npx shadcn@latest add @lemma/lemma-document-workspace
+npx shadcn@latest add @lemma/lemma-document-creator
+npx shadcn@latest add @lemma/lemma-document-viewer
+npx shadcn@latest add @lemma/lemma-document-editor
 npx shadcn@latest add @lemma/lemma-members
-npx shadcn@latest add @lemma/lemma-approval-queue
-npx shadcn@latest add @lemma/lemma-email-workbench
+npx shadcn@latest add @lemma/lemma-comments
 npx shadcn@latest add @lemma/lemma-insights
-npx shadcn@latest add @lemma/lemma-assistant-embedded
+npx shadcn@latest add @lemma/lemma-assistant-experience
 ```
+
+Those commands are representative. The registry currently ships 22 canonical blocks.
 
 Current registry items:
 
 | Area | Items |
 | --- | --- |
-| Assistant | `lemma-assistant-experience`, `lemma-assistant-embedded` |
-| Navigation | `lemma-breadcrumbs`, `lemma-global-search` |
-| Records | `lemma-records-view`, `lemma-record-form` |
+| Assistant | `lemma-assistant-experience` |
+| Navigation | `lemma-breadcrumbs`, `lemma-global-search`, `lemma-page-tree` |
+| Records | `lemma-records-view`, `lemma-detail-panel`, `lemma-record-form`, `lemma-status-flow` |
 | Files | `lemma-file-browser`, `lemma-file-viewer` |
-| People | `lemma-members` |
-| Writing | `lemma-markdown-editor` |
-| Business workflows | `lemma-approval-queue`, `lemma-email-workbench` |
+| Documents | `lemma-document-workspace`, `lemma-document-creator`, `lemma-document-viewer`, `lemma-document-editor`, `lemma-markdown-editor` |
+| People | `lemma-members`, `lemma-notification-bell`, `lemma-user-menu` |
 | Analytics | `lemma-insights` |
-| Planning | `lemma-calendar`, `lemma-timeline` |
-| Collaboration | `lemma-activity-feed`, `lemma-comments`, `lemma-notification-bell` |
+| Collaboration | `lemma-activity-feed`, `lemma-comments` |
 | Automation | `lemma-workflow-runner` |
 
 The registry is currently served from jsDelivr against this public repo:
@@ -262,31 +267,48 @@ The records blocks are meant to be configured with props before you reach for a 
 
 `lemma-records-view` supports:
 
+- `preset="triage" | "issues" | "crm" | "docs"` for opinionated defaults without installing duplicate workflow blocks
+- `defaultView` and `availableViews` across `grid`, `list`, `grouped`, `kanban`, `linear`, `calendar`, `timeline`, and `matrix`
 - `tableName`, `visibleColumns`, and `hiddenFields` for schema-aware display
-- `defaultView="grid" | "list" | "kanban" | "linear"` and `groupBy` for table, card, horizontal board, or Linear-style grouped layouts
+- `pinnedColumns`, `columnWidths`, `columnLabels`, `primaryField`, `defaultSort`, and `paginationMode` for stronger operator-table defaults
+- `groupBy`, `calendarField`, `timelineField`, `matrixRowsBy`, and `matrixColumnsBy` for consolidated view configuration
 - `renderCell` and `renderCard` for custom record rendering
 - `foreignKeyLabels` for human-readable FK values in cards, detail views, and create/edit forms
-- `onCreateOptions` and `onUpdateOptions` for function-backed mutations
-- `createMode="sheet" | "modal" | "page"` and `detailMode="sheet" | "page"` for app-specific interaction patterns
-- `headerActions`, `emptyState`, `onRecordClick`, and `renderFilesTab` for app-specific extensions
+- `detailTabs`, `detailFieldGroups`, `detailRelatedRecords`, `detailSectionLabels`, and `detailSectionVisibility` for canonical detail composition
+- `quickActions`, `bulkActions`, `detailActions`, `quickActionMode`, and `onQuickActionSuccess` for direct, function, or workflow-backed actions
+- `onCreateOptions` and `onUpdateOptions` for function-backed mutations, including conditional field and section visibility in the create sheet
+- `createMode="sheet" | "modal" | "page"` and `detailMode="sheet" | "modal" | "page" | "inline"` for app-specific interaction patterns
+- `headerActions`, `emptyState`, `onRecordClick`, `renderFilesTab`, `renderCommentsTab`, and `renderActivityTab` for app-specific extensions
 - `appearance="default" | "minimal" | "borderless" | "contained"` and `density="compact" | "comfortable" | "spacious"` for host-level block chrome; `minimal` is the cardless mode
+
+`lemma-detail-panel` supports:
+
+- standalone record detail rendering outside the full records workspace, using the same canonical detail internals as `lemma-records-view`
+- `mode`, `variant`, and `layout` controls for embedded, sheet, modal, or full-page use
+- built-in detail tabs plus custom `tabs`, `relatedRecords`, and `renderFiles` / `renderComments` / `renderActivity` sections
+- direct, function-backed, and workflow-aware `actions`, plus `updateVia` / `updateFunctionName` for inline edits
+- shared `appearance`, `density`, and `radius` controls for use in inline, sheet, modal, or page layouts
 
 `lemma-record-form` supports:
 
 - `mode="inline" | "modal" | "sheet"`
 - `submitVia="direct" | "function"` and `submitFunctionName`
+- `submitFunctionInput` when the backing function expects a different payload shape
 - `hiddenFields`, `visibleFields`, `fieldOrder`, and `fieldGroups`
+- searchable FK inputs through the shared `record-form-fields` control layer
+- `fieldVisibility` and `sectionVisibility` for conditional forms
 - `foreignKeyLabels` for FK select labels
 - `initialValues`, `onSuccess`, and `onClose`
-- `appearance` and `density` using the same values as `lemma-records-view`
+- `appearance`, `density`, and `radius` using the same values as `lemma-records-view`
 
 `lemma-insights` supports:
 
 - table-backed count, sum, average, and grouped chart cards
-- bar, line, area, and pie charts with count/sum/avg aggregation
+- bar, line, area, pie, and funnel charts with count/sum/avg aggregation
+- `aggregationMode="client" | "function"` with optional `aggregateFunctionName` for shared server-side aggregation
 - chart descriptions, value/category formatters, limits, sorting, empty states, and optional footers
 - function-backed stats and charts
-- shared `appearance` and `density` block chrome controls
+- shared `appearance`, `density`, `radius`, and card-column controls
 
 `lemma-global-search` supports:
 
@@ -296,23 +318,40 @@ The records blocks are meant to be configured with props before you reach for a 
 - `minQueryLength`, `debounceMs`, `appearance`, `density`, trigger label, and placeholder customization
 - assistant handoff by `assistantName`, with optional query/results message shaping and conversation routing
 
+Navigation blocks support:
+
+- route, record, and file-path breadcrumb builders through `lemma-breadcrumbs`
+- self-referential page hierarchies through `lemma-page-tree`, with selection, expansion, and create/reorder hooks
+
 File blocks support:
 
 - datastore folder navigation and path breadcrumbs through `lemma-file-browser`
-- upload, download, search, and AlertDialog-backed delete flows
-- image, PDF, text, markdown, converted HTML, and download fallback previews through `lemma-file-viewer`
+- pod-level file browsing and search, not only record-linked attachments
+- upload, download, search, rename, move, folder creation, picker mode, and composition-friendly link actions
+- selection-aware file browsing so `lemma-file-browser` can drive a paired workspace preview
+- image, PDF, text, markdown, converted HTML, metadata, and breadcrumb-aware previews through `lemma-file-viewer`
+
+Document blocks support:
+
+- Notion/Coda-style block documents through `lemma-document-workspace`, with Tiptap JSON content, page/modal modes, title and summary chrome, file/reference/assistant blocks, save state, metadata, backlinks, and assistant-context rails
+- docstore-native creation through `lemma-document-workspace` or the simpler `lemma-document-creator`, with folder targeting, title/summary setup, pod-file metadata, and `mode="page" | "modal"`
+- long-form reading surfaces through `lemma-document-workspace` or `lemma-document-viewer`, with full-page and modal presentation, metadata, backlinks, references, and assistant-context rails
+- long-form authoring through `lemma-document-workspace` or `lemma-document-editor`, with full-page and modal presentation, title/summary chrome, save-state affordances, outline, references, and assistant-context rails
+- a clean separation between richer document UX and the lower-level pod file workspace, while keeping pod files as the primary document store and avoiding embedded-first document editing
 
 People blocks support:
 
 - `LemmaMemberChip`, `LemmaAvatarGroup`, `LemmaMemberSelect`, and `LemmaUserField`
+- a stock `LemmaMembers` admin workspace for pod membership, role changes, removal, and add-from-organization flows via `organizationId`, `allowAdd`, `allowRoleEdit`, and `allowRemove`
 - pod member labels for owner, creator, assignee, participant, and author fields
 - searchable member picking backed by `useMembers`
 
-Business workflow blocks support:
+Workflow primitives support:
 
-- approval queues for AI or workflow recommendations through `lemma-approval-queue`
-- direct record updates or function-backed approve, reject, and request-changes actions
-- email draft review through `lemma-email-workbench`, including thread context, editable composer, approve, send, and approve-and-send actions
+- lifecycle/status rendering and transitions through `lemma-status-flow`
+- read-only tracker layouts and compact step progress through `lemma-status-flow`
+- workflow run inspection through `lemma-workflow-runner`
+- reusable history and collaboration surfaces through `lemma-activity-feed` and `lemma-comments`
 - table-backed defaults with escape hatches for custom action payloads and render slots
 
 `lemma-markdown-editor` supports:
@@ -320,12 +359,18 @@ Business workflow blocks support:
 - write, preview, and split modes
 - controlled and uncontrolled values
 - GitHub-flavored markdown preview via `react-markdown` and `remark-gfm`
+- a lightweight interim editing lane for plain markdown notes beside the richer block-native `lemma-document-workspace`
 
 Assistant blocks support:
 
 - assistant-name-first configuration through `assistantName`
 - shared `appearance` and `density` controls on the assistant experience surface
 - `chromeStyle`, `statusPlacement`, `radius`, model picker, conversation list, and render overrides for deeper customization
+
+Shell blocks support:
+
+- `lemma-notification-bell` for unread counts, popover inboxes, and mark-as-read flows
+- `lemma-user-menu` for current-user presentation, custom menu actions, and sign-out affordances
 
 ```tsx
 import { LemmaRecordsView } from "@/components/lemma/lemma-records-view";
@@ -335,8 +380,7 @@ import { LemmaGlobalSearch } from "@/components/lemma/lemma-global-search";
   client={client}
   podId={podId}
   tableName="deals"
-  defaultView="kanban"
-  groupBy="status"
+  preset="crm"
   hiddenFields={["id", "created_at", "updated_at"]}
   foreignKeyLabels={{ company_id: "name" }}
   appearance="minimal"
@@ -410,6 +454,15 @@ npm install
 npm run build
 npm run registry:build
 ```
+
+To build the canonical example desk:
+
+```bash
+cd examples/inbox-crm
+npm run build
+```
+
+`examples/inbox-crm` now mirrors the kept registry surface only. Its local `src/components/lemma` folder is a copied install target of the current canonical registry blocks, and `src/main.tsx` demonstrates those blocks in one routed operator desk.
 
 This repo includes:
 

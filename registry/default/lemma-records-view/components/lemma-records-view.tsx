@@ -5,6 +5,7 @@ import {
   AlertCircle,
   ArrowDown,
   ArrowUp,
+  Calendar,
   ChevronLeft,
   ChevronRight,
   Database,
@@ -43,21 +44,27 @@ import { FilterBuilder } from "./records-filter-builder"
 import { DetailSheet } from "./records-detail-sheet"
 import { ListView } from "./records-list-view"
 import { GroupedView } from "./records-grouped-view"
+import { RecordsCalendarView, RecordsMatrixView, RecordsTimelineView } from "./records-consolidated-views"
 import { isSystemField, typeBadgeClasses, enumPillClasses, type EnumColorMap } from "./records-enum-utils"
 import { RecordFormSheet } from "./records-form-sheet"
 import { RecordDetail } from "./records-detail"
 import type { ForeignKeyLabelMap } from "./records-display-utils"
 import type {
+  RecordDetailBuiltinTab,
   RecordDetailFieldGroup,
   RecordDetailRelatedRecord,
+  RecordDetailSectionVisibilityRule,
   RecordDetailTab,
   RecordDetailVariant,
 } from "./records-detail"
 import type { RecordPreviewDisplayOptions } from "./records-display-utils"
 import {
+  createRecordActionInput,
   RecordQuickActionButtons,
+  recordActionKey,
   recordQuickActionKey,
-  resolveQuickActionValues,
+  resolveRecordActionMode,
+  resolveRecordActionValues,
   type RecordQuickAction,
   type RecordQuickActionContext,
   type RecordQuickActionMode,
@@ -72,20 +79,114 @@ import {
 
 export type { LemmaRecordsAppearance, LemmaRecordsDensity, LemmaRecordsRadius } from "./records-style-utils"
 
-type ViewMode = "grid" | "list" | "grouped" | "kanban" | "linear"
-type ResolvedViewMode = "grid" | "list" | "kanban" | "linear"
+type ViewMode = "grid" | "list" | "grouped" | "kanban" | "linear" | "calendar" | "timeline" | "matrix"
+type ResolvedViewMode = "grid" | "list" | "kanban" | "linear" | "calendar" | "timeline" | "matrix"
 type CreateMode = "sheet" | "modal" | "page"
 type DetailMode = "sheet" | "modal" | "page" | "inline"
 type PaginationMode = "pagination" | "load-more" | "infinite"
+export type LemmaRecordsViewPreset = "default" | "triage" | "issues" | "crm" | "docs"
+
+interface RecordsViewPresetConfig {
+  defaultView?: ViewMode
+  availableViews?: ViewMode[]
+  groupByFields?: string[]
+  visibleColumns?: string[]
+  hiddenFields?: string[]
+  searchFields?: string[]
+  searchPlaceholder?: string
+  pageSize?: number
+  paginationMode?: PaginationMode
+  createMode?: CreateMode
+  detailMode?: DetailMode
+  detailVariant?: RecordDetailVariant
+  detailTabs?: RecordDetailTab[]
+  quickActionPlacement?: RecordQuickActionPlacement
+  listOptions?: RecordPreviewDisplayOptions
+  groupedOptions?: RecordPreviewDisplayOptions
+}
+
+const RECORDS_VIEW_PRESETS: Record<LemmaRecordsViewPreset, RecordsViewPresetConfig> = {
+  default: {},
+  triage: {
+    defaultView: "linear",
+    availableViews: ["linear", "kanban", "calendar", "timeline", "list", "grid"],
+    groupByFields: ["status", "state", "stage", "queue", "priority"],
+    visibleColumns: ["identifier", "title", "subject", "summary", "status", "priority", "assignee_user_id", "updated_at"],
+    searchFields: ["identifier", "title", "subject", "summary", "status", "priority"],
+    searchPlaceholder: "Search queue...",
+    detailMode: "inline",
+    detailVariant: "workspace",
+    detailTabs: ["details", "related", "comments", "activity", "files"],
+    quickActionPlacement: "both",
+    pageSize: 75,
+    paginationMode: "load-more",
+    listOptions: { secondaryFields: ["status", "priority", "assignee_user_id", "updated_at"] },
+    groupedOptions: { secondaryFields: ["priority", "assignee_user_id", "updated_at"] },
+  },
+  issues: {
+    defaultView: "linear",
+    availableViews: ["linear", "kanban", "calendar", "timeline", "matrix", "list", "grid"],
+    groupByFields: ["status", "state", "workflow_state", "stage"],
+    visibleColumns: ["identifier", "title", "status", "priority", "team_id", "assignee_user_id", "updated_at"],
+    searchFields: ["identifier", "title", "description", "status", "priority"],
+    searchPlaceholder: "Search issues...",
+    detailMode: "inline",
+    detailVariant: "workspace",
+    detailTabs: ["details", "related", "comments", "activity", "files"],
+    quickActionPlacement: "both",
+    pageSize: 75,
+    paginationMode: "load-more",
+    listOptions: { secondaryFields: ["identifier", "status", "priority", "assignee_user_id"] },
+    groupedOptions: { secondaryFields: ["identifier", "priority", "assignee_user_id"] },
+  },
+  crm: {
+    defaultView: "kanban",
+    availableViews: ["kanban", "linear", "timeline", "matrix", "list", "grid"],
+    groupByFields: ["stage", "status", "pipeline_stage", "deal_stage"],
+    visibleColumns: ["name", "title", "company_id", "contact_id", "stage", "status", "amount", "owner_user_id", "next_step", "updated_at"],
+    searchFields: ["name", "title", "company", "domain", "stage", "status", "source"],
+    searchPlaceholder: "Search pipeline...",
+    detailMode: "inline",
+    detailVariant: "workspace",
+    detailTabs: ["details", "related", "comments", "activity", "files"],
+    quickActionPlacement: "detail",
+    pageSize: 100,
+    paginationMode: "load-more",
+    listOptions: { secondaryFields: ["company_id", "stage", "amount", "owner_user_id"] },
+    groupedOptions: { secondaryFields: ["company_id", "amount", "owner_user_id"] },
+  },
+  docs: {
+    defaultView: "list",
+    availableViews: ["list", "grid", "timeline", "kanban"],
+    groupByFields: ["status", "type", "category", "space", "folder"],
+    visibleColumns: ["title", "name", "status", "type", "owner_user_id", "updated_at"],
+    searchFields: ["title", "name", "content", "summary", "slug", "path"],
+    searchPlaceholder: "Search docs...",
+    detailMode: "inline",
+    detailVariant: "workspace",
+    detailTabs: ["details", "files", "comments", "activity", "related"],
+    quickActionPlacement: "detail",
+    pageSize: 100,
+    paginationMode: "load-more",
+    listOptions: { secondaryFields: ["status", "type", "owner_user_id", "updated_at"] },
+    groupedOptions: { secondaryFields: ["type", "owner_user_id", "updated_at"] },
+  },
+}
 
 export interface LemmaRecordsViewProps {
   client: LemmaClient
   podId?: string
   tableName: string
   enabled?: boolean
+  preset?: LemmaRecordsViewPreset
 
   visibleColumns?: string[]
   hiddenFields?: string[]
+  pinnedColumns?: string[]
+  primaryField?: string
+  defaultVisibleColumnCount?: number
+  showSystemFields?: boolean
+  columnWidths?: Record<string, string | number>
   columnLabels?: Record<string, string>
   showTypeHints?: boolean
   enumColorMap?: EnumColorMap
@@ -102,6 +203,7 @@ export interface LemmaRecordsViewProps {
   radius?: LemmaRecordsRadius
   groupBy?: string
   defaultFilters?: RecordFilter[]
+  defaultSort?: { field: string; order?: "asc" | "desc" }
   pageSize?: number
   paginationMode?: PaginationMode
   createMode?: CreateMode
@@ -120,17 +222,30 @@ export interface LemmaRecordsViewProps {
   detailEditable?: boolean
   detailActions?: React.ReactNode | ((context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode)
   quickActions?: RecordQuickAction[]
+  bulkActions?: RecordQuickAction[]
   quickActionMode?: RecordQuickActionMode
   quickActionPlacement?: RecordQuickActionPlacement
   onQuickActionSuccess?: (context: RecordQuickActionContext) => void
   renderFilesTab?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  renderCommentsTab?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  renderActivityTab?: (context: { record: Record<string, unknown>; table: Table; recordId: string }) => React.ReactNode
+  detailSectionLabels?: Partial<Record<RecordDetailBuiltinTab, React.ReactNode>>
+  detailSectionVisibility?: Partial<Record<RecordDetailBuiltinTab, RecordDetailSectionVisibilityRule>>
   listOptions?: RecordPreviewDisplayOptions
   groupedOptions?: RecordPreviewDisplayOptions
+  calendarField?: string
+  timelineField?: string
+  matrixRowsBy?: string
+  matrixColumnsBy?: string
 
   onCreateOptions?: {
     submitVia?: "direct" | "function"
     submitFunctionName?: string
     hiddenFields?: string[]
+    fieldOrder?: string[]
+    fieldGroups?: Array<{ label: string; fields: string[] }>
+    fieldVisibility?: Record<string, boolean | ((context: { values: Record<string, unknown>; fieldName: string }) => boolean)>
+    sectionVisibility?: Record<string, boolean | ((context: { values: Record<string, unknown>; label: string; fields: string[] }) => boolean)>
   }
   onUpdateOptions?: {
     updateVia?: "direct" | "function"
@@ -149,31 +264,38 @@ export function LemmaRecordsView({
   podId,
   tableName,
   enabled = true,
-  visibleColumns: visibleColumnNames,
-  hiddenFields = [],
+  preset = "default",
+  visibleColumns: visibleColumnNamesProp,
+  hiddenFields: hiddenFieldsProp,
+  pinnedColumns,
+  primaryField,
+  defaultVisibleColumnCount = 8,
+  showSystemFields = false,
+  columnWidths,
   columnLabels,
   showTypeHints = false,
   enumColorMap,
   renderCell,
   renderCard,
   foreignKeyLabels,
-  searchFields,
-  searchPlaceholder = "Search…",
-  defaultView = "grid",
-  availableViews,
+  searchFields: searchFieldsProp,
+  searchPlaceholder: searchPlaceholderProp,
+  defaultView: defaultViewProp,
+  availableViews: availableViewsProp,
   appearance = "default",
   density = "comfortable",
   radius = "lg",
   groupBy: groupByProp,
   defaultFilters = [],
-  pageSize = 50,
-  paginationMode = "pagination",
-  createMode = "sheet",
+  defaultSort,
+  pageSize: pageSizeProp,
+  paginationMode: paginationModeProp,
+  createMode: createModeProp,
   createRoute,
-  detailMode = "sheet",
+  detailMode: detailModeProp,
   detailRoute,
-  detailVariant = "workspace",
-  detailTabs,
+  detailVariant: detailVariantProp,
+  detailTabs: detailTabsProp,
   detailHeaderFields,
   detailFieldGroups,
   detailRelatedRecords,
@@ -184,12 +306,21 @@ export function LemmaRecordsView({
   detailEditable = true,
   detailActions,
   quickActions,
+  bulkActions,
   quickActionMode,
-  quickActionPlacement = "detail",
+  quickActionPlacement: quickActionPlacementProp,
   onQuickActionSuccess,
   renderFilesTab,
-  listOptions,
-  groupedOptions,
+  renderCommentsTab,
+  renderActivityTab,
+  detailSectionLabels,
+  detailSectionVisibility,
+  listOptions: listOptionsProp,
+  groupedOptions: groupedOptionsProp,
+  calendarField,
+  timelineField,
+  matrixRowsBy,
+  matrixColumnsBy,
   onCreateOptions,
   onUpdateOptions,
   title,
@@ -198,7 +329,32 @@ export function LemmaRecordsView({
   className,
   onRecordClick,
 }: LemmaRecordsViewProps) {
-  const [viewMode, setViewMode] = React.useState<ResolvedViewMode>(normalizeViewMode(defaultView))
+  const presetConfig = RECORDS_VIEW_PRESETS[preset] ?? RECORDS_VIEW_PRESETS.default
+  const defaultView = defaultViewProp ?? presetConfig.defaultView ?? "grid"
+  const availableViews = availableViewsProp ?? presetConfig.availableViews
+  const searchPlaceholder = searchPlaceholderProp ?? presetConfig.searchPlaceholder ?? "Search…"
+  const pageSize = pageSizeProp ?? presetConfig.pageSize ?? 50
+  const paginationMode = paginationModeProp ?? presetConfig.paginationMode ?? "pagination"
+  const createMode = createModeProp ?? presetConfig.createMode ?? "sheet"
+  const detailMode = detailModeProp ?? presetConfig.detailMode ?? "sheet"
+  const detailVariant = detailVariantProp ?? presetConfig.detailVariant ?? "workspace"
+  const detailTabs = detailTabsProp ?? presetConfig.detailTabs
+  const quickActionPlacement = quickActionPlacementProp ?? presetConfig.quickActionPlacement ?? "detail"
+  const listOptions = listOptionsProp ?? presetConfig.listOptions
+  const groupedOptions = groupedOptionsProp ?? presetConfig.groupedOptions
+  const effectiveListOptions = React.useMemo(
+    () => ({ ...(listOptions ?? {}), ...(primaryField ? { primaryField } : {}) }),
+    [listOptions, primaryField],
+  )
+  const effectiveGroupedOptions = React.useMemo(
+    () => ({ ...(groupedOptions ?? {}), ...(primaryField ? { primaryField } : {}) }),
+    [groupedOptions, primaryField],
+  )
+  const hiddenFields = React.useMemo(
+    () => uniqueStrings([...(presetConfig.hiddenFields ?? []), ...(hiddenFieldsProp ?? [])]),
+    [hiddenFieldsProp, presetConfig.hiddenFields],
+  )
+  const [viewMode, setViewMode] = React.useState<ResolvedViewMode>(() => normalizeViewMode(defaultView))
   const [filters, setFilters] = React.useState<RecordFilter[]>(defaultFilters)
   const [showFilterBuilder, setShowFilterBuilder] = React.useState(false)
   const [search, setSearch] = React.useState("")
@@ -207,6 +363,8 @@ export function LemmaRecordsView({
   const [showCreateForm, setShowCreateForm] = React.useState(false)
   const [foreignKeyLabelMap, setForeignKeyLabelMap] = React.useState<ForeignKeyLabelMap>({})
   const [submittingQuickActionKey, setSubmittingQuickActionKey] = React.useState<string | null>(null)
+  const [submittingBulkActionKey, setSubmittingBulkActionKey] = React.useState<string | null>(null)
+  const [actionError, setActionError] = React.useState<string | null>(null)
   const [page, setPage] = React.useState(0)
   const [sortField, setSortField] = React.useState<string | null>(null)
   const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">("asc")
@@ -241,16 +399,29 @@ export function LemmaRecordsView({
     [client, podId],
   )
 
+  const presetVisibleColumnNames = React.useMemo(
+    () => pickExistingColumnNames(table, presetConfig.visibleColumns),
+    [presetConfig.visibleColumns, table],
+  )
+  const visibleColumnNames = visibleColumnNamesProp ?? presetVisibleColumnNames
   const resolvedColumns = React.useMemo(() => {
-    if (!table) return []
-    const cols = table.columns.filter((c) => !hiddenFields.includes(c.name))
-    if (visibleColumnNames) {
-      return visibleColumnNames
-        .map((n) => cols.find((c) => c.name === n))
-        .filter(Boolean) as ColumnSchema[]
-    }
-    return cols
-  }, [table, visibleColumnNames, hiddenFields])
+    return resolveRecordColumns(table, {
+      visibleColumnNames,
+      hiddenFields,
+      pinnedColumns,
+      primaryField,
+      defaultVisibleColumnCount,
+      showSystemFields,
+    })
+  }, [defaultVisibleColumnCount, hiddenFields, pinnedColumns, primaryField, showSystemFields, table, visibleColumnNames])
+  const resolvedDefaultSort = React.useMemo(
+    () => resolveDefaultSort(table, defaultSort),
+    [defaultSort, table],
+  )
+  const resolvedDefaultSortKey = React.useMemo(
+    () => `${resolvedDefaultSort?.field ?? ""}:${resolvedDefaultSort?.order ?? "asc"}`,
+    [resolvedDefaultSort],
+  )
 
   const foreignKeyColumns = React.useMemo(
     () => resolvedColumns.filter((column) => !!column.foreign_key),
@@ -259,11 +430,13 @@ export function LemmaRecordsView({
 
   const groupByColumn = React.useMemo(() => {
     if (!table) return null
-    if (groupByProp) return table.columns.find((c) => c.name === groupByProp) ?? null
+    const presetGroupByField = pickFirstExistingColumnName(table, presetConfig.groupByFields)
+    const groupByField = groupByProp ?? presetGroupByField
+    if (groupByField) return table.columns.find((c) => c.name === groupByField) ?? null
     return (
       table.columns.find((c) => /status|stage|state|priority|type|category/i.test(c.name) && c.type === "ENUM") ?? null
     )
-  }, [table, groupByProp])
+  }, [table, groupByProp, presetConfig.groupByFields])
   const availableViewModes = React.useMemo(
     () => resolveAvailableViewModes(availableViews, !!groupByColumn),
     [availableViews, groupByColumn],
@@ -272,6 +445,11 @@ export function LemmaRecordsView({
   const getRecordId = (r: Record<string, unknown>) => String(r[pk] ?? "")
   const deferredSearch = React.useDeferredValue(search)
   const searchQuery = deferredSearch.trim().toLowerCase()
+  const presetSearchFields = React.useMemo(
+    () => pickExistingColumnNames(table, presetConfig.searchFields),
+    [presetConfig.searchFields, table],
+  )
+  const searchFields = searchFieldsProp ?? presetSearchFields
   const searchableColumnNames = React.useMemo(() => {
     if (searchFields?.length) return searchFields
     return resolvedColumns.filter(isSearchableColumn).map((c) => c.name)
@@ -283,6 +461,10 @@ export function LemmaRecordsView({
     )
   }, [records, searchQuery, searchableColumnNames])
   const displayedRecordIds = React.useMemo(() => displayedRecords.map(getRecordId), [displayedRecords, pk])
+  const selectedRecordsList = React.useMemo(
+    () => records.filter((record) => selectedRows.has(getRecordId(record))),
+    [records, selectedRows, pk],
+  )
   const detailRecord = React.useMemo(() => {
     if (!detailRecordId) return null
     return records.find((record) => getRecordId(record) === detailRecordId) ?? null
@@ -323,10 +505,10 @@ export function LemmaRecordsView({
     setSelectedRows(new Set())
     setDetailRecordId(null)
     setPage(0)
-    setSortField(null)
-    setSortOrder("asc")
+    setSortField(resolvedDefaultSort?.field ?? null)
+    setSortOrder(resolvedDefaultSort?.order ?? "asc")
     setViewMode(normalizeViewMode(defaultView))
-  }, [defaultFiltersKey, defaultView, podId, tableName])
+  }, [defaultFiltersKey, defaultView, podId, resolvedDefaultSortKey, tableName])
 
   React.useEffect(() => {
     if (!detailRecordId) return
@@ -476,26 +658,27 @@ export function LemmaRecordsView({
     action: RecordQuickAction,
     record: Record<string, unknown>,
     index: number,
+    scope: "row" | "detail" = "row",
   ) => {
     const recordId = getRecordId(record)
     const actionKey = recordQuickActionKey(action, recordId, index)
-    const mode = action.mode ?? quickActionMode ?? (action.functionName ? "function" : "direct")
-    const nextValues = resolveQuickActionValues(action, record)
+    const mode = resolveRecordActionMode(action, quickActionMode)
+    const context = { tableName, scope, record, recordId }
+    const nextValues = resolveRecordActionValues(action, record)
 
     setSubmittingQuickActionKey(actionKey)
+    setActionError(null)
     try {
       if (mode === "function") {
         const functionName = action.functionName
         if (!functionName) throw new Error(`Quick action "${action.label}" requires functionName in function mode.`)
         await scopedClient.functions.runs.create(functionName, {
-          input: {
-            id: recordId,
-            record_id: recordId,
-            record,
-            ...nextValues,
-            ...(action.buildInput?.(record) ?? {}),
-          },
+          input: createRecordActionInput(action, context),
         })
+      } else if (mode === "workflow") {
+        const workflowName = action.workflowName
+        if (!workflowName) throw new Error(`Quick action "${action.label}" requires workflowName in workflow mode.`)
+        await scopedClient.workflows.runs.start(workflowName, createRecordActionInput(action, context))
       } else {
         await scopedClient.records.update(tableName, recordId, nextValues)
       }
@@ -506,7 +689,10 @@ export function LemmaRecordsView({
         record,
         recordId,
         tableName,
+        scope,
       })
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : `Action "${action.label}" failed.`)
     } finally {
       setSubmittingQuickActionKey(null)
     }
@@ -516,6 +702,69 @@ export function LemmaRecordsView({
     quickActionMode,
     recordsState,
     scopedClient,
+    tableName,
+  ])
+
+  const runBulkAction = React.useCallback(async (
+    action: RecordQuickAction,
+    index: number,
+  ) => {
+    if (selectedRecordsList.length === 0) return
+
+    const recordIds = selectedRecordsList.map(getRecordId).filter(Boolean)
+    const actionKey = recordActionKey(action, `bulk:${recordIds.join(",")}`, index)
+    const mode = resolveRecordActionMode(action, quickActionMode)
+    const context = {
+      tableName,
+      scope: "bulk" as const,
+      records: selectedRecordsList,
+      recordIds,
+    }
+
+    setSubmittingBulkActionKey(actionKey)
+    setActionError(null)
+    try {
+      if (mode === "function") {
+        const functionName = action.functionName
+        if (!functionName) throw new Error(`Bulk action "${action.label}" requires functionName in function mode.`)
+        await scopedClient.functions.runs.create(functionName, {
+          input: createRecordActionInput(action, context),
+        })
+      } else if (mode === "workflow") {
+        const workflowName = action.workflowName
+        if (!workflowName) throw new Error(`Bulk action "${action.label}" requires workflowName in workflow mode.`)
+        await scopedClient.workflows.runs.start(workflowName, createRecordActionInput(action, context))
+      } else {
+        for (const record of selectedRecordsList) {
+          const recordId = getRecordId(record)
+          const nextValues = resolveRecordActionValues(action, record)
+          if (Object.keys(nextValues).length > 0) {
+            await scopedClient.records.update(tableName, recordId, nextValues)
+          }
+        }
+      }
+
+      setSelectedRows(new Set())
+      await recordsState.refresh()
+      onQuickActionSuccess?.({
+        action,
+        tableName,
+        scope: "bulk",
+        records: selectedRecordsList,
+        recordIds,
+      })
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : `Bulk action "${action.label}" failed.`)
+    } finally {
+      setSubmittingBulkActionKey(null)
+    }
+  }, [
+    getRecordId,
+    onQuickActionSuccess,
+    quickActionMode,
+    recordsState,
+    scopedClient,
+    selectedRecordsList,
     tableName,
   ])
 
@@ -535,7 +784,7 @@ export function LemmaRecordsView({
         recordId={getRecordId(detailRecord)}
         actions={quickActions}
         pendingActionKey={submittingQuickActionKey}
-        onRun={(action, index) => void runQuickAction(action, detailRecord, index)}
+        onRun={(action, index) => void runQuickAction(action, detailRecord, index, "detail")}
       />
     ) : null
 
@@ -575,9 +824,17 @@ export function LemmaRecordsView({
     if (!customDetailActionContent && !quickActionContent && !pager) return null
 
     return (
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {customDetailActionContent}
-        {quickActionContent}
+      <div className={cn("flex min-w-0 flex-wrap items-center gap-2", detailMode === "inline" ? "justify-end" : "justify-start")}>
+        {customDetailActionContent ? (
+          <div className="min-w-0 max-w-full overflow-x-auto pb-1">
+            {customDetailActionContent}
+          </div>
+        ) : null}
+        {quickActionContent ? (
+          <div className="min-w-0 max-w-full overflow-x-auto pb-1">
+            {quickActionContent}
+          </div>
+        ) : null}
         {pager}
       </div>
     )
@@ -639,6 +896,7 @@ export function LemmaRecordsView({
                   <TableHead
                     key={col.name}
                     className={cn("cursor-pointer select-none px-3 text-left text-xs font-medium tracking-wide text-muted-foreground transition-colors hover:text-foreground", density === "compact" ? "py-2" : density === "spacious" ? "py-3.5" : "py-2.5")}
+                    style={columnWidthStyle(columnWidths?.[col.name])}
                     onClick={() => handleSortColumn(col.name)}
                   >
                     <div className="flex items-center gap-1.5">
@@ -694,7 +952,7 @@ export function LemmaRecordsView({
                         />
                       </TableCell>
                       {resolvedColumns.map((col) => (
-                        <TableCell key={col.name} className="px-0 py-0">
+                        <TableCell key={col.name} className="px-0 py-0" style={columnWidthStyle(columnWidths?.[col.name])}>
                           {renderCell ? (
                             renderCell(record, col, record[col.name])
                           ) : (
@@ -738,6 +996,70 @@ export function LemmaRecordsView({
           onClear={hasActiveConstraints ? clearAllConstraints : undefined}
           onCreate={handleCreateClick}
         />
+      ) : viewMode === "calendar" ? (
+        <RecordsCalendarView
+          records={displayedRecords}
+          table={table}
+          visibleColumns={resolvedColumns}
+          primaryKey={pk}
+          selectedRecords={selectedRows}
+          onSelectRecord={handleSelectRow}
+          onRecordClick={handleRecordClick}
+          foreignKeyLabelMap={foreignKeyLabelMap}
+          columnLabels={columnLabels}
+          displayOptions={effectiveListOptions}
+          quickActions={previewQuickActionsEnabled ? quickActions : undefined}
+          onQuickAction={previewQuickActionsEnabled ? (action, record, index) => void runQuickAction(action, record, index) : undefined}
+          pendingActionKey={submittingQuickActionKey}
+          enumColorMap={enumColorMap}
+          appearance={appearance}
+          density={density}
+          radius={radius}
+          dateField={calendarField}
+        />
+      ) : viewMode === "timeline" ? (
+        <RecordsTimelineView
+          records={displayedRecords}
+          table={table}
+          visibleColumns={resolvedColumns}
+          primaryKey={pk}
+          selectedRecords={selectedRows}
+          onSelectRecord={handleSelectRow}
+          onRecordClick={handleRecordClick}
+          foreignKeyLabelMap={foreignKeyLabelMap}
+          columnLabels={columnLabels}
+          displayOptions={effectiveListOptions}
+          quickActions={previewQuickActionsEnabled ? quickActions : undefined}
+          onQuickAction={previewQuickActionsEnabled ? (action, record, index) => void runQuickAction(action, record, index) : undefined}
+          pendingActionKey={submittingQuickActionKey}
+          enumColorMap={enumColorMap}
+          appearance={appearance}
+          density={density}
+          radius={radius}
+          dateField={timelineField}
+        />
+      ) : viewMode === "matrix" ? (
+        <RecordsMatrixView
+          records={displayedRecords}
+          table={table}
+          visibleColumns={resolvedColumns}
+          primaryKey={pk}
+          selectedRecords={selectedRows}
+          onSelectRecord={handleSelectRow}
+          onRecordClick={handleRecordClick}
+          foreignKeyLabelMap={foreignKeyLabelMap}
+          columnLabels={columnLabels}
+          displayOptions={effectiveListOptions}
+          quickActions={previewQuickActionsEnabled ? quickActions : undefined}
+          onQuickAction={previewQuickActionsEnabled ? (action, record, index) => void runQuickAction(action, record, index) : undefined}
+          pendingActionKey={submittingQuickActionKey}
+          enumColorMap={enumColorMap}
+          appearance={appearance}
+          density={density}
+          radius={radius}
+          rowField={matrixRowsBy}
+          columnField={matrixColumnsBy}
+        />
       ) : viewMode === "list" ? (
         <ListView
           records={displayedRecords}
@@ -749,7 +1071,7 @@ export function LemmaRecordsView({
           renderCard={renderCard}
           foreignKeyLabelMap={foreignKeyLabelMap}
           columnLabels={columnLabels}
-          displayOptions={listOptions}
+          displayOptions={effectiveListOptions}
           quickActions={previewQuickActionsEnabled ? quickActions : undefined}
           onQuickAction={previewQuickActionsEnabled ? (action, record, index) => void runQuickAction(action, record, index) : undefined}
           pendingActionKey={submittingQuickActionKey}
@@ -771,7 +1093,7 @@ export function LemmaRecordsView({
           renderCard={renderCard}
           foreignKeyLabelMap={foreignKeyLabelMap}
           columnLabels={columnLabels}
-          displayOptions={groupedOptions}
+          displayOptions={effectiveGroupedOptions}
           quickActions={previewQuickActionsEnabled ? quickActions : undefined}
           onQuickAction={previewQuickActionsEnabled ? (action, record, index) => void runQuickAction(action, record, index) : undefined}
           pendingActionKey={submittingQuickActionKey}
@@ -911,10 +1233,32 @@ export function LemmaRecordsView({
         )}
       </div>
 
+      {actionError ? (
+        <div className="shrink-0 px-4 py-2">
+          <div className={cn("flex items-start gap-2 border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive", recordsRadiusClassName(radius, "surface"))}>
+            <AlertCircle className="mt-0.5 size-4 shrink-0" />
+            <span>{actionError}</span>
+          </div>
+        </div>
+      ) : null}
+
       {selectedRows.size > 0 && (
         <div className={cn("absolute left-1/2 top-20 z-30 flex -translate-x-1/2 items-center gap-4 rounded-full px-5 py-2.5 shadow-lg backdrop-blur-sm", recordsFloatingClassName(appearance))}>
           <span className="text-sm font-medium text-foreground">{selectedRows.size} selected</span>
           <div className="h-4 w-px bg-border" />
+          {bulkActions?.length ? (
+            <>
+              <RecordQuickActionButtons
+                record={{ selected_count: selectedRows.size }}
+                recordId={`bulk:${Array.from(selectedRows).join(",")}`}
+                actions={bulkActions}
+                pendingActionKey={submittingBulkActionKey}
+                onRun={(action, index) => void runBulkAction(action, index)}
+                compact
+              />
+              <div className="h-4 w-px bg-border" />
+            </>
+          ) : null}
           <Button variant="ghost" size="sm" className="h-8 rounded-full" onClick={handleDeleteSelected}>
             <Trash2 className="mr-1.5 h-3.5 w-3.5 text-destructive" />
             Delete
@@ -966,6 +1310,10 @@ export function LemmaRecordsView({
                   layout="embedded"
                   actions={detailActionContent}
                   renderFiles={renderFilesTab}
+                  renderComments={renderCommentsTab}
+                  renderActivity={renderActivityTab}
+                  sectionLabels={detailSectionLabels}
+                  sectionVisibility={detailSectionVisibility}
                   onRecordChanged={() => void recordsState.refresh()}
                   onDelete={async () => {
                     const id = getRecordId(detailRecord)
@@ -1096,6 +1444,10 @@ export function LemmaRecordsView({
           radius={radius}
           actions={detailActionContent}
           renderFiles={renderFilesTab}
+          renderComments={renderCommentsTab}
+          renderActivity={renderActivityTab}
+          sectionLabels={detailSectionLabels}
+          sectionVisibility={detailSectionVisibility}
         />
       )}
 
@@ -1108,6 +1460,10 @@ export function LemmaRecordsView({
           submitVia={onCreateOptions?.submitVia}
           submitFunctionName={onCreateOptions?.submitFunctionName}
           hiddenFields={onCreateOptions?.hiddenFields ?? hiddenFields}
+          fieldOrder={onCreateOptions?.fieldOrder}
+          fieldGroups={onCreateOptions?.fieldGroups}
+          fieldVisibility={onCreateOptions?.fieldVisibility}
+          sectionVisibility={onCreateOptions?.sectionVisibility}
           foreignKeyLabels={foreignKeyLabels}
           enumColorMap={enumColorMap}
           mode={createMode === "modal" ? "modal" : "sheet"}
@@ -1129,6 +1485,85 @@ function normalizeViewMode(mode: ViewMode): ResolvedViewMode {
   return mode === "grouped" ? "kanban" : mode
 }
 
+function resolveRecordColumns(
+  table: Table | null | undefined,
+  options: {
+    visibleColumnNames?: string[]
+    hiddenFields: string[]
+    pinnedColumns?: string[]
+    primaryField?: string
+    defaultVisibleColumnCount: number
+    showSystemFields: boolean
+  },
+): ColumnSchema[] {
+  if (!table) return []
+
+  const candidates = table.columns
+    .filter((column) => !options.hiddenFields.includes(column.name))
+    .filter((column) => column.type !== "VECTOR")
+
+  if (options.visibleColumnNames?.length) {
+    return orderColumns(
+      options.visibleColumnNames
+        .map((name) => candidates.find((column) => column.name === name))
+        .filter((column): column is ColumnSchema => Boolean(column)),
+      options,
+    )
+  }
+
+  const visible = candidates
+    .filter((column) => options.showSystemFields || !isSystemField(column))
+    .filter((column) => column.name !== table.primary_key_column && column.name !== "id")
+
+  const fallback = visible.length > 0 ? visible : candidates
+  return orderColumns(fallback, options).slice(0, Math.max(1, options.defaultVisibleColumnCount))
+}
+
+function orderColumns(
+  columns: ColumnSchema[],
+  options: {
+    pinnedColumns?: string[]
+    primaryField?: string
+  },
+): ColumnSchema[] {
+  const pinnedNames = uniqueStrings([
+    ...(options.primaryField ? [options.primaryField] : []),
+    ...(options.pinnedColumns ?? []),
+  ])
+  const pinned = pinnedNames
+    .map((name) => columns.find((column) => column.name === name))
+    .filter((column): column is ColumnSchema => Boolean(column))
+  const remaining = columns.filter((column) => !pinnedNames.includes(column.name))
+  return [...pinned, ...remaining]
+}
+
+function resolveDefaultSort(
+  table: Table | null | undefined,
+  defaultSort?: { field: string; order?: "asc" | "desc" },
+): { field: string; order: "asc" | "desc" } | null {
+  if (!table) return null
+  const names = new Set(table.columns.map((column) => column.name))
+  if (defaultSort && names.has(defaultSort.field)) {
+    return { field: defaultSort.field, order: defaultSort.order ?? "asc" }
+  }
+
+  const updatedAt = table.columns.find((column) => column.name === "updated_at")
+  if (updatedAt) return { field: updatedAt.name, order: "desc" }
+
+  const createdAt = table.columns.find((column) => column.name === "created_at")
+  if (createdAt) return { field: createdAt.name, order: "desc" }
+
+  const titleLike = table.columns.find((column) => ["title", "name", "subject", "label"].includes(column.name))
+  if (titleLike) return { field: titleLike.name, order: "asc" }
+
+  return null
+}
+
+function columnWidthStyle(width: string | number | undefined): React.CSSProperties | undefined {
+  if (typeof width === "undefined") return undefined
+  return { width: typeof width === "number" ? `${width}px` : width }
+}
+
 function resolveAvailableViewModes(
   availableViews: ViewMode[] | undefined,
   hasGroupBy: boolean,
@@ -1145,6 +1580,29 @@ function resolveAvailableViewModes(
 
   const filtered = normalized.filter((mode) => (mode === "kanban" || mode === "linear" ? hasGroupBy : true))
   return filtered.length > 0 ? filtered : ["grid", "list"]
+}
+
+function pickExistingColumnNames(
+  table: Table | null | undefined,
+  candidates: string[] | undefined,
+): string[] | undefined {
+  if (!table || !candidates?.length) return undefined
+  const names = new Set(table.columns.map((column) => column.name))
+  const picked = uniqueStrings(candidates.filter((candidate) => names.has(candidate)))
+  return picked.length > 0 ? picked : undefined
+}
+
+function pickFirstExistingColumnName(
+  table: Table | null | undefined,
+  candidates: string[] | undefined,
+): string | undefined {
+  if (!table || !candidates?.length) return undefined
+  const names = new Set(table.columns.map((column) => column.name))
+  return candidates.find((candidate) => names.has(candidate))
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return values.filter((value, index, array) => value.length > 0 && array.indexOf(value) === index)
 }
 
 function navigateTo(path: string): void {
@@ -1446,11 +1904,24 @@ function ViewModeToggle({
           {availableMode === "grid" || availableMode === "kanban" ? <LayoutGrid className="h-3.5 w-3.5" /> : null}
           {availableMode === "list" ? <List className="h-3.5 w-3.5" /> : null}
           {availableMode === "linear" ? <Rows3 className="h-3.5 w-3.5" /> : null}
-          {availableMode === "grid" ? "Grid" : availableMode === "list" ? "List" : availableMode === "kanban" ? "Kanban" : "Linear"}
+          {availableMode === "calendar" ? <Calendar className="h-3.5 w-3.5" /> : null}
+          {availableMode === "timeline" ? <Rows3 className="h-3.5 w-3.5" /> : null}
+          {availableMode === "matrix" ? <LayoutGrid className="h-3.5 w-3.5" /> : null}
+          {viewModeLabel(availableMode)}
         </button>
       ))}
     </div>
   )
+}
+
+function viewModeLabel(mode: ResolvedViewMode): string {
+  if (mode === "grid") return "Grid"
+  if (mode === "list") return "List"
+  if (mode === "kanban") return "Kanban"
+  if (mode === "linear") return "Linear"
+  if (mode === "calendar") return "Calendar"
+  if (mode === "timeline") return "Timeline"
+  return "Matrix"
 }
 
 function recordsRootClassName(appearance: LemmaRecordsAppearance) {

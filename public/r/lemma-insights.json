@@ -2,7 +2,7 @@
   "$schema": "https://ui.shadcn.com/schema/registry-item.json",
   "name": "lemma-insights",
   "title": "Lemma Insights",
-  "description": "Dashboard-style stat cards and charts driven by table queries or function outputs. Supports count/sum/avg stat cards and bar/line/pie charts. Built on recharts.",
+  "description": "Dashboard-style stat cards and charts driven by table queries or function outputs. Supports count/sum/avg stat cards and bar/line/area/pie/funnel charts. Built on recharts.",
   "dependencies": [
     "lemma-sdk",
     "lucide-react",

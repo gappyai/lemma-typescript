@@ -1,24 +1,41 @@
 "use client"
 
 import * as React from "react"
-import { Check, ChevronsUpDown, Loader2, Search, X } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
-import { useRecordForm, useForeignKeyOptions } from "lemma-sdk/react"
-import type { LemmaClient } from "lemma-sdk"
+import { useRecordForm } from "lemma-sdk/react"
+import {
+  DEFAULT_RECORD_FORM_HIDDEN_FIELDS,
+  orderRecordSchemaFields,
+  type LemmaClient,
+} from "lemma-sdk"
+import { RecordFormField } from "@/components/lemma/record-form-fields"
 import { cn } from "@/lib/utils"
 
 export type LemmaRecordFormAppearance = "default" | "minimal" | "borderless" | "contained"
 export type LemmaRecordFormDensity = "compact" | "comfortable" | "spacious"
 export type LemmaRecordFormRadius = "none" | "sm" | "md" | "lg" | "xl"
+export type LemmaRecordFormVisibilityRule<TContext> = boolean | ((context: TContext) => boolean)
+
+export interface LemmaRecordFormFieldVisibilityContext {
+  values: Record<string, unknown>
+  fieldName: string
+}
+
+export interface LemmaRecordFormSectionVisibilityContext {
+  values: Record<string, unknown>
+  label: string
+  fields: string[]
+}
+
+export interface LemmaRecordFormFieldGroup {
+  label: string
+  fields: string[]
+  visible?: LemmaRecordFormVisibilityRule<LemmaRecordFormSectionVisibilityContext>
+}
 
 export interface LemmaRecordFormProps {
   client: LemmaClient
@@ -36,7 +53,9 @@ export interface LemmaRecordFormProps {
   hiddenFields?: string[]
   visibleFields?: string[]
   fieldOrder?: string[]
-  fieldGroups?: Array<{ label: string; fields: string[] }>
+  fieldGroups?: LemmaRecordFormFieldGroup[]
+  fieldVisibility?: Record<string, LemmaRecordFormVisibilityRule<LemmaRecordFormFieldVisibilityContext>>
+  sectionVisibility?: Record<string, LemmaRecordFormVisibilityRule<LemmaRecordFormSectionVisibilityContext>>
   foreignKeyLabels?: Record<string, string>
 
   initialValues?: Record<string, unknown>
@@ -60,6 +79,8 @@ export function LemmaRecordForm({
   visibleFields,
   fieldOrder,
   fieldGroups,
+  fieldVisibility,
+  sectionVisibility,
   foreignKeyLabels,
   initialValues,
   onSuccess,
@@ -70,7 +91,7 @@ export function LemmaRecordForm({
     podId,
     tableName,
     recordId: recordId || null,
-    hiddenFields: [...hiddenFields, "id", "created_at", "updated_at", "creator_user_id", "sort_order"],
+    hiddenFields: [...hiddenFields, ...DEFAULT_RECORD_FORM_HIDDEN_FIELDS],
     visibleFields,
     submitVia,
     submitFunctionName,
@@ -83,17 +104,52 @@ export function LemmaRecordForm({
   const title = isEdit ? "Edit Record" : "New Record"
 
   const orderedFields = React.useMemo(() => {
-    let fields = form.editableFields
-    if (fieldOrder) {
-      const ordered = fieldOrder.map((n) => fields.find((f) => f.name === n)).filter((f): f is typeof fields[number] => f !== undefined)
-      const remaining = fields.filter((f) => !fieldOrder.includes(f.name))
-      fields = [...ordered, ...remaining]
-    }
-    return fields
+    return orderRecordSchemaFields(form.editableFields, fieldOrder)
   }, [form.editableFields, fieldOrder])
+  const visibleOrderedFields = React.useMemo(() => {
+    return orderedFields.filter((field) =>
+      resolveVisibility(fieldVisibility?.[field.name], {
+        values: form.values,
+        fieldName: field.name,
+      }),
+    )
+  }, [fieldVisibility, form.values, orderedFields])
+  const visibleFieldGroups = React.useMemo(() => {
+    if (!fieldGroups?.length) return null
+
+    return fieldGroups
+      .filter((group) => {
+        const context = { values: form.values, label: group.label, fields: group.fields }
+        return resolveVisibility(group.visible, context) && resolveVisibility(sectionVisibility?.[group.label], context)
+      })
+      .map((group) => ({
+        ...group,
+        fields: group.fields.filter((fieldName) => visibleOrderedFields.some((field) => field.name === fieldName)),
+      }))
+      .filter((group) => group.fields.length > 0)
+  }, [fieldGroups, form.values, sectionVisibility, visibleOrderedFields])
+
+  const renderField = React.useCallback(
+    (field: typeof orderedFields[number]) => (
+      <RecordFormField
+        key={field.name}
+        field={field}
+        value={form.values[field.name]}
+        error={form.fieldErrors[field.name]}
+        onChange={(nextValue) => form.setValue(field.name, nextValue)}
+        client={client}
+        podId={podId}
+        tableName={tableName}
+        labelField={foreignKeyLabels?.[field.name]}
+        radius={radius}
+        getRadiusClassName={formRadiusClassName}
+      />
+    ),
+    [client, foreignKeyLabels, form, podId, radius, tableName],
+  )
 
   const inner = (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       {mode === "modal" && (
         <DialogHeader className={cn("shrink-0", formHeaderClassName(appearance, density))}>
           <DialogTitle className="text-lg font-semibold tracking-tight">{title}</DialogTitle>
@@ -114,62 +170,26 @@ export function LemmaRecordForm({
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Loading schema…
           </div>
-        ) : fieldGroups ? (
+        ) : visibleFieldGroups ? (
           <div className={cn("flex flex-col", density === "compact" ? "gap-4" : density === "spacious" ? "gap-7" : "gap-6")}>
-            {fieldGroups.map((group, gi) => (
+            {visibleFieldGroups.map((group, gi) => (
               <div key={gi}>
                 <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
                   {group.label}
                 </p>
                 <div className={cn("flex flex-col", density === "compact" ? "gap-3" : density === "spacious" ? "gap-5" : "gap-4")}>
                   {group.fields
-                    .map((n) => orderedFields.find((f) => f.name === n))
-                    .filter((f): f is typeof orderedFields[number] => f !== undefined)
-                    .map((field) => (
-                      <FormField
-                        key={field.name}
-                        name={field.name}
-                        label={field.label}
-                        kind={field.kind}
-                        column={field.column}
-                        required={field.required}
-                        options={field.options}
-                        value={form.values[field.name]}
-                        error={form.fieldErrors[field.name]}
-                        onChange={(v) => form.setValue(field.name, v)}
-                        client={client}
-                        podId={podId}
-                        tableName={tableName}
-                        labelField={foreignKeyLabels?.[field.name]}
-                        radius={radius}
-                      />
-                    ))}
+                    .map((fieldName) => orderedFields.find((field) => field.name === fieldName))
+                    .filter((field): field is typeof orderedFields[number] => Boolean(field))
+                    .map(renderField)}
                 </div>
-                {gi < fieldGroups.length - 1 && <Separator className="mt-6 bg-border/30" />}
+                {gi < visibleFieldGroups.length - 1 && <Separator className="mt-6 bg-border/30" />}
               </div>
             ))}
           </div>
         ) : (
           <div className={cn("flex flex-col", density === "compact" ? "gap-3" : density === "spacious" ? "gap-5" : "gap-4")}>
-            {orderedFields.map((field) => (
-              <FormField
-                key={field.name}
-                name={field.name}
-                label={field.label}
-                kind={field.kind}
-                column={field.column}
-                required={field.required}
-                options={field.options}
-                value={form.values[field.name]}
-                error={form.fieldErrors[field.name]}
-                onChange={(v) => form.setValue(field.name, v)}
-                client={client}
-                podId={podId}
-                tableName={tableName}
-                labelField={foreignKeyLabels?.[field.name]}
-                radius={radius}
-              />
-            ))}
+            {visibleOrderedFields.map(renderField)}
           </div>
         )}
 
@@ -202,7 +222,11 @@ export function LemmaRecordForm({
   if (mode === "sheet") {
     return (
       <Sheet open onOpenChange={(open) => !open && onClose?.()}>
-        <SheetContent className={cn("w-full min-w-lg sm:max-w-xl lg:max-w-2xl p-0 gap-0", formSurfaceClassName(appearance, radius))}>{inner}</SheetContent>
+        <SheetContent
+          className={cn("!h-full !w-[calc(100vw-1rem)] !max-w-[60rem] gap-0 p-0", formSurfaceClassName(appearance, radius))}
+        >
+          {inner}
+        </SheetContent>
       </Sheet>
     )
   }
@@ -210,12 +234,16 @@ export function LemmaRecordForm({
   if (mode === "modal") {
     return (
       <Dialog open onOpenChange={(open) => !open && onClose?.()}>
-        <DialogContent className={cn("min-w-lg max-w-xl p-0 gap-0", formSurfaceClassName(appearance, radius))}>{inner}</DialogContent>
+        <DialogContent
+          className={cn("!h-[92vh] !max-h-[92vh] !w-[calc(100vw-2rem)] !max-w-[72rem] gap-0 overflow-hidden p-0", formSurfaceClassName(appearance, radius))}
+        >
+          {inner}
+        </DialogContent>
       </Dialog>
     )
   }
 
-  return <div className={cn("min-w-lg", appearance === "minimal" ? "bg-transparent" : "bg-card", formSurfaceClassName(appearance, radius))}>{inner}</div>
+  return <div className={cn(appearance === "minimal" ? "bg-transparent" : "bg-card", formSurfaceClassName(appearance, radius))}>{inner}</div>
 }
 
 function formHeaderClassName(appearance: LemmaRecordFormAppearance, density: LemmaRecordFormDensity) {
@@ -250,266 +278,13 @@ function formSurfaceClassName(appearance: LemmaRecordFormAppearance, radius: Lem
   return cn(radiusClassName, "border border-border/50")
 }
 
-function FormField({
-  name,
-  label,
-  kind,
-  column,
-  required,
-  options,
-  value,
-  error,
-  onChange,
-  client,
-  podId,
-  tableName,
-  labelField,
-  radius,
-}: {
-  name: string
-  label: string
-  kind: string
-  column: import("lemma-sdk").ColumnSchema
-  required?: boolean
-  options?: string[]
-  value: unknown
-  error?: string
-  onChange: (v: unknown) => void
-  client: LemmaClient
-  podId?: string
-  tableName: string
-  labelField?: string
-  radius: LemmaRecordFormRadius
-}) {
-  const fkOptions = useForeignKeyOptions({
-    client,
-    podId,
-    tableName,
-    columnName: name,
-    labelField,
-    enabled: kind === "foreign-key",
-  })
-
-  const displayLabel = label || name.replace(/_/g, " ")
-  const strVal = value == null ? "" : String(value)
-  const selectedForeignKeyLabel = fkOptions.options.find((opt) => String(opt.value) === strVal)?.label
-
-  const typeTints: Record<string, { bg: string; text: string }> = {
-    TEXT: { bg: "bg-muted/45", text: "text-muted-foreground" },
-    INTEGER: { bg: "bg-emerald-500/10", text: "text-emerald-700 dark:text-emerald-300" },
-    FLOAT: { bg: "bg-blue-500/10", text: "text-blue-700 dark:text-blue-300" },
-    BOOLEAN: { bg: "bg-primary/10", text: "text-primary" },
-    DATE: { bg: "bg-amber-500/10", text: "text-amber-700 dark:text-amber-300" },
-    DATETIME: { bg: "bg-amber-500/10", text: "text-amber-700 dark:text-amber-300" },
-    ENUM: { bg: "bg-violet-500/10", text: "text-violet-700 dark:text-violet-300" },
-    JSON: { bg: "bg-rose-500/10", text: "text-rose-700 dark:text-rose-300" },
-    UUID: { bg: "bg-sky-500/10", text: "text-sky-700 dark:text-sky-300" },
-  }
-  const tint = column.foreign_key
-    ? { bg: "bg-sky-500/10", text: "text-sky-700 dark:text-sky-300" }
-    : typeTints[column.type] ?? typeTints.TEXT
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <Label className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          {displayLabel}
-          {required && <span className="ml-0.5 text-destructive">*</span>}
-        </Label>
-        <span className={cn(`border border-border/50 ${tint.bg} px-1.5 py-0.5 text-[9px] font-medium normal-case ${tint.text}`, formRadiusClassName(radius, "pill"))}>
-          {column.foreign_key ? "ref" : column.type.toLowerCase()}
-        </span>
-      </div>
-
-      {kind === "foreign-key" ? (
-        <SearchableValueSelect
-          value={strVal}
-          selectedLabel={selectedForeignKeyLabel}
-          options={fkOptions.options}
-          placeholder="Select…"
-          searchPlaceholder={`Search ${displayLabel.toLowerCase()}...`}
-          radius={radius}
-          onChange={(nextValue) => onChange(nextValue || null)}
-        />
-      ) : kind === "select" && options?.length ? (
-        <Select value={strVal || undefined} onValueChange={(v) => onChange(v)}>
-          <SelectTrigger className={cn("h-9", formRadiusClassName(radius, "control"))}>
-            <SelectValue placeholder="Select…" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {options.map((opt) => (
-                <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      ) : kind === "boolean" ? (
-        <div className="flex items-center gap-2 h-9">
-          <Checkbox checked={Boolean(value)} onCheckedChange={(c) => onChange(c === true)} />
-          <span className="text-sm text-muted-foreground">{value ? "Yes" : "No"}</span>
-        </div>
-      ) : kind === "textarea" ? (
-        <Textarea
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          rows={3}
-          className={cn("resize-none border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
-        />
-      ) : kind === "number" ? (
-        <Input
-          type="number"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
-          className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
-        />
-      ) : kind === "date" ? (
-        <Input
-          type="date"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value || null)}
-          className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
-        />
-      ) : kind === "datetime" ? (
-        <Input
-          type="datetime-local"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value || null)}
-          className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
-        />
-      ) : kind === "json" ? (
-        <Textarea
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          rows={4}
-          className={cn("font-mono text-xs resize-none border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
-          placeholder="{}"
-        />
-      ) : (
-        <Input
-          type="text"
-          value={strVal}
-          onChange={(e) => onChange(e.target.value)}
-          className={cn("h-9 border-border bg-background placeholder:text-muted-foreground focus-ring", formRadiusClassName(radius, "control"))}
-          placeholder={displayLabel}
-        />
-      )}
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
-    </div>
-  )
-}
-
-function shortenIdentifier(value: unknown): string {
-  const text = String(value ?? "")
-  if (!text) return "—"
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(text)) {
-    return `${text.slice(0, 8)}…${text.slice(-4)}`
-  }
-  return text.length > 28 ? `${text.slice(0, 24)}…` : text
-}
-
-function SearchableValueSelect({
-  value,
-  selectedLabel,
-  options,
-  placeholder,
-  searchPlaceholder,
-  radius,
-  onChange,
-}: {
-  value: string
-  selectedLabel?: string
-  options: Array<{ value: unknown; label: string }>
-  placeholder: string
-  searchPlaceholder: string
-  radius: LemmaRecordFormRadius
-  onChange: (value: string | null) => void
-}) {
-  const [open, setOpen] = React.useState(false)
-  const [query, setQuery] = React.useState("")
-
-  const filteredOptions = React.useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    if (!needle) return options
-    return options.filter((option) => option.label.toLowerCase().includes(needle) || String(option.value).toLowerCase().includes(needle))
-  }, [options, query])
-
-  return (
-    <Popover
-      open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen)
-        if (!nextOpen) setQuery("")
-      }}
-    >
-      <PopoverTrigger
-        type="button"
-        className={cn(
-          "inline-flex h-9 w-full items-center justify-between gap-3 border border-border bg-background px-3 text-sm transition-colors hover:bg-muted",
-          formRadiusClassName(radius, "control"),
-        )}
-      >
-        <span className="min-w-0 flex-1 truncate text-left">
-          {selectedLabel ?? (value ? shortenIdentifier(value) : <span className="text-muted-foreground">{placeholder}</span>)}
-        </span>
-        <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
-      </PopoverTrigger>
-      <PopoverContent align="start" className={cn("w-[var(--radix-popper-anchor-width)] min-w-72 p-0", formRadiusClassName(radius, "surface"))}>
-        <div className="border-b border-border/40 p-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={searchPlaceholder}
-              className={cn("h-8 pl-8 text-xs", formRadiusClassName(radius, "control"))}
-            />
-          </div>
-        </div>
-        <div className="max-h-72 overflow-auto p-1">
-          {value ? (
-            <button
-              type="button"
-              className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm text-muted-foreground hover:bg-muted/45", formRadiusClassName(radius, "control"))}
-              onClick={() => {
-                onChange(null)
-                setOpen(false)
-                setQuery("")
-              }}
-            >
-              <X className="size-4" />
-              Clear selection
-            </button>
-          ) : null}
-          {filteredOptions.length === 0 ? (
-            <div className="flex min-h-24 items-center justify-center text-sm text-muted-foreground">
-              No options found
-            </div>
-          ) : (
-            filteredOptions.map((option) => {
-              const selected = String(option.value) === value
-              return (
-                <button
-                  key={String(option.value)}
-                  type="button"
-                  className={cn("flex w-full items-center gap-2 px-2 py-2 text-left text-sm hover:bg-muted/45", formRadiusClassName(radius, "control"), selected ? "bg-muted/60" : null)}
-                  onClick={() => {
-                    onChange(String(option.value))
-                    setOpen(false)
-                    setQuery("")
-                  }}
-                >
-                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
-                  {selected ? <Check className="size-4 text-primary" /> : null}
-                </button>
-              )
-            })
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  )
+function resolveVisibility<TContext>(
+  rule: LemmaRecordFormVisibilityRule<TContext> | undefined,
+  context: TContext,
+): boolean {
+  if (typeof rule === "boolean") return rule
+  if (typeof rule === "function") return rule(context)
+  return true
 }
 
 function formRadiusClassName(
