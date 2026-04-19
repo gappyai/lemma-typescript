@@ -2,8 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type DeskBundleUploadRequest = {
-    dist_archive?: (string | null);
-    source_archive?: (string | null);
+export type TelegramCredentialsInput = {
+    bot_token: string;
+    type?: string;
+    webhook_secret?: (string | null);
 };
 

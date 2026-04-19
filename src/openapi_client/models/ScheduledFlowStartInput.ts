@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { ScheduledFlowStartType } from './ScheduledFlowStartType.js';
-export type ScheduledFlowStart = {
+export type ScheduledFlowStartInput = {
     /**
      * Time trigger mode for this workflow definition. Concrete schedule values are provided during installation.
      */

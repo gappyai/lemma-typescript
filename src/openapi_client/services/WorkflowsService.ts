@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FlowInstallEntity } from '../models/FlowInstallEntity.js';
+import type { FlowInstallResponse } from '../models/FlowInstallResponse.js';
 import type { FlowResponse } from '../models/FlowResponse.js';
 import type { FlowRunEntity } from '../models/FlowRunEntity.js';
 import type { WorkflowCreateRequest } from '../models/WorkflowCreateRequest.js';
@@ -287,14 +287,14 @@ export class WorkflowsService {
      * @param podId
      * @param workflowName
      * @param requestBody
-     * @returns FlowInstallEntity Successful Response
+     * @returns FlowInstallResponse Successful Response
      * @throws ApiError
      */
     public static workflowInstallCreate(
         podId: string,
         workflowName: string,
         requestBody: WorkflowInstallRequest,
-    ): CancelablePromise<FlowInstallEntity> {
+    ): CancelablePromise<FlowInstallResponse> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/pods/{pod_id}/workflows/{workflow_name}/install',

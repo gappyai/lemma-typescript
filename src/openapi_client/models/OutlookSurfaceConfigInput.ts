@@ -2,10 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type SlackSurfaceConfigCreate = {
-    account_id?: (string | null);
-    allow_dm?: boolean;
-    allowed_channel_ids?: Array<string>;
+export type OutlookSurfaceConfigInput = {
+    account_id: string;
     type?: string;
 };
 

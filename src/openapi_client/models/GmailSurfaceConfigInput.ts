@@ -2,8 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type DeskBundleUploadRequest = {
-    dist_archive?: (string | null);
-    source_archive?: (string | null);
+export type GmailSurfaceConfigInput = {
+    account_id: string;
+    type?: string;
 };
 

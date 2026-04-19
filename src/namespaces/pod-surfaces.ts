@@ -29,7 +29,7 @@ export class PodSurfacesNamespace {
 
   updateConfig(podId: string, surfaceId: string, payload: UpdateSurfaceRequest) {
     return this.client.request(() =>
-      AssistantSurfacesService.assistantSurfaceUpdateConfig(podId, surfaceId, payload),
+      AssistantSurfacesService.assistantSurfaceUpdate(podId, surfaceId, payload),
     );
   }
 

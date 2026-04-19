@@ -2,8 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type DeskBundleUploadRequest = {
-    dist_archive?: (string | null);
-    source_archive?: (string | null);
+export type TelegramSurfaceConfig = {
+    created_at?: string;
+    id?: string;
+    type?: string;
+    updated_at?: string;
 };
 

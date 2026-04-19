@@ -4,12 +4,14 @@
 /* eslint-disable */
 import type { AvailableModels } from './AvailableModels.js';
 import type { ConversationStatus } from './ConversationStatus.js';
+import type { ConversationType } from './ConversationType.js';
 /**
  * Response for conversation.
  */
 export type ConversationResponse = {
     assistant_id: (string | null);
     assistant_name?: (string | null);
+    conversation_type?: ConversationType;
     created_at: any;
     external_channel_id?: (string | null);
     external_thread_id?: (string | null);
@@ -19,6 +21,7 @@ export type ConversationResponse = {
     organization_id?: (string | null);
     pod_id: (string | null);
     status: ConversationStatus;
+    surface_installation_id?: (string | null);
     surface_type?: (string | null);
     title: (string | null);
     updated_at: any;

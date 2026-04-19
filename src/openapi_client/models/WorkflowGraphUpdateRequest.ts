@@ -3,12 +3,15 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AgentNode } from './AgentNode.js';
+import type { DataStoreWorkflowStartInput } from './DataStoreWorkflowStartInput.js';
 import type { DecisionNode } from './DecisionNode.js';
 import type { EndNode } from './EndNode.js';
-import type { FlowStart_Input } from './FlowStart_Input.js';
+import type { EventWorkflowStartInput } from './EventWorkflowStartInput.js';
 import type { FormNode } from './FormNode.js';
 import type { FunctionNode } from './FunctionNode.js';
 import type { LoopNode } from './LoopNode.js';
+import type { ManualWorkflowStartInput } from './ManualWorkflowStartInput.js';
+import type { ScheduledWorkflowStartInput } from './ScheduledWorkflowStartInput.js';
 import type { WaitUntilNode } from './WaitUntilNode.js';
 import type { WorkflowEdge } from './WorkflowEdge.js';
 /**
@@ -26,6 +29,6 @@ export type WorkflowGraphUpdateRequest = {
     /**
      * Optional replacement start configuration stored with the graph.
      */
-    start?: (FlowStart_Input | null);
+    start?: ((ManualWorkflowStartInput | ScheduledWorkflowStartInput | EventWorkflowStartInput | DataStoreWorkflowStartInput) | null);
 };
 

@@ -14,6 +14,8 @@ export type OrganizationInvitationResponse = {
     expires_at: string;
     id: string;
     organization_id: string;
+    pod_id?: (string | null);
+    pod_role?: (string | null);
     revoked_at?: (string | null);
     role: OrganizationRole;
     status: OrganizationInvitationStatus;

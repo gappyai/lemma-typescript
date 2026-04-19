@@ -2,8 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type DeskBundleUploadRequest = {
-    dist_archive?: (string | null);
-    source_archive?: (string | null);
-};
-
+export enum SurfaceSetupFieldSource {
+    CREATE_REQUEST = 'CREATE_REQUEST',
+    CREATE_RESPONSE = 'CREATE_RESPONSE',
+}

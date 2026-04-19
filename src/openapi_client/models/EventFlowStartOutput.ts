@@ -1,0 +1,24 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+export type EventFlowStartOutput = {
+    /**
+     * Integration application identifier.
+     */
+    application_id: string;
+    /**
+     * Integration trigger identifier to subscribe to.
+     */
+    application_trigger_id: string;
+    /**
+     * Optional LLM filter instruction executed before flow continuation.
+     */
+    filter_instruction?: (string | null);
+    /**
+     * Optional expected schema for filter output.
+     */
+    filter_output_schema?: (Record<string, any> | null);
+    trigger_config?: Record<string, any>;
+};
+

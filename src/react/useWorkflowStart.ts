@@ -3,9 +3,9 @@ import type { LemmaClient } from "../client.js";
 import { normalizeRunStatus } from "../run-utils.js";
 import type {
   FlowRun,
-  FlowStartType,
   FormNodeResponse,
   Workflow,
+  WorkflowStartType,
   WorkflowRunInputs,
 } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
@@ -30,7 +30,7 @@ export interface UseWorkflowStartOptions {
 export interface UseWorkflowStartResult
   extends Omit<UseFlowSessionResult, "start" | "listHistory"> {
   workflow: Workflow | null;
-  startType: FlowStartType | "MANUAL";
+  startType: WorkflowStartType | "MANUAL";
   inputSchema: Record<string, unknown> | null;
   inputUiSchema: Record<string, unknown> | null;
   isLoadingWorkflow: boolean;

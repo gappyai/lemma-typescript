@@ -8,6 +8,8 @@ import type { OrganizationRole } from './OrganizationRole.js';
  */
 export type OrganizationInvitationRequest = {
     email: string;
+    pod_id?: (string | null);
+    pod_role?: (string | null);
     role: OrganizationRole;
 };
 

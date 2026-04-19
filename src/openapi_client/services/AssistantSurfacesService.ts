@@ -2,8 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { AdminConsentInfoResponse } from '../models/AdminConsentInfoResponse.js';
 import type { AssistantSurfaceListResponse } from '../models/AssistantSurfaceListResponse.js';
 import type { CreateSurfaceRequest } from '../models/CreateSurfaceRequest.js';
+import type { SurfacePlatformSetupGuideResponse } from '../models/SurfacePlatformSetupGuideResponse.js';
 import type { ToggleSurfaceRequest } from '../models/ToggleSurfaceRequest.js';
 import type { UpdateSurfaceRequest } from '../models/UpdateSurfaceRequest.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
@@ -12,7 +14,6 @@ import { request as __request } from '../core/request.js';
 export class AssistantSurfacesService {
     /**
      * List Surfaces
-     * List configured surfaces in a pod.
      * @param podId
      * @param limit
      * @param pageToken
@@ -41,7 +42,6 @@ export class AssistantSurfacesService {
     }
     /**
      * Create Surface
-     * Create a new surface for an assistant.
      * @param podId
      * @param requestBody
      * @returns any Successful Response
@@ -65,8 +65,30 @@ export class AssistantSurfacesService {
         });
     }
     /**
+     * Get Surface Platform Checklist
+     * @param podId
+     * @param platform
+     * @returns SurfacePlatformSetupGuideResponse Successful Response
+     * @throws ApiError
+     */
+    public static assistantSurfacePlatformChecklist(
+        podId: string,
+        platform: string,
+    ): CancelablePromise<SurfacePlatformSetupGuideResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/surfaces/platforms/{platform}/checklist',
+            path: {
+                'pod_id': podId,
+                'platform': platform,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get Surface
-     * Get a specific surface configuration.
      * @param podId
      * @param surfaceId
      * @returns any Successful Response
@@ -90,21 +112,20 @@ export class AssistantSurfacesService {
     }
     /**
      * Update Surface
-     * Update a surface configuration.
      * @param podId
      * @param surfaceId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static assistantSurfaceUpdateConfig(
+    public static assistantSurfaceUpdate(
         podId: string,
         surfaceId: string,
         requestBody: UpdateSurfaceRequest,
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/surfaces/{surface_id}/config',
+            url: '/pods/{pod_id}/surfaces/{surface_id}',
             path: {
                 'pod_id': podId,
                 'surface_id': surfaceId,
@@ -117,8 +138,30 @@ export class AssistantSurfacesService {
         });
     }
     /**
+     * Get Admin Consent Info
+     * @param podId
+     * @param surfaceId
+     * @returns AdminConsentInfoResponse Successful Response
+     * @throws ApiError
+     */
+    public static assistantSurfaceAdminConsentInfo(
+        podId: string,
+        surfaceId: string,
+    ): CancelablePromise<AdminConsentInfoResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/surfaces/{surface_id}/admin-consent',
+            path: {
+                'pod_id': podId,
+                'surface_id': surfaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Toggle Surface
-     * Toggle a surface active state.
      * @param podId
      * @param surfaceId
      * @param requestBody
@@ -139,6 +182,29 @@ export class AssistantSurfacesService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Webhook Url
+     * @param podId
+     * @param surfaceId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static assistantSurfaceWebhookUrl(
+        podId: string,
+        surfaceId: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/surfaces/{surface_id}/webhook-url',
+            path: {
+                'pod_id': podId,
+                'surface_id': surfaceId,
+            },
             errors: {
                 422: `Validation Error`,
             },

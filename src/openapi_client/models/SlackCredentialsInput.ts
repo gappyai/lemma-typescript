@@ -2,10 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type TeamsSurfaceConfigCreate = {
-    account_id?: (string | null);
-    allow_dm?: boolean;
-    allowed_channel_ids?: Array<string>;
+export type SlackCredentialsInput = {
+    bot_token: string;
+    signing_secret?: (string | null);
     type?: string;
 };
 

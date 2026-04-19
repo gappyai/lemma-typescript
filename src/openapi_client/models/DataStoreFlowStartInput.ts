@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { DatastoreOperation } from './DatastoreOperation.js';
-export type DataStoreFlowStart = {
+export type DataStoreFlowStartInput = {
     /**
      * Datastore operations that should trigger this flow. Accepted values: INSERT, UPDATE, DELETE (aliases: WRITE, CREATE). Empty means all mutations for the selected table.
      */

@@ -12,9 +12,13 @@ import type { ToolCallResponse } from './ToolCallResponse.js';
  */
 export type ConversationMessageResponse = {
     content: (NotificationContent | TextContent | ThinkingContent | ToolCallRequest | ToolCallResponse);
+    conversation_id?: (string | null);
     created_at: string;
+    external_message_id?: (string | null);
+    external_user_id?: (string | null);
     id: string;
     metadata?: (Record<string, any> | null);
     role: string;
+    user_id?: (string | null);
 };
 

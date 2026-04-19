@@ -2,9 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type EmailSurfaceConfigCreate = {
-    account_id?: (string | null);
-    inbox_email?: (string | null);
+export type TeamsCredentialsInput = {
+    bot_app_id: string;
+    bot_app_secret: string;
+    tenant_id?: (string | null);
     type?: string;
 };
 

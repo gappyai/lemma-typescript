@@ -2,7 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FlowStart_Input } from './FlowStart_Input.js';
+import type { DataStoreWorkflowStartInput } from './DataStoreWorkflowStartInput.js';
+import type { EventWorkflowStartInput } from './EventWorkflowStartInput.js';
+import type { ManualWorkflowStartInput } from './ManualWorkflowStartInput.js';
+import type { ScheduledWorkflowStartInput } from './ScheduledWorkflowStartInput.js';
 import type { WorkflowInstallMode } from './WorkflowInstallMode.js';
 export type WorkflowUpdateRequest = {
     /**
@@ -20,6 +23,6 @@ export type WorkflowUpdateRequest = {
     /**
      * Updated start trigger configuration.
      */
-    start?: (FlowStart_Input | null);
+    start?: ((ManualWorkflowStartInput | ScheduledWorkflowStartInput | EventWorkflowStartInput | DataStoreWorkflowStartInput) | null);
 };
 
