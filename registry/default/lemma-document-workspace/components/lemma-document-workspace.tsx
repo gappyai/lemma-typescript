@@ -1,6 +1,7 @@
 "use client"
 
 import "prosekit/basic/style.css"
+import "@prosekit/extensions/table/style.css"
 
 import * as React from "react"
 import { defineBasicExtension, type BasicExtension } from "prosekit/basic"
@@ -20,6 +21,17 @@ import {
   AutocompleteList,
   AutocompletePopover,
 } from "prosekit/react/autocomplete"
+import {
+  TableHandleColumnRoot,
+  TableHandleColumnTrigger,
+  TableHandleDragPreview,
+  TableHandleDropIndicator,
+  TableHandlePopoverContent,
+  TableHandlePopoverItem,
+  TableHandleRoot,
+  TableHandleRowRoot,
+  TableHandleRowTrigger,
+} from "prosekit/react/table-handle"
 import {
   Bot,
   Bold,
@@ -42,14 +54,15 @@ import {
   Plus,
   Quote,
   Redo2,
+  Rows3,
   Save,
   Search,
   Table2,
+  Trash2,
   Undo2,
   WandSparkles,
   X,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -201,6 +214,8 @@ export function LemmaDocumentWorkspace({
   const [inspectorOpen, setInspectorOpen] = React.useState(false)
   const [commandMenuOpen, setCommandMenuOpen] = React.useState(false)
   const [commandQuery, setCommandQuery] = React.useState("")
+  const [toolbarVisible, setToolbarVisible] = React.useState(true)
+  const [editorFocused, setEditorFocused] = React.useState(false)
   const contentKey = React.useMemo(() => safeStringify(value ?? defaultValue ?? ""), [defaultValue, value])
   const initialContent = React.useMemo(() => normalizeDocumentContent(value ?? defaultValue ?? ""), [contentKey])
   const [docSnapshot, setDocSnapshot] = React.useState(() => summarizeDocument(initialContent))
@@ -426,199 +441,201 @@ export function LemmaDocumentWorkspace({
       data-mode={mode}
       data-radius={radius}
       className={cn(
-        "lemma-document-workspace flex min-h-0 flex-col overflow-hidden",
+        "lemma-document-workspace relative flex min-h-0 flex-col overflow-hidden",
         surfaceClassName(appearance, radius, mode),
         mode === "page" ? "min-h-[calc(100vh-9rem)]" : "h-full",
         className,
       )}
     >
       <ScopedDocumentStyles />
-      <div className="shrink-0 border-b border-border/65 bg-background/95 backdrop-blur">
-        <div className={cn("flex flex-col gap-3", chromePaddingClassName(density))}>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              <div className="mb-2 flex flex-wrap items-center gap-2">
-                <Badge variant={isCreateIntent ? "secondary" : "outline"}>{intentLabel(intent)}</Badge>
-                {status ? <Badge variant="outline">{status}</Badge> : null}
-                {lastEditedLabel ? <Badge variant="outline">{lastEditedLabel}</Badge> : null}
-                <Badge variant={saveState === "dirty" || saveState === "error" ? "secondary" : "outline"}>{saveStateLabel(saveState, intent)}</Badge>
-                <Badge variant="outline">{docSnapshot.words} words</Badge>
-              </div>
-
-              {editable ? (
-                <Input
-                  value={resolvedTitle}
-                  onChange={(event) => setTitle(event.target.value)}
-                  placeholder="Untitled document"
-                  className={cn("h-auto rounded-none border-0 !bg-transparent px-0 font-semibold tracking-tight text-foreground shadow-none outline-none ring-0 focus-visible:ring-0", titleClassName(density))}
-                />
-              ) : (
-                <h1 className={cn("font-semibold tracking-tight text-foreground", titleClassName(density))}>{resolvedTitle || "Untitled document"}</h1>
-              )}
-
-              {editable ? (
-                <Input
-                  value={resolvedSummary}
-                  onChange={(event) => setSummary(event.target.value)}
-                  placeholder="Add a summary or owner note."
-                  className={cn("mt-2 h-auto rounded-none border-0 !bg-transparent px-0 text-muted-foreground shadow-none outline-none ring-0 focus-visible:ring-0", summaryClassName(density))}
-                />
-              ) : resolvedSummary ? (
-                <p className={cn("mt-2 max-w-3xl text-muted-foreground", summaryClassName(density))}>{resolvedSummary}</p>
-              ) : null}
-
-              {pathLabel ? (
-                <div className="mt-2 truncate text-xs text-muted-foreground">{pathLabel}</div>
-              ) : null}
-            </div>
-
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {headerActions}
-              {onAskAssistant ? (
-                <Button variant="ghost" size="sm" onClick={askAssistant}>
-                  <WandSparkles data-icon="inline-start" />
-                  Ask
-                </Button>
-              ) : null}
-              <Button variant="ghost" size="sm" onClick={() => setInspectorOpen((current) => !current)}>
-                <PanelRightOpen data-icon="inline-start" />
-                Details
-              </Button>
-              {onSave ? (
-                <Button onClick={onSave} disabled={saveDisabled || saveState === "saving"}>
-                  <Save data-icon="inline-start" />
-                  {isCreateIntent ? "Create" : "Save"}
-                </Button>
-              ) : null}
-            </div>
-          </div>
-
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/40 bg-background/80 px-4 py-1.5 backdrop-blur-sm">
+        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          {pathLabel ? <span className="truncate">{pathLabel}</span> : null}
+          {pathLabel && lastEditedLabel ? <span>·</span> : null}
+          {lastEditedLabel ? <span>{lastEditedLabel}</span> : null}
+          <span className={cn(saveState === "dirty" ? "font-medium text-foreground" : saveState === "error" ? "text-destructive" : null)}>{saveStateLabel(saveState, intent)}</span>
+          <span>·</span>
+          <span>{docSnapshot.words} words</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {headerActions}
+          {onAskAssistant ? (
+            <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={askAssistant}>
+              <WandSparkles className="size-3.5" />
+              Ask
+            </Button>
+          ) : null}
           {editable ? (
-            <div className="border-t border-border/60 pt-2">
-              <div className={cn("overflow-hidden border border-border/60 bg-background/80 shadow-sm", radiusClassName(radius, "control"))}>
-                <ProseKitToolbar editor={editor} onOpenInsert={() => setCommandMenuOpen((current) => !current)} />
-                {commandMenuOpen ? (
-                  <CommandMenu
-                    query={commandQuery}
-                    onQueryChange={setCommandQuery}
-                    commands={filteredCommands}
-                    radius={radius}
-                    density={density}
-                    onClose={() => setCommandMenuOpen(false)}
-                    onSelect={executeCommand}
-                  />
-                ) : null}
-              </div>
-            </div>
+            <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={() => setToolbarVisible((v) => !v)}>
+              <Pilcrow className="size-3.5" />
+              Format
+            </Button>
+          ) : null}
+          <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={() => setInspectorOpen((current) => !current)}>
+            <PanelRightOpen className="size-3.5" />
+            Details
+          </Button>
+          {onSave ? (
+            <Button size="sm" className="h-7 gap-1.5 px-3 text-xs" onClick={onSave} disabled={saveDisabled || saveState === "saving"}>
+              <Save className="size-3.5" />
+              {isCreateIntent ? "Create" : "Save"}
+            </Button>
           ) : null}
         </div>
       </div>
 
-      <div className={cn("grid min-h-0 flex-1", inspectorOpen ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "grid-cols-1")}>
-        <main className="min-h-0 overflow-auto bg-muted/10">
-          <div className={cn("mx-auto min-h-full w-full max-w-[980px]", documentPaddingClassName(density))}>
-            <ProseKit editor={editor}>
-              <article className={cn("lemma-document-sheet overflow-hidden border border-border/70 bg-background shadow-sm", radiusClassName(radius, "surface"))}>
-                <div className={cn("lemma-prosekit-editor relative", editorPaddingClassName(density))}>
-                  <div
-                    ref={editor.mount}
-                    data-lemma-editor=""
-                    aria-label="Document body"
-                    className={cn(
-                      "ProseMirror lemma-prosekit-mount min-h-[54vh] outline-none",
-                      editable ? "cursor-text" : "cursor-default",
-                    )}
-                  />
-                  {editable ? (
-                    <SlashMenu commands={commandItems} onSelect={executeCommand} />
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className={cn("mx-auto w-full max-w-[860px]", contentPaddingClassName(density))}>
+          {editable ? (
+            <input
+              value={resolvedTitle}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Untitled"
+              className={cn("w-full border-0 bg-transparent font-bold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50", inlineTitleClassName(density))}
+            />
+          ) : (
+            <h1 className={cn("font-bold tracking-tight text-foreground", inlineTitleClassName(density))}>{resolvedTitle || "Untitled"}</h1>
+          )}
+
+          {editable ? (
+            <input
+              value={resolvedSummary}
+              onChange={(event) => setSummary(event.target.value)}
+              placeholder="Add a summary..."
+              className={cn("mt-1 w-full border-0 bg-transparent text-muted-foreground outline-none placeholder:text-muted-foreground/40", inlineSummaryClassName(density))}
+            />
+          ) : resolvedSummary ? (
+            <p className={cn("mt-1 text-muted-foreground", inlineSummaryClassName(density))}>{resolvedSummary}</p>
+          ) : null}
+
+          {editable && toolbarVisible ? (
+            <div className={cn("sticky top-0 z-20 mt-4 -mx-1 border border-border/50 bg-background/95 backdrop-blur-sm", radiusClassName(radius, "control"))}>
+              <ProseKitToolbar editor={editor} onOpenInsert={() => setCommandMenuOpen((current) => !current)} />
+              {commandMenuOpen ? (
+                <CommandMenu
+                  query={commandQuery}
+                  onQueryChange={setCommandQuery}
+                  commands={filteredCommands}
+                  radius={radius}
+                  density={density}
+                  onClose={() => setCommandMenuOpen(false)}
+                  onSelect={executeCommand}
+                />
+              ) : null}
+            </div>
+          ) : null}
+
+          <ProseKit editor={editor}>
+            <div className="lemma-prosekit-editor relative">
+              <div
+                ref={editor.mount}
+                data-lemma-editor=""
+                aria-label="Document body"
+                className={cn(
+                  "ProseMirror lemma-prosekit-mount min-h-[70vh] outline-none",
+                  editable ? "cursor-text" : "cursor-default",
+                )}
+                onFocus={() => setEditorFocused(true)}
+                onBlur={() => setEditorFocused(false)}
+              />
+              {editable ? (
+                <>
+                  <SlashMenu commands={commandItems} onSelect={executeCommand} />
+                  <DocumentTableHandle />
+                </>
+              ) : null}
+            </div>
+          </ProseKit>
+        </div>
+      </div>
+
+      {inspectorOpen ? (
+        <aside className={cn("absolute bottom-0 right-0 top-0 z-30 w-[320px] overflow-auto border-l border-border/60 bg-background shadow-lg", inspectorSlideClassName(editorFocused))}>
+          <div className={cn("space-y-4", inspectorPaddingClassName(density))}>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-foreground">Details</span>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setInspectorOpen(false)}>
+                <X className="size-3.5" />
+              </Button>
+            </div>
+            <InspectorCard title="Properties" icon={<Columns3 className="size-4" />} radius={radius}>
+              <InspectorRow label="Mode" value={intentLabel(intent)} />
+              <InspectorRow label="Words" value={String(docSnapshot.words)} />
+              <InspectorRow label="Characters" value={String(docSnapshot.characters)} />
+              {status ? <InspectorRow label="Status" value={status} /> : null}
+              {metadata.map((item, index) => (
+                <InspectorRow key={index} label={item.label} value={item.value} />
+              ))}
+            </InspectorCard>
+
+            {references.length > 0 ? (
+              <InspectorCard title="References" icon={<FileText className="size-4" />} radius={radius}>
+                <ReferenceList items={references} radius={radius} />
+              </InspectorCard>
+            ) : null}
+
+            {backlinks.length > 0 ? (
+              <InspectorCard title="Backlinks" icon={<Hash className="size-4" />} radius={radius}>
+                <ReferenceList items={backlinks} radius={radius} />
+              </InspectorCard>
+            ) : null}
+
+            {(onOpenComments || onOpenActivity) ? (
+              <InspectorCard title="Collaboration" icon={<MessageSquare className="size-4" />} radius={radius}>
+                <div className="grid gap-2">
+                  {onOpenComments ? (
+                    <Button type="button" variant="outline" size="sm" onClick={openComments}>
+                      Comments
+                    </Button>
+                  ) : null}
+                  {onOpenActivity ? (
+                    <Button type="button" variant="outline" size="sm" onClick={openActivity}>
+                      Activity
+                    </Button>
                   ) : null}
                 </div>
-              </article>
-            </ProseKit>
+              </InspectorCard>
+            ) : null}
+
+            <InspectorCard title="Assistant" icon={<WandSparkles className="size-4" />} radius={radius}>
+              {assistantContext.length > 0 ? (
+                <div className="space-y-2">
+                  {assistantContext.map((item, index) => (
+                    <div key={index} className={cn("border border-border bg-muted/20 p-3", radiusClassName(radius, "surface"))}>
+                      <p className="text-xs font-medium uppercase text-muted-foreground">{item.label}</p>
+                      {item.value ? <p className="mt-1 text-sm text-foreground/85">{item.value}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Use the active document, selected blocks, linked files, and records as assistant context.</p>
+              )}
+
+              {(onAskAssistant || assistantActions.length > 0) ? (
+                <div className="mt-3 grid gap-2">
+                  {onAskAssistant ? (
+                    <Button type="button" size="sm" onClick={askAssistant}>
+                      Ask about this
+                    </Button>
+                  ) : null}
+                  {assistantActions.map((action) => (
+                    <button
+                      key={action.id}
+                      type="button"
+                      disabled={action.disabled}
+                      onClick={() => action.onSelect(getWorkspaceContext())}
+                      className={cn("border border-border bg-background p-3 text-left text-sm transition-colors hover:bg-muted/45 disabled:pointer-events-none disabled:opacity-50", radiusClassName(radius, "surface"))}
+                    >
+                      <span className="font-medium text-foreground">{action.label}</span>
+                      {action.description ? <span className="mt-1 block text-xs text-muted-foreground">{action.description}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </InspectorCard>
           </div>
-        </main>
-
-        {inspectorOpen ? (
-          <aside className="min-h-0 overflow-auto border-l border-border/60 bg-background">
-            <div className={cn("space-y-4", inspectorPaddingClassName(density))}>
-              <InspectorCard title="Details" icon={<Columns3 className="size-4" />} radius={radius}>
-                <InspectorRow label="Mode" value={intentLabel(intent)} />
-                <InspectorRow label="Words" value={String(docSnapshot.words)} />
-                <InspectorRow label="Characters" value={String(docSnapshot.characters)} />
-                {metadata.map((item, index) => (
-                  <InspectorRow key={index} label={item.label} value={item.value} />
-                ))}
-              </InspectorCard>
-
-              {references.length > 0 ? (
-                <InspectorCard title="References" icon={<FileText className="size-4" />} radius={radius}>
-                  <ReferenceList items={references} radius={radius} />
-                </InspectorCard>
-              ) : null}
-
-              {backlinks.length > 0 ? (
-                <InspectorCard title="Backlinks" icon={<Hash className="size-4" />} radius={radius}>
-                  <ReferenceList items={backlinks} radius={radius} />
-                </InspectorCard>
-              ) : null}
-
-              {(onOpenComments || onOpenActivity) ? (
-                <InspectorCard title="Collaboration" icon={<MessageSquare className="size-4" />} radius={radius}>
-                  <div className="grid gap-2">
-                    {onOpenComments ? (
-                      <Button type="button" variant="outline" size="sm" onClick={openComments}>
-                        Comments
-                      </Button>
-                    ) : null}
-                    {onOpenActivity ? (
-                      <Button type="button" variant="outline" size="sm" onClick={openActivity}>
-                        Activity
-                      </Button>
-                    ) : null}
-                  </div>
-                </InspectorCard>
-              ) : null}
-
-              <InspectorCard title="Assistant" icon={<WandSparkles className="size-4" />} radius={radius}>
-                {assistantContext.length > 0 ? (
-                  <div className="space-y-2">
-                    {assistantContext.map((item, index) => (
-                      <div key={index} className={cn("border border-border bg-muted/20 p-3", radiusClassName(radius, "surface"))}>
-                        <p className="text-xs font-medium uppercase text-muted-foreground">{item.label}</p>
-                        {item.value ? <p className="mt-1 text-sm text-foreground/85">{item.value}</p> : null}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Use the active document, selected blocks, linked files, and records as assistant context.</p>
-                )}
-
-                {(onAskAssistant || assistantActions.length > 0) ? (
-                  <div className="mt-3 grid gap-2">
-                    {onAskAssistant ? (
-                      <Button type="button" size="sm" onClick={askAssistant}>
-                        Ask about this
-                      </Button>
-                    ) : null}
-                    {assistantActions.map((action) => (
-                      <button
-                        key={action.id}
-                        type="button"
-                        disabled={action.disabled}
-                        onClick={() => action.onSelect(getWorkspaceContext())}
-                        className={cn("border border-border bg-background p-3 text-left text-sm transition-colors hover:bg-muted/45 disabled:pointer-events-none disabled:opacity-50", radiusClassName(radius, "surface"))}
-                      >
-                        <span className="font-medium text-foreground">{action.label}</span>
-                        {action.description ? <span className="mt-1 block text-xs text-muted-foreground">{action.description}</span> : null}
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </InspectorCard>
-            </div>
-          </aside>
-        ) : null}
-      </div>
+        </aside>
+      ) : null}
     </div>
   )
 
@@ -884,6 +901,131 @@ function SlashMenu({
       </AutocompleteList>
     </AutocompletePopover>
   )
+}
+
+function DocumentTableHandle() {
+  const state = useEditorDerivedValue<BasicExtension, ReturnType<typeof getTableHandleState>>(getTableHandleState)
+
+  return (
+    <TableHandleRoot className="contents">
+      <TableHandleDragPreview />
+      <TableHandleDropIndicator />
+      <TableHandleRowRoot className="contents">
+        <TableHandleRowTrigger className="lemma-table-handle-trigger lemma-table-handle-row-trigger" />
+        <TableHandlePopoverContent className="lemma-table-handle-popover">
+          {state.addTableRowAbove.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item" onSelect={state.addTableRowAbove.command}>
+              <Rows3 className="size-3.5" />
+              <span>Insert above</span>
+            </TableHandlePopoverItem>
+          ) : null}
+          {state.addTableRowBelow.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item" onSelect={state.addTableRowBelow.command}>
+              <Plus className="size-3.5" />
+              <span>Insert below</span>
+            </TableHandlePopoverItem>
+          ) : null}
+          {state.deleteCellSelection.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item" onSelect={state.deleteCellSelection.command}>
+              <span>Clear contents</span>
+            </TableHandlePopoverItem>
+          ) : null}
+          {state.deleteTableRow.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item" onSelect={state.deleteTableRow.command}>
+              <Trash2 className="size-3.5" />
+              <span>Delete row</span>
+            </TableHandlePopoverItem>
+          ) : null}
+          {state.deleteTable.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item lemma-table-handle-item-danger" onSelect={state.deleteTable.command}>
+              <Trash2 className="size-3.5" />
+              <span>Delete table</span>
+            </TableHandlePopoverItem>
+          ) : null}
+        </TableHandlePopoverContent>
+      </TableHandleRowRoot>
+      <TableHandleColumnRoot className="contents">
+        <TableHandleColumnTrigger className="lemma-table-handle-trigger lemma-table-handle-col-trigger" />
+        <TableHandlePopoverContent className="lemma-table-handle-popover">
+          {state.addTableColumnBefore.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item" onSelect={state.addTableColumnBefore.command}>
+              <Plus className="size-3.5" />
+              <span>Insert left</span>
+            </TableHandlePopoverItem>
+          ) : null}
+          {state.addTableColumnAfter.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item" onSelect={state.addTableColumnAfter.command}>
+              <Plus className="size-3.5" />
+              <span>Insert right</span>
+            </TableHandlePopoverItem>
+          ) : null}
+          {state.deleteCellSelection.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item" onSelect={state.deleteCellSelection.command}>
+              <span>Clear contents</span>
+            </TableHandlePopoverItem>
+          ) : null}
+          {state.deleteTableColumn.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item" onSelect={state.deleteTableColumn.command}>
+              <Trash2 className="size-3.5" />
+              <span>Delete column</span>
+            </TableHandlePopoverItem>
+          ) : null}
+          {state.deleteTable.canExec ? (
+            <TableHandlePopoverItem className="lemma-table-handle-item lemma-table-handle-item-danger" onSelect={state.deleteTable.command}>
+              <Trash2 className="size-3.5" />
+              <span>Delete table</span>
+            </TableHandlePopoverItem>
+          ) : null}
+        </TableHandlePopoverContent>
+      </TableHandleColumnRoot>
+    </TableHandleRoot>
+  )
+}
+
+function Grip({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="9" cy="5" r="1" /><circle cx="9" cy="12" r="1" /><circle cx="9" cy="19" r="1" />
+      <circle cx="15" cy="5" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="19" r="1" />
+    </svg>
+  )
+}
+
+function getTableHandleState(editor: LemmaDocumentEditor) {
+  return {
+    addTableColumnBefore: {
+      canExec: editor.commands.addTableColumnBefore?.canExec() ?? false,
+      command: () => editor.commands.addTableColumnBefore?.(),
+    },
+    addTableColumnAfter: {
+      canExec: editor.commands.addTableColumnAfter?.canExec() ?? false,
+      command: () => editor.commands.addTableColumnAfter?.(),
+    },
+    addTableRowAbove: {
+      canExec: editor.commands.addTableRowAbove?.canExec() ?? false,
+      command: () => editor.commands.addTableRowAbove?.(),
+    },
+    addTableRowBelow: {
+      canExec: editor.commands.addTableRowBelow?.canExec() ?? false,
+      command: () => editor.commands.addTableRowBelow?.(),
+    },
+    deleteCellSelection: {
+      canExec: editor.commands.deleteCellSelection?.canExec() ?? false,
+      command: () => editor.commands.deleteCellSelection?.(),
+    },
+    deleteTableColumn: {
+      canExec: editor.commands.deleteTableColumn?.canExec() ?? false,
+      command: () => editor.commands.deleteTableColumn?.(),
+    },
+    deleteTableRow: {
+      canExec: editor.commands.deleteTableRow?.canExec() ?? false,
+      command: () => editor.commands.deleteTableRow?.(),
+    },
+    deleteTable: {
+      canExec: editor.commands.deleteTable?.canExec() ?? false,
+      command: () => editor.commands.deleteTable?.(),
+    },
+  }
 }
 
 function CommandMenu({
@@ -1426,16 +1568,26 @@ function chromePaddingClassName(density: LemmaDocumentWorkspaceDensity) {
   return "px-5 py-3"
 }
 
-function documentPaddingClassName(density: LemmaDocumentWorkspaceDensity) {
-  if (density === "compact") return "px-3 py-4 md:px-6"
-  if (density === "spacious") return "px-5 py-8 md:px-10"
-  return "px-4 py-6 md:px-8"
+function contentPaddingClassName(density: LemmaDocumentWorkspaceDensity) {
+  if (density === "compact") return "px-4 pt-6 pb-10 md:px-8"
+  if (density === "spacious") return "px-6 pt-10 pb-16 md:px-16"
+  return "px-5 pt-8 pb-12 md:px-12"
 }
 
-function editorPaddingClassName(density: LemmaDocumentWorkspaceDensity) {
-  if (density === "compact") return "px-5 py-5"
-  if (density === "spacious") return "px-10 py-9"
-  return "px-8 py-7"
+function inlineTitleClassName(density: LemmaDocumentWorkspaceDensity) {
+  if (density === "compact") return "text-2xl"
+  if (density === "spacious") return "text-4xl"
+  return "text-3xl"
+}
+
+function inlineSummaryClassName(density: LemmaDocumentWorkspaceDensity) {
+  if (density === "compact") return "text-sm"
+  if (density === "spacious") return "text-base"
+  return "text-[15px]"
+}
+
+function inspectorSlideClassName(focused: boolean) {
+  return focused ? "opacity-95" : "opacity-100"
 }
 
 function inspectorPaddingClassName(density: LemmaDocumentWorkspaceDensity) {
@@ -1473,8 +1625,8 @@ function ScopedDocumentStyles() {
     <style>
       {`
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror {
-  --lemma-doc-selection: hsl(var(--primary) / 0.34);
-  --lemma-doc-selection-strong: hsl(var(--primary) / 0.18);
+  --lemma-doc-selection: rgba(35, 131, 226, 0.28);
+  --lemma-doc-selection-strong: rgba(35, 131, 226, 0.18);
   --lemma-doc-border: hsl(var(--border));
   --lemma-doc-muted: hsl(var(--muted));
   --lemma-doc-muted-text: hsl(var(--muted-foreground));
@@ -1511,8 +1663,8 @@ function ScopedDocumentStyles() {
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror p {
   display: block;
   font-weight: 400;
-  margin: 0.3rem 0;
-  padding: 0.1rem 0;
+  margin: 0.5em 0;
+  padding: 0.15rem 0;
   text-align: left;
   width: auto;
 }
@@ -1529,48 +1681,70 @@ function ScopedDocumentStyles() {
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror h1 {
-  font-size: 2rem;
-  line-height: 2.45rem;
-  margin: 2rem 0 0.45rem;
+  font-size: 1.875rem;
+  line-height: 2.3rem;
+  margin: 1.75rem 0 0.35rem;
   text-align: left;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror h2 {
   font-size: 1.5rem;
   line-height: 2rem;
-  margin: 1.75rem 0 0.35rem;
+  margin: 1.5rem 0 0.3rem;
   text-align: left;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror h3 {
-  font-size: 1.2rem;
-  line-height: 1.7rem;
-  margin: 1.35rem 0 0.25rem;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  margin: 1.25rem 0 0.25rem;
+  text-align: left;
+}
+
+.lemma-document-workspace .lemma-prosekit-mount.ProseMirror h4 {
+  font-size: 1.1rem;
+  line-height: 1.6rem;
+  margin: 1rem 0 0.2rem;
+  text-align: left;
+}
+
+.lemma-document-workspace .lemma-prosekit-mount.ProseMirror h5 {
+  font-size: 1rem;
+  line-height: 1.5rem;
+  margin: 0.85rem 0 0.15rem;
+  text-align: left;
+}
+
+.lemma-document-workspace .lemma-prosekit-mount.ProseMirror h6 {
+  font-size: 0.9rem;
+  line-height: 1.4rem;
+  margin: 0.75rem 0 0.15rem;
+  color: hsl(var(--muted-foreground));
   text-align: left;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror blockquote {
-  border-left: 3px solid hsl(var(--primary) / 0.55);
-  color: hsl(var(--foreground) / 0.86);
-  margin: 1rem 0;
+  border-left: 3px solid hsl(var(--primary) / 0.4);
+  color: hsl(var(--foreground) / 0.82);
+  margin: 0.75rem 0;
   padding: 0.25rem 0 0.25rem 1rem;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror pre {
-  background: hsl(var(--muted) / 0.45);
-  border: 1px solid hsl(var(--border));
+  background: hsl(var(--muted) / 0.55);
+  border: 1px solid hsl(var(--border) / 0.6);
   border-radius: 8px;
   color: hsl(var(--foreground));
-  margin: 1rem 0;
+  margin: 0.75rem 0;
   overflow-x: auto;
   padding: 1rem;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror code {
   background: hsl(var(--muted) / 0.5);
-  border-radius: 5px;
-  font-size: 0.9em;
-  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+  font-size: 0.88em;
+  padding: 0.1rem 0.3rem;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror pre code {
@@ -1597,85 +1771,148 @@ function ScopedDocumentStyles() {
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror .tableWrapper {
-  margin: 1rem 0;
-  background: hsl(var(--background));
-  border: 1px solid hsl(var(--border) / 0.7);
-  border-radius: 12px;
-  box-shadow: 0 10px 30px -24px hsl(var(--foreground) / 0.35);
+  margin: 0.75rem -4px;
   overflow-x: auto;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror table {
-  border-collapse: separate;
-  border-spacing: 0;
-  min-width: 100%;
-  width: max-content;
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror th,
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror td {
-  background: hsl(var(--background));
-  border-right: 1px solid hsl(var(--border) / 0.65);
-  border-bottom: 1px solid hsl(var(--border) / 0.65);
-  min-height: 2.75rem;
-  min-width: 9rem;
-  padding: 0.55rem 0.7rem;
+  border: 1px solid hsl(var(--border));
+  box-sizing: border-box;
+  min-width: 6rem;
+  padding: 0.4rem 0.75rem;
+  position: relative;
   vertical-align: top;
 }
 
-.lemma-document-workspace .lemma-prosekit-mount.ProseMirror th:last-child,
-.lemma-document-workspace .lemma-prosekit-mount.ProseMirror td:last-child {
-  border-right: 0;
-}
-
-.lemma-document-workspace .lemma-prosekit-mount.ProseMirror tr:last-child td {
-  border-bottom: 0;
-}
-
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror th {
-  background: hsl(var(--muted) / 0.6);
-  color: hsl(var(--foreground) / 0.9);
+  background: hsl(var(--muted) / 0.35);
+  color: hsl(var(--foreground) / 0.8);
   font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  text-align: left;
 }
 
-.lemma-document-workspace .lemma-prosekit-mount.ProseMirror tbody tr:nth-child(even) td {
-  background: hsl(var(--muted) / 0.14);
+.lemma-document-workspace .lemma-prosekit-mount.ProseMirror td {
+  background: transparent;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror th > p,
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror td > p {
   margin: 0;
-  min-height: 1.5rem;
   padding: 0;
+}
+
+.lemma-document-workspace .lemma-prosekit-mount.ProseMirror .selectedCell {
+  --color: 210, 100%, 56%;
+  background-color: rgba(35, 131, 226, 0.12) !important;
+  border-color: rgba(35, 131, 226, 0.4) !important;
+}
+
+.lemma-document-workspace .lemma-prosekit-mount.ProseMirror .column-resize-handle {
+  background-color: rgba(35, 131, 226, 0.6) !important;
+  width: 3px;
+}
+
+.lemma-document-workspace .lemma-prosekit-mount.ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+
+.lemma-table-handle-trigger {
+  align-items: center;
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border) / 0.5);
+  border-radius: 3px;
+  box-shadow: 0 1px 2px hsl(var(--foreground) / 0.06);
+  color: hsl(var(--muted-foreground) / 0.5);
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.lemma-table-handle-trigger:hover {
+  background: hsl(var(--muted) / 0.5);
+  color: hsl(var(--muted-foreground));
+}
+
+.lemma-table-handle-popover {
+  background: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  box-shadow: 0 4px 16px hsl(var(--foreground) / 0.1);
+  color: hsl(var(--popover-foreground));
+  max-height: 24rem;
+  min-width: 8rem;
+  overflow: auto;
+  overscroll-behavior: none;
+  padding: 4px;
+  position: relative;
+  user-select: none;
+  white-space: nowrap;
+  z-index: 50;
+}
+
+.lemma-table-handle-item {
+  align-items: center;
+  border-radius: 4px;
+  cursor: default;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 8rem;
+  padding: 5px 10px;
+  user-select: none;
+  transition: background 0.1s;
+  white-space: nowrap;
+}
+
+.lemma-table-handle-item[data-highlighted] {
+  background: hsl(var(--muted) / 0.5);
+}
+
+.lemma-table-handle-item[data-disabled] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.lemma-table-handle-item-danger {
+  color: hsl(var(--destructive));
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror .prosekit-placeholder::before {
   color: hsl(var(--muted-foreground));
   content: attr(data-placeholder);
   height: 0;
-  opacity: 0.62;
+  opacity: 0.5;
   pointer-events: none;
   position: absolute;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror .ProseMirror-selectednode {
-  outline: 2px solid hsl(var(--primary) / 0.65);
+  outline: 2px solid rgba(35, 131, 226, 0.5);
   outline-offset: 2px;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror::selection,
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror *::selection {
   background: var(--lemma-doc-selection);
-  color: hsl(var(--foreground));
+  color: inherit;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror::-moz-selection,
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror *::-moz-selection {
   background: var(--lemma-doc-selection);
-  color: hsl(var(--foreground));
+  color: inherit;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror .selectedCell {
@@ -1688,36 +1925,48 @@ function ScopedDocumentStyles() {
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror .prosemirror-flat-list {
-  display: block;
-  margin: 0.2rem 0;
-  min-height: 1.7em;
+  margin: 0.15rem 0;
   padding: 0;
   position: relative;
-  text-align: left;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror .prosemirror-flat-list > .list-marker {
   color: hsl(var(--muted-foreground));
-  height: 1.7em;
+  height: auto;
   inset-inline-start: 0;
+  line-height: inherit;
   position: absolute;
-  top: 0.38rem;
-  width: 1.4em;
+  text-align: center;
+  top: 0;
+  width: 1lh;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror .prosemirror-flat-list > .list-content {
-  display: block;
-  margin-inline-start: 1.45rem;
+  margin-inline-start: 1lh;
   min-width: 0;
   text-align: left;
 }
 
 .lemma-document-workspace .lemma-prosekit-mount.ProseMirror .prosemirror-flat-list[data-list-kind="task"] > .list-marker {
-  top: 0.42rem;
+  display: flex;
+  align-items: center;
+  height: 1lh;
+  justify-content: center;
 }
 
-.lemma-document-workspace .lemma-prosekit-mount.ProseMirror .prosemirror-flat-list[data-list-kind="task"] input {
+.lemma-document-workspace .lemma-prosekit-mount.ProseMirror .prosemirror-flat-list[data-list-kind="task"] > .list-marker input {
   accent-color: hsl(var(--primary));
+  margin: 0;
+}
+
+.lemma-document-workspace .lemma-prosekit-mount.ProseMirror .prosemirror-flat-list .prosemirror-flat-list {
+  margin-left: 0;
+  margin-top: 0.1rem;
+}
+
+.dark .lemma-document-workspace .lemma-prosekit-mount.ProseMirror {
+  --lemma-doc-selection: rgba(35, 131, 226, 0.34);
+  --lemma-doc-selection-strong: rgba(35, 131, 226, 0.2);
 }
       `}
     </style>

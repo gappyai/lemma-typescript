@@ -1913,26 +1913,6 @@ class DesksService {
         });
     }
     /**
-     * Download Desk Source Archive
-     * @param podId
-     * @param deskName
-     * @returns any Successful Response
-     * @throws ApiError
-     */
-    static deskSourceArchiveGet(podId, deskName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/desks/{desk_name}/source/archive',
-            path: {
-                'pod_id': podId,
-                'desk_name': deskName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
      * Download Desk Dist Archive
      * @param podId
      * @param deskName
@@ -1943,6 +1923,26 @@ class DesksService {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/desks/{desk_name}/dist/archive',
+            path: {
+                'pod_id': podId,
+                'desk_name': deskName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Download Desk Source Archive
+     * @param podId
+     * @param deskName
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static deskSourceArchiveGet(podId, deskName) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/desks/{desk_name}/source/archive',
             path: {
                 'pod_id': podId,
                 'desk_name': deskName,
@@ -3888,7 +3888,7 @@ class PodSurfacesNamespace {
         return this.client.request(() => AssistantSurfacesService_js_1.AssistantSurfacesService.assistantSurfaceGet(podId, surfaceId));
     }
     updateConfig(podId, surfaceId, payload) {
-        return this.client.request(() => AssistantSurfacesService_js_1.AssistantSurfacesService.assistantSurfaceUpdateConfig(podId, surfaceId, payload));
+        return this.client.request(() => AssistantSurfacesService_js_1.AssistantSurfacesService.assistantSurfaceUpdate(podId, surfaceId, payload));
     }
     toggle(podId, surfaceId, isActive) {
         return this.client.request(() => AssistantSurfacesService_js_1.AssistantSurfacesService.assistantSurfaceToggle(podId, surfaceId, { is_active: isActive }));
@@ -3906,7 +3906,6 @@ const request_js_1 = require("./openapi_client/core/request.js");
 class AssistantSurfacesService {
     /**
      * List Surfaces
-     * List configured surfaces in a pod.
      * @param podId
      * @param limit
      * @param pageToken
@@ -3931,7 +3930,6 @@ class AssistantSurfacesService {
     }
     /**
      * Create Surface
-     * Create a new surface for an assistant.
      * @param podId
      * @param requestBody
      * @returns any Successful Response
@@ -3952,8 +3950,27 @@ class AssistantSurfacesService {
         });
     }
     /**
+     * Get Surface Platform Checklist
+     * @param podId
+     * @param platform
+     * @returns SurfacePlatformSetupGuideResponse Successful Response
+     * @throws ApiError
+     */
+    static assistantSurfacePlatformChecklist(podId, platform) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/surfaces/platforms/{platform}/checklist',
+            path: {
+                'pod_id': podId,
+                'platform': platform,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Get Surface
-     * Get a specific surface configuration.
      * @param podId
      * @param surfaceId
      * @returns any Successful Response
@@ -3974,17 +3991,16 @@ class AssistantSurfacesService {
     }
     /**
      * Update Surface
-     * Update a surface configuration.
      * @param podId
      * @param surfaceId
      * @param requestBody
      * @returns any Successful Response
      * @throws ApiError
      */
-    static assistantSurfaceUpdateConfig(podId, surfaceId, requestBody) {
+    static assistantSurfaceUpdate(podId, surfaceId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/surfaces/{surface_id}/config',
+            url: '/pods/{pod_id}/surfaces/{surface_id}',
             path: {
                 'pod_id': podId,
                 'surface_id': surfaceId,
@@ -3997,8 +4013,27 @@ class AssistantSurfacesService {
         });
     }
     /**
+     * Get Admin Consent Info
+     * @param podId
+     * @param surfaceId
+     * @returns AdminConsentInfoResponse Successful Response
+     * @throws ApiError
+     */
+    static assistantSurfaceAdminConsentInfo(podId, surfaceId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/surfaces/{surface_id}/admin-consent',
+            path: {
+                'pod_id': podId,
+                'surface_id': surfaceId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Toggle Surface
-     * Toggle a surface active state.
      * @param podId
      * @param surfaceId
      * @param requestBody
@@ -4015,6 +4050,26 @@ class AssistantSurfacesService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Webhook Url
+     * @param podId
+     * @param surfaceId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static assistantSurfaceWebhookUrl(podId, surfaceId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/surfaces/{surface_id}/webhook-url',
+            path: {
+                'pod_id': podId,
+                'surface_id': surfaceId,
+            },
             errors: {
                 422: `Validation Error`,
             },
@@ -5018,7 +5073,7 @@ class WorkflowsService {
      * @param podId
      * @param workflowName
      * @param requestBody
-     * @returns FlowInstallEntity Successful Response
+     * @returns FlowInstallResponse Successful Response
      * @throws ApiError
      */
     static workflowInstallCreate(podId, workflowName, requestBody) {

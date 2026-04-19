@@ -13,10 +13,8 @@ import {
   Save,
   Sparkles,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
@@ -158,100 +156,94 @@ export function LemmaDocumentEditor({
       data-radius={radius}
       className={cn("lemma-document-editor flex min-h-0 flex-col overflow-hidden", shellClassName(appearance, radius, surfaceMode), className)}
     >
-      <DocumentCover
-        coverImageUrl={coverImageUrl}
-        coverAlt={typeof coverAlt === "string" ? coverAlt : resolvedTitle || "Document cover"}
-        density={density}
-        radius={radius}
-      />
+      {coverImageUrl ? (
+        <DocumentCover
+          coverImageUrl={coverImageUrl}
+          coverAlt={typeof coverAlt === "string" ? coverAlt : resolvedTitle || "Document cover"}
+          radius={radius}
+        />
+      ) : null}
 
-      <div className="shrink-0 border-b border-border/60 bg-background/95 backdrop-blur">
-        <div className={cn("flex flex-col gap-4", documentPaddingClassName(density))}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0 flex-1 max-w-3xl">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className={cn("flex size-10 items-center justify-center border border-border/50 bg-muted/50 text-muted-foreground", radiusClassName(radius, "control"))}>
-                  {icon ?? <PencilLine className="size-4" />}
-                </span>
-                {status ? <Badge variant="secondary">{status}</Badge> : null}
-                {lastEditedLabel ? <Badge variant="outline">{lastEditedLabel}</Badge> : null}
-                <Badge variant={saveState === "dirty" ? "secondary" : "outline"}>{saveStateLabel(saveState)}</Badge>
-                <Badge variant="outline">{wordCount} words</Badge>
-              </div>
-
-              <Input
-                value={resolvedTitle}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="Untitled document"
-                className={cn("border-0 bg-transparent px-0 shadow-none focus-visible:ring-0", titleInputClassName(density))}
-              />
-
-              <Textarea
-                value={resolvedSummary}
-                onChange={(event) => setSummary(event.target.value)}
-                placeholder="Add a short summary, framing note, or page description."
-                rows={2}
-                className={cn("mt-3 min-h-0 resize-none border-0 bg-transparent px-0 text-muted-foreground shadow-none focus-visible:ring-0", summaryClassName(density))}
-              />
-            </div>
-
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {headerActions}
-              {onSave ? (
-                <Button onClick={onSave} disabled={saveDisabled || saveState === "saving"}>
-                  {saveState === "saving" ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <Save data-icon="inline-start" />}
-                  Save
-                </Button>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/50 pt-3">
-            <Tabs value={resolvedMode} onValueChange={(next) => setEditorMode(next as LemmaDocumentEditorMode)}>
-              <TabsList className={radiusClassName(radius, "control")}>
-                <TabsTrigger value="write">Write</TabsTrigger>
-                <TabsTrigger value="preview">Preview</TabsTrigger>
-                <TabsTrigger value="split">Split</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            <div className="text-xs text-muted-foreground">Document shell today, richer editor foundation later.</div>
-          </div>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/40 px-4 py-1.5">
+        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <span className={cn(saveState === "dirty" ? "font-medium text-foreground" : null)}>{saveStateLabel(saveState)}</span>
+          <span>·</span>
+          <span>{wordCount} words</span>
+          {lastEditedLabel ? (
+            <>
+              <span>·</span>
+              <span>{lastEditedLabel}</span>
+            </>
+          ) : null}
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {headerActions}
+          {onSave ? (
+            <Button size="sm" className="h-7 gap-1.5 px-3 text-xs" onClick={onSave} disabled={saveDisabled || saveState === "saving"}>
+              {saveState === "saving" ? <Loader2 data-icon="inline-start" className="size-3.5 animate-spin" /> : <Save data-icon="inline-start" className="size-3.5" />}
+              Save
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      <div className={documentPaddingClassName(density)}>
-        <div className={cn("mt-8 grid gap-6", hasSidebar ? "xl:grid-cols-[minmax(0,1fr)_18rem]" : "grid-cols-1")}>
-          <div className={cn("min-w-0 border border-border/40 bg-card/80", radiusClassName(radius, "surface"))}>
-            <div className={cn("grid min-h-[34rem]", resolvedMode === "split" ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1")}>
-              {resolvedMode !== "preview" ? (
-                <div className={cn("min-h-[34rem]", resolvedMode === "split" ? "border-b border-border/30 xl:border-b-0 xl:border-r" : null)}>
-                  <Textarea
-                    value={resolvedBody}
-                    onChange={(event) => setBody(event.target.value)}
-                    placeholder={placeholder}
-                    className={cn("h-full min-h-[34rem] resize-none border-0 bg-transparent font-mono text-sm shadow-none focus-visible:ring-0", bodyPaddingClassName(density))}
-                  />
-                </div>
-              ) : null}
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className={cn("mx-auto w-full max-w-[860px]", contentPaddingClassName(density))}>
+          <input
+            value={resolvedTitle}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="Untitled"
+            className={cn("w-full border-0 bg-transparent font-bold tracking-tight text-foreground outline-none placeholder:text-muted-foreground/50", inlineTitleClassName(density))}
+          />
 
-              {resolvedMode !== "write" ? (
-                <div className={cn("min-h-[34rem] overflow-auto", bodyPaddingClassName(density))}>
-                  {resolvedBody.trim().length > 0 ? (
-                    <div className={cn("prose prose-neutral max-w-none dark:prose-invert", proseClassName(density))}>
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
-                        {resolvedBody}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <DocumentEmptyBody radius={radius} density={density} />
-                  )}
-                </div>
-              ) : null}
-            </div>
+          <input
+            value={resolvedSummary}
+            onChange={(event) => setSummary(event.target.value)}
+            placeholder="Add a summary..."
+            className={cn("mt-1 w-full border-0 bg-transparent text-muted-foreground outline-none placeholder:text-muted-foreground/40", inlineSummaryClassName(density))}
+          />
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <Tabs value={resolvedMode} onValueChange={(next) => setEditorMode(next as LemmaDocumentEditorMode)}>
+              <TabsList className={cn("h-7", radiusClassName(radius, "control"))}>
+                <TabsTrigger value="write" className="gap-1.5 px-2.5 text-xs">Write</TabsTrigger>
+                <TabsTrigger value="preview" className="gap-1.5 px-2.5 text-xs">Preview</TabsTrigger>
+                <TabsTrigger value="split" className="gap-1.5 px-2.5 text-xs">Split</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
 
-          {hasSidebar ? (
-            <aside className="flex min-h-0 flex-col gap-4">
+          <div className={cn("mt-4 grid min-h-0", resolvedMode === "split" ? "grid-cols-1 xl:grid-cols-2" : "grid-cols-1", hasSidebar ? "" : "")}>
+            {resolvedMode !== "preview" ? (
+              <div className={cn("min-h-[34rem]", resolvedMode === "split" ? "border-b border-border/20 xl:border-b-0 xl:border-r" : null)}>
+                <Textarea
+                  value={resolvedBody}
+                  onChange={(event) => setBody(event.target.value)}
+                  placeholder={placeholder}
+                  className={cn("h-full min-h-[34rem] resize-none border-0 bg-transparent text-base shadow-none focus-visible:ring-0", bodyPaddingClassName(density))}
+                />
+              </div>
+            ) : null}
+
+            {resolvedMode !== "write" ? (
+              <div className={cn("min-h-[34rem] overflow-auto", bodyPaddingClassName(density))}>
+                {resolvedBody.trim().length > 0 ? (
+                  <div className={cn("prose prose-neutral max-w-none dark:prose-invert", proseClassName(density))}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
+                      {resolvedBody}
+                    </ReactMarkdown>
+                  </div>
+                ) : (
+                  <DocumentEmptyBody radius={radius} density={density} />
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {hasSidebar ? (
+          <aside className={cn("mt-8 border-t border-border/30", contentPaddingClassName(density))}>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <DocumentSectionCard
                 title="Document"
                 icon={<FileText className="size-4" />}
@@ -303,27 +295,9 @@ export function LemmaDocumentEditor({
                   <SidebarItemList items={references} />
                 </DocumentSectionCard>
               ) : null}
-
-              {assistantContext.length > 0 ? (
-                <DocumentSectionCard
-                  title="Assistant Context"
-                  icon={<Bot className="size-4" />}
-                  radius={radius}
-                  density={density}
-                >
-                  <div className="space-y-2">
-                    {assistantContext.map((item, index) => (
-                      <div key={index} className="rounded-lg border border-border/40 bg-muted/20 p-3">
-                        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{item.label}</p>
-                        {item.value ? <p className="mt-1 text-sm text-foreground/85">{item.value}</p> : null}
-                      </div>
-                    ))}
-                  </div>
-                </DocumentSectionCard>
-              ) : null}
-            </aside>
-          ) : null}
-        </div>
+            </div>
+          </aside>
+        ) : null}
       </div>
     </div>
   )
@@ -349,27 +323,16 @@ export function LemmaDocumentEditor({
 function DocumentCover({
   coverImageUrl,
   coverAlt,
-  density,
   radius,
 }: {
   coverImageUrl?: string
   coverAlt: string
-  density: LemmaDocumentEditorDensity
   radius: LemmaDocumentEditorRadius
 }) {
+  if (!coverImageUrl) return null
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden border-b border-border/40",
-        radiusClassName(radius, "surface"),
-        density === "compact" ? "h-28" : density === "spacious" ? "h-44" : "h-36",
-      )}
-    >
-      {coverImageUrl ? (
-        <img src={coverImageUrl} alt={coverAlt} className="h-full w-full object-cover" />
-      ) : (
-        <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,hsl(var(--accent)/0.26),transparent_42%),linear-gradient(135deg,hsl(var(--primary)/0.16)_0%,hsl(var(--background))_55%,hsl(var(--muted))_100%)]" />
-      )}
+    <div className={cn("relative h-40 overflow-hidden border-b border-border/40", radiusClassName(radius, "surface"))}>
+      <img src={coverImageUrl} alt={coverAlt} className="h-full w-full object-cover" />
       <div className="absolute inset-0 bg-gradient-to-t from-background/45 via-transparent to-transparent" />
     </div>
   )
@@ -524,6 +487,12 @@ function documentPaddingClassName(density: LemmaDocumentEditorDensity) {
   return "p-6"
 }
 
+function contentPaddingClassName(density: LemmaDocumentEditorDensity) {
+  if (density === "compact") return "px-4 pt-6 pb-10 md:px-8"
+  if (density === "spacious") return "px-6 pt-10 pb-16 md:px-16"
+  return "px-5 pt-8 pb-12 md:px-12"
+}
+
 function headerPaddingClassName(density: LemmaDocumentEditorDensity) {
   if (density === "compact") return "px-4 py-3"
   if (density === "spacious") return "px-6 py-4"
@@ -531,9 +500,9 @@ function headerPaddingClassName(density: LemmaDocumentEditorDensity) {
 }
 
 function bodyPaddingClassName(density: LemmaDocumentEditorDensity) {
-  if (density === "compact") return "p-4"
-  if (density === "spacious") return "p-8"
-  return "p-6"
+  if (density === "compact") return "p-3"
+  if (density === "spacious") return "p-5"
+  return "p-4"
 }
 
 function cardPaddingClassName(density: LemmaDocumentEditorDensity) {
@@ -542,16 +511,16 @@ function cardPaddingClassName(density: LemmaDocumentEditorDensity) {
   return "p-4"
 }
 
-function titleInputClassName(density: LemmaDocumentEditorDensity) {
-  if (density === "compact") return "text-2xl font-semibold"
-  if (density === "spacious") return "text-4xl font-semibold"
-  return "text-3xl font-semibold"
+function inlineTitleClassName(density: LemmaDocumentEditorDensity) {
+  if (density === "compact") return "text-2xl"
+  if (density === "spacious") return "text-4xl"
+  return "text-3xl"
 }
 
-function summaryClassName(density: LemmaDocumentEditorDensity) {
+function inlineSummaryClassName(density: LemmaDocumentEditorDensity) {
   if (density === "compact") return "text-sm"
-  if (density === "spacious") return "text-lg"
-  return "text-base"
+  if (density === "spacious") return "text-base"
+  return "text-[15px]"
 }
 
 function proseClassName(density: LemmaDocumentEditorDensity) {

@@ -5,13 +5,11 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import {
   BookOpen,
-  Bot,
   FileText,
   Hash,
   Link2,
   Sparkles,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 
@@ -97,54 +95,52 @@ export function LemmaDocumentViewer({
       data-radius={radius}
       className={cn("lemma-document-viewer flex min-h-0 flex-col overflow-hidden", shellClassName(appearance, radius, mode), className)}
     >
-      <DocumentCover
-        coverImageUrl={coverImageUrl}
-        coverAlt={typeof coverAlt === "string" ? coverAlt : typeof title === "string" ? title : "Document cover"}
-        density={density}
-        radius={radius}
-      />
+      {coverImageUrl ? (
+        <DocumentCover
+          coverImageUrl={coverImageUrl}
+          coverAlt={typeof coverAlt === "string" ? coverAlt : typeof title === "string" ? title : "Document cover"}
+          radius={radius}
+        />
+      ) : null}
 
-      <div className="shrink-0 border-b border-border/60 bg-background/95 backdrop-blur">
-        <div className={documentPaddingClassName(density)}>
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0 max-w-3xl">
-              <div className="mb-3 flex flex-wrap items-center gap-2">
-                <span className={cn("flex size-10 items-center justify-center border border-border/50 bg-muted/50 text-muted-foreground", radiusClassName(radius, "control"))}>
-                  {icon ?? <BookOpen className="size-4" />}
-                </span>
-                {status ? <Badge variant="secondary">{status}</Badge> : null}
-                {lastEditedLabel ? <Badge variant="outline">{lastEditedLabel}</Badge> : null}
-                <Badge variant="outline">{wordCount} words</Badge>
-                <Badge variant="outline">{readingMinutes} min read</Badge>
-              </div>
-              <h1 className={cn("font-semibold tracking-tight text-foreground", titleClassName(density))}>{title}</h1>
-              {description ? (
-                <p className={cn("mt-3 max-w-2xl text-muted-foreground", descriptionClassName(density))}>{description}</p>
-              ) : null}
-            </div>
-            {headerActions ? <div className="flex shrink-0 items-center gap-2">{headerActions}</div> : null}
-          </div>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/40 px-4 py-1.5">
+        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <span>{wordCount} words</span>
+          <span>·</span>
+          <span>{readingMinutes} min read</span>
+          {lastEditedLabel ? (
+            <>
+              <span>·</span>
+              <span>{lastEditedLabel}</span>
+            </>
+          ) : null}
         </div>
+        {headerActions ? <div className="flex shrink-0 items-center gap-1.5">{headerActions}</div> : null}
       </div>
 
-      <div className={documentPaddingClassName(density)}>
-        <div className={cn("grid gap-6", hasSidebar ? "xl:grid-cols-[minmax(0,1fr)_18rem]" : "grid-cols-1")}>
-          <article className={cn("min-w-0 border border-border/40 bg-card/80", radiusClassName(radius, "surface"))}>
-            <div className={cn("mx-auto max-w-4xl", bodyPaddingClassName(density))}>
-              {body.trim().length > 0 ? (
-                <div className={cn("prose prose-neutral max-w-none dark:prose-invert", proseClassName(density))}>
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
-                    {body}
-                  </ReactMarkdown>
-                </div>
-              ) : (
-                <DocumentEmptyBody radius={radius} density={density} />
-              )}
-            </div>
-          </article>
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className={cn("mx-auto w-full max-w-[860px]", contentPaddingClassName(density))}>
+          <h1 className={cn("font-bold tracking-tight text-foreground", inlineTitleClassName(density))}>{title}</h1>
+          {description ? (
+            <p className={cn("mt-1 text-muted-foreground", inlineDescriptionClassName(density))}>{description}</p>
+          ) : null}
 
-          {hasSidebar ? (
-            <aside className="flex min-h-0 flex-col gap-4">
+          {body.trim().length > 0 ? (
+            <article className="mt-6">
+              <div className={cn("prose prose-neutral max-w-none dark:prose-invert", proseClassName(density))}>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
+                  {body}
+                </ReactMarkdown>
+              </div>
+            </article>
+          ) : (
+            <DocumentEmptyBody radius={radius} density={density} />
+          )}
+        </div>
+
+        {hasSidebar ? (
+          <aside className={cn("mt-8 border-t border-border/30", contentPaddingClassName(density))}>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <DocumentSectionCard
                 title="Document"
                 icon={<FileText className="size-4" />}
@@ -196,27 +192,9 @@ export function LemmaDocumentViewer({
                   <SidebarItemList items={references} />
                 </DocumentSectionCard>
               ) : null}
-
-              {assistantContext.length > 0 ? (
-                <DocumentSectionCard
-                  title="Assistant Context"
-                  icon={<Bot className="size-4" />}
-                  radius={radius}
-                  density={density}
-                >
-                  <div className="space-y-2">
-                    {assistantContext.map((item, index) => (
-                      <div key={index} className="rounded-lg border border-border/40 bg-muted/20 p-3">
-                        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">{item.label}</p>
-                        {item.value ? <p className="mt-1 text-sm text-foreground/85">{item.value}</p> : null}
-                      </div>
-                    ))}
-                  </div>
-                </DocumentSectionCard>
-              ) : null}
-            </aside>
-          ) : null}
-        </div>
+            </div>
+          </aside>
+        ) : null}
       </div>
     </div>
   )
@@ -242,27 +220,16 @@ export function LemmaDocumentViewer({
 function DocumentCover({
   coverImageUrl,
   coverAlt,
-  density,
   radius,
 }: {
   coverImageUrl?: string
   coverAlt: string
-  density: LemmaDocumentViewerDensity
   radius: LemmaDocumentViewerRadius
 }) {
+  if (!coverImageUrl) return null
   return (
-    <div
-      className={cn(
-        "relative overflow-hidden border-b border-border/40",
-        radiusClassName(radius, "surface"),
-        density === "compact" ? "h-28" : density === "spacious" ? "h-44" : "h-36",
-      )}
-    >
-      {coverImageUrl ? (
-        <img src={coverImageUrl} alt={coverAlt} className="h-full w-full object-cover" />
-      ) : (
-        <div className="h-full w-full bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.24),transparent_45%),linear-gradient(135deg,hsl(var(--muted))_0%,hsl(var(--background))_55%,hsl(var(--accent)/0.18)_100%)]" />
-      )}
+    <div className={cn("relative h-40 overflow-hidden border-b border-border/40", radiusClassName(radius, "surface"))}>
+      <img src={coverImageUrl} alt={coverAlt} className="h-full w-full object-cover" />
       <div className="absolute inset-0 bg-gradient-to-t from-background/45 via-transparent to-transparent" />
     </div>
   )
@@ -411,10 +378,16 @@ function documentPaddingClassName(density: LemmaDocumentViewerDensity) {
   return "p-6"
 }
 
+function contentPaddingClassName(density: LemmaDocumentViewerDensity) {
+  if (density === "compact") return "px-4 pt-6 pb-10 md:px-8"
+  if (density === "spacious") return "px-6 pt-10 pb-16 md:px-16"
+  return "px-5 pt-8 pb-12 md:px-12"
+}
+
 function bodyPaddingClassName(density: LemmaDocumentViewerDensity) {
-  if (density === "compact") return "p-4"
-  if (density === "spacious") return "p-8"
-  return "p-6"
+  if (density === "compact") return "p-3"
+  if (density === "spacious") return "p-5"
+  return "p-4"
 }
 
 function cardPaddingClassName(density: LemmaDocumentViewerDensity) {
@@ -423,13 +396,13 @@ function cardPaddingClassName(density: LemmaDocumentViewerDensity) {
   return "p-4"
 }
 
-function titleClassName(density: LemmaDocumentViewerDensity) {
+function inlineTitleClassName(density: LemmaDocumentViewerDensity) {
   if (density === "compact") return "text-2xl"
   if (density === "spacious") return "text-4xl"
   return "text-3xl"
 }
 
-function descriptionClassName(density: LemmaDocumentViewerDensity) {
+function inlineDescriptionClassName(density: LemmaDocumentViewerDensity) {
   if (density === "compact") return "text-sm"
   if (density === "spacious") return "text-lg"
   return "text-base"

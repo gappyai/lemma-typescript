@@ -97,7 +97,7 @@ export function LemmaMarkdownEditor({
 
       <div className={cn("grid min-h-0 flex-1", currentMode === "split" ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1")}>
         {currentMode !== "preview" ? (
-          <div className={cn("min-h-0 border-border/30", currentMode === "split" ? "md:border-r" : null)}>
+          <div className={cn("min-h-0 border-border/20", currentMode === "split" ? "md:border-r" : null)}>
             <Textarea
               value={currentValue}
               onChange={(event) => setValue(event.target.value)}
@@ -105,7 +105,7 @@ export function LemmaMarkdownEditor({
               readOnly={readOnly}
               rows={minRows}
               className={cn(
-                "h-full min-h-64 resize-none rounded-none border-0 bg-transparent font-mono text-sm shadow-none focus-visible:ring-0",
+                "h-full min-h-64 resize-none rounded-none border-0 bg-transparent text-base leading-relaxed shadow-none focus-visible:ring-0",
                 bodyPaddingClassName(density),
               )}
             />
@@ -115,7 +115,7 @@ export function LemmaMarkdownEditor({
         {currentMode !== "write" ? (
           <div className={cn("min-h-0 overflow-auto", bodyPaddingClassName(density))}>
             {currentValue.trim() ? (
-              <div className="prose prose-sm max-w-none text-foreground dark:prose-invert">
+              <div className="prose prose-neutral max-w-none dark:prose-invert">
                 <ReactMarkdown remarkPlugins={[remarkGfm]} skipHtml>
                   {currentValue}
                 </ReactMarkdown>

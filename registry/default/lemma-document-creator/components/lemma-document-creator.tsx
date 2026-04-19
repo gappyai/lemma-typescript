@@ -3,11 +3,8 @@
 import * as React from "react"
 import {
   FilePlus2,
-  FolderTree,
   Loader2,
-  Sparkles,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -147,31 +144,26 @@ export function LemmaDocumentCreator({
       data-radius={radius}
       className={cn("lemma-document-creator flex min-h-0 flex-col overflow-hidden", shellClassName(appearance, radius, mode), className)}
     >
-      <div className={cn("border-b border-border/40", headerPaddingClassName(density))}>
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 max-w-2xl">
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <span className={cn("flex size-10 items-center justify-center border border-border/50 bg-muted/40 text-muted-foreground", radiusClassName(radius, "control"))}>
-                <FilePlus2 className="size-4" />
-              </span>
-              <Badge variant="outline">Docstore</Badge>
-              <Badge variant="outline">{normalizePath(directoryPath)}</Badge>
-            </div>
-            <h1 className={cn("font-semibold tracking-tight text-foreground", titleClassName(density))}>{title}</h1>
-            <p className={cn("mt-2 text-muted-foreground", descriptionClassName(density))}>{description}</p>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {headerActions}
-            <Button onClick={() => void handleCreate()} disabled={!enabled || !fileName.trim() || isCreating}>
-              {isCreating ? <Loader2 data-icon="inline-start" className="animate-spin" /> : <FilePlus2 data-icon="inline-start" />}
-              {createLabel}
-            </Button>
-          </div>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/40 px-4 py-1.5">
+        <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+          <span>{normalizePath(directoryPath)}</span>
+          <span>·</span>
+          <span>Docstore</span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5">
+          {headerActions}
+          <Button size="sm" className="h-7 gap-1.5 px-3 text-xs" onClick={() => void handleCreate()} disabled={!enabled || !fileName.trim() || isCreating}>
+            {isCreating ? <Loader2 data-icon="inline-start" className="size-3.5 animate-spin" /> : <FilePlus2 data-icon="inline-start" className="size-3.5" />}
+            {createLabel}
+          </Button>
         </div>
       </div>
 
-      <div className={cn("grid flex-1 gap-6 overflow-auto", contentPaddingClassName(density), templates.length > 0 ? "xl:grid-cols-[minmax(0,1fr)_18rem]" : "grid-cols-1")}>
-        <div className="min-w-0 space-y-4">
+      <div className={cn("min-h-0 flex-1 overflow-auto", contentPaddingClassName(density))}>
+        <div className="mx-auto max-w-[720px] space-y-5">
+          <h1 className={cn("font-bold tracking-tight text-foreground", inlineTitleClassName(density))}>{title}</h1>
+          <p className={cn("text-muted-foreground", inlineDescriptionClassName(density))}>{description}</p>
+
           <div className="grid gap-4 md:grid-cols-2">
             <CreatorField label="File name" description="Stored directly in the pod file namespace.">
               <Input value={fileName} onChange={(event) => setFileName(event.target.value)} placeholder="customer-playbook.md" />
@@ -190,43 +182,27 @@ export function LemmaDocumentCreator({
             </CreatorField>
           </div>
 
-          <CreatorField label="Body" description="Start with markdown now; richer structured editing can layer on later.">
+          <CreatorField label="Body">
             <Textarea
               value={body}
               onChange={(event) => setBody(event.target.value)}
               placeholder="# New document"
-              className={cn("min-h-[26rem] resize-none font-mono text-sm", radiusClassName(radius, "surface"))}
+              className={cn("min-h-[26rem] resize-none text-base", radiusClassName(radius, "surface"))}
             />
           </CreatorField>
 
-          <div className={cn("rounded-xl border border-border/40 bg-muted/20", radiusClassName(radius, "surface"), cardPaddingClassName(density))}>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              <Sparkles className="size-3.5" />
-              <span>Creation notes</span>
-            </div>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li>The document is created as a pod file, not a table record.</li>
-              <li>Search indexing may lag slightly after creation.</li>
-              <li>Record linkage can happen later through file paths or file identifiers.</li>
-            </ul>
-            {error ? <p className="mt-3 text-sm text-destructive">{error}</p> : null}
-          </div>
-        </div>
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-        {templates.length > 0 ? (
-          <aside className="space-y-4">
-            <div className={cn("border border-border/40 bg-card/70", radiusClassName(radius, "surface"), cardPaddingClassName(density))}>
-              <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
-                <FolderTree className="size-4 text-muted-foreground" />
-                <span>Starting points</span>
-              </div>
-              <div className="space-y-2">
+          {templates.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Starting points</p>
+              <div className="grid gap-2 sm:grid-cols-2">
                 {templates.map((template) => (
                   <button
                     key={template.id}
                     type="button"
                     onClick={() => handleTemplate(template)}
-                    className="w-full rounded-lg border border-border/40 bg-muted/20 p-3 text-left transition-colors hover:bg-muted/35"
+                    className="rounded-lg border border-border/40 bg-muted/20 p-3 text-left transition-colors hover:bg-muted/35"
                   >
                     <p className="text-sm font-medium text-foreground">{template.label}</p>
                     {template.description ? <p className="mt-1 text-sm text-muted-foreground">{template.description}</p> : null}
@@ -234,8 +210,8 @@ export function LemmaDocumentCreator({
                 ))}
               </div>
             </div>
-          </aside>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </div>
   )
@@ -357,9 +333,9 @@ function headerPaddingClassName(density: LemmaDocumentCreatorDensity) {
 }
 
 function contentPaddingClassName(density: LemmaDocumentCreatorDensity) {
-  if (density === "compact") return "p-4"
-  if (density === "spacious") return "p-8"
-  return "p-6"
+  if (density === "compact") return "px-4 pt-6 pb-10 md:px-8"
+  if (density === "spacious") return "px-6 pt-10 pb-16 md:px-16"
+  return "px-5 pt-8 pb-12 md:px-12"
 }
 
 function cardPaddingClassName(density: LemmaDocumentCreatorDensity) {
@@ -368,13 +344,13 @@ function cardPaddingClassName(density: LemmaDocumentCreatorDensity) {
   return "p-4"
 }
 
-function titleClassName(density: LemmaDocumentCreatorDensity) {
+function inlineTitleClassName(density: LemmaDocumentCreatorDensity) {
   if (density === "compact") return "text-2xl"
   if (density === "spacious") return "text-4xl"
   return "text-3xl"
 }
 
-function descriptionClassName(density: LemmaDocumentCreatorDensity) {
+function inlineDescriptionClassName(density: LemmaDocumentCreatorDensity) {
   if (density === "compact") return "text-sm"
   if (density === "spacious") return "text-lg"
   return "text-base"
