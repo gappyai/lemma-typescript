@@ -17,13 +17,16 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUp, BarChart3, CheckSquare, Database, FileText, Hash, Mail, Plus, RotateCcw, Search, Square, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { ArrowUp, BarChart3, CheckSquare, Database, FileText, Hash, Mail, Plus, RotateCcw, Search, Square, Users, X } from "lucide-react";
 import type {
   AssistantMessagePart,
   AssistantRenderableMessage,
   AssistantToolInvocation,
 } from "lemma-sdk/react";
 import type {
+  AssistantPopupTriggerVariant,
+  AssistantPopupPosition,
   AssistantControllerView,
   AssistantConversationRenderArgs,
   AssistantExperienceCustomizationProps,
@@ -744,6 +747,8 @@ function assistantRootClassName(
       ? "h-full"
       : mode === "side-panel"
         ? "h-full max-w-[34rem]"
+        : mode === "popup"
+          ? "h-[min(80vh,46rem)] max-h-[80vh]"
         : "h-[36rem] max-h-[75vh]",
     showConversationList ? "flex-col lg:grid lg:grid-cols-[minmax(16rem,24rem)_minmax(0,1fr)]" : "flex-col",
     appearance === "minimal" || appearance === "borderless"
@@ -753,6 +758,13 @@ function assistantRootClassName(
         : "border border-border/40 bg-background shadow-sm",
     assistantRadiusClassName(radius, "surface"),
   );
+}
+
+function assistantPopupPositionClassName(position: AssistantPopupPosition): string {
+  if (position === "bottom-left") return "bottom-6 left-6 sm:bottom-8 sm:left-8";
+  if (position === "top-right") return "right-6 top-6 sm:right-8 sm:top-8";
+  if (position === "top-left") return "left-6 top-6 sm:left-8 sm:top-8";
+  return "bottom-6 right-6 sm:bottom-8 sm:right-8";
 }
 
 function assistantSidebarClassName(appearance: LemmaAssistantAppearance): string {
@@ -1001,17 +1013,22 @@ function assistantChromeStyleFromAppearance(appearance: LemmaAssistantAppearance
 
 function defaultPresentedFile({ filepath }: AssistantPresentedFileRenderArgs): ReactNode {
   return (
-    <div className="border border-border/78 rounded-lg bg-gradient-to-b from-background/96 to-muted/76 p-2.5">
-      <div className="text-sm font-medium text-foreground">{fileNameFromPath(filepath)}</div>
-      <div className="mt-1 text-xs text-muted-foreground break-words">{filepath}</div>
+    <div className="rounded-lg border border-border/60 bg-card/70 p-3 shadow-none">
+      <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+        <FileText className="size-3.5" />
+        <span>Presented file</span>
+      </div>
+      <div className="mt-2 text-sm font-medium text-foreground">{fileNameFromPath(filepath)}</div>
+      <div className="mt-1 break-words text-xs text-muted-foreground">{filepath}</div>
     </div>
   );
 }
 
 function defaultPendingFile({ file, remove }: AssistantPendingFileRenderArgs): ReactNode {
   return (
-    <Badge variant="secondary" className="inline-flex items-center gap-1.5 h-6 px-2 text-xs">
-      <span className="truncate max-w-[160px]">{file.name}</span>
+    <span className="inline-flex h-7 max-w-full items-center gap-1.5 rounded-md border border-border/60 bg-background px-2 text-xs text-foreground shadow-none">
+      <FileText className="size-3.5 shrink-0 text-muted-foreground" />
+      <span className="max-w-[160px] truncate">{file.name}</span>
       <Button
         type="button"
         variant="ghost"
@@ -1022,7 +1039,7 @@ function defaultPendingFile({ file, remove }: AssistantPendingFileRenderArgs): R
       >
         ×
       </Button>
-    </Badge>
+    </span>
   );
 }
 
@@ -1032,10 +1049,10 @@ export function PlanSummaryStrip({ plan, onHide }: { plan: PlanSummaryState; onH
   const hiddenCount = Math.max(0, plan.steps.length - visibleSteps.length);
 
   return (
-    <div className="flex flex-col gap-2 p-3.5 border border-border/88 rounded-lg bg-background">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/70 p-3.5 shadow-none">
+      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-foreground">Task plan</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-foreground/80">Task plan</span>
           <span className="text-xs text-muted-foreground">
             {plan.completedCount}/{plan.steps.length} complete
           </span>
@@ -1062,11 +1079,11 @@ export function PlanSummaryStrip({ plan, onHide }: { plan: PlanSummaryState; onH
         </div>
       ) : null}
 
-      <div className="mt-2 flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         {visibleSteps.map((step, index) => (
           <div
             key={`${step.step}-${index}`}
-            className="flex items-start gap-2 text-xs"
+            className="flex items-start gap-2 rounded-md px-2 py-1 text-xs"
             data-status={step.status}
           >
             <span className={cn(
@@ -1465,7 +1482,7 @@ function ToolDetailsPanel({
 
   if (renderToolInvocation) {
     return (
-      <div className="mt-1.5 p-3.5 border border-border/86 rounded-md bg-background/96">
+      <div className="mt-2 rounded-lg border border-border/60 bg-card/70 p-3.5 shadow-none">
         {renderToolInvocation({
           invocation: {
             toolCallId: "detail-tool",
@@ -1482,8 +1499,8 @@ function ToolDetailsPanel({
   }
 
   return (
-    <div className="mt-1.5 p-3.5 border border-border/86 rounded-md bg-background/96">
-      <div className="flex items-start justify-between gap-2 mb-2">
+    <div className="mt-2 rounded-lg border border-border/60 bg-card/70 p-3.5 shadow-none">
+      <div className="mb-3 flex items-start justify-between gap-2 border-b border-border/50 pb-3">
         <div>
           <div className="text-sm font-semibold text-foreground">{primaryLabel}</div>
           {hasCommentLabel ? (
@@ -1502,41 +1519,37 @@ function ToolDetailsPanel({
             </Button>
         ) : null}
       </div>
-      <div>
-        <div>
-          <dl className="mt-1.5 flex flex-col gap-1.5">
-            {detailRows.map((row, index) => (
-              <div key={`${row.label}-${index}`} className="grid grid-cols-[minmax(96px,auto)_minmax(0,1fr)] gap-2 items-start">
-                <dt className="text-xs font-semibold text-muted-foreground">{row.label}</dt>
-                <dd className="text-sm text-foreground leading-relaxed break-words">{row.value}</dd>
-              </div>
-            ))}
-          </dl>
-          {hiddenInputCount > 0 ? (
-            <div className="text-xs text-muted-foreground mt-1">+{hiddenInputCount} more input field{hiddenInputCount === 1 ? "" : "s"}</div>
-          ) : null}
-          {hiddenOutputCount > 0 ? (
-            <div className="text-xs text-muted-foreground mt-1">+{hiddenOutputCount} more output field{hiddenOutputCount === 1 ? "" : "s"}</div>
-          ) : null}
-          <div className="mt-1.5 flex flex-col gap-1">
-            <details className="text-xs">
-              <summary className="text-xs text-muted-foreground cursor-pointer list-none hover:text-foreground">Raw input JSON</summary>
-              <div className="mt-1 rounded bg-muted/50 p-2 overflow-x-auto">
-                <pre className="text-xs text-foreground/80 font-mono whitespace-pre-wrap break-words">{JSON.stringify(args, null, 2)}</pre>
-              </div>
-            </details>
-            {Object.keys(resultData).length > 0 ? (
-              <details className="text-xs">
-                <summary className="text-xs text-muted-foreground cursor-pointer list-none hover:text-foreground">Raw output JSON</summary>
-                <div className="mt-1 rounded bg-muted/50 p-2 overflow-x-auto">
-                  <pre className="text-xs text-foreground/80 font-mono whitespace-pre-wrap break-words">
-                    {JSON.stringify(resultData, null, 2)}
-                  </pre>
-                </div>
-              </details>
-            ) : null}
+      <dl className="flex flex-col gap-1.5">
+        {detailRows.map((row, index) => (
+          <div key={`${row.label}-${index}`} className="grid grid-cols-[minmax(96px,auto)_minmax(0,1fr)] items-start gap-2 rounded-md px-2 py-1.5">
+            <dt className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">{row.label}</dt>
+            <dd className="break-words text-sm leading-relaxed text-foreground">{row.value}</dd>
           </div>
-        </div>
+        ))}
+      </dl>
+      {hiddenInputCount > 0 ? (
+        <div className="mt-1 text-xs text-muted-foreground">+{hiddenInputCount} more input field{hiddenInputCount === 1 ? "" : "s"}</div>
+      ) : null}
+      {hiddenOutputCount > 0 ? (
+        <div className="mt-1 text-xs text-muted-foreground">+{hiddenOutputCount} more output field{hiddenOutputCount === 1 ? "" : "s"}</div>
+      ) : null}
+      <div className="mt-2 flex flex-col gap-1.5">
+        <details className="text-xs">
+          <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">Raw input JSON</summary>
+          <div className="mt-1 overflow-x-auto rounded-md border border-border/50 bg-background/80 p-2">
+            <pre className="break-words whitespace-pre-wrap font-mono text-xs text-foreground/80">{JSON.stringify(args, null, 2)}</pre>
+          </div>
+        </details>
+        {Object.keys(resultData).length > 0 ? (
+          <details className="text-xs">
+            <summary className="cursor-pointer list-none text-xs text-muted-foreground hover:text-foreground">Raw output JSON</summary>
+            <div className="mt-1 overflow-x-auto rounded-md border border-border/50 bg-background/80 p-2">
+              <pre className="break-words whitespace-pre-wrap font-mono text-xs text-foreground/80">
+                {JSON.stringify(resultData, null, 2)}
+              </pre>
+            </div>
+          </details>
+        ) : null}
       </div>
     </div>
   );
@@ -1570,7 +1583,12 @@ function InlineToolCall({
     <button
       type="button"
       onClick={onClick}
-      className="w-full text-left text-sm border-0 bg-transparent hover:bg-muted/30 p-1 grid grid-cols-[18px_minmax(0,1fr)] gap-2.5 transition-colors rounded-sm"
+      className={cn(
+        "grid w-full grid-cols-[18px_minmax(0,1fr)] gap-2.5 rounded-lg border p-2 text-left text-sm transition-colors",
+        isSelected
+          ? "border-border/70 bg-background shadow-sm"
+          : "border-transparent bg-transparent hover:border-border/50 hover:bg-card/50",
+      )}
       data-state={isExecuting ? "executing" : isFailed ? "failed" : "complete"}
       data-selected={isSelected}
     >
@@ -1650,11 +1668,14 @@ function ToolActivityRollup({
       : `Worked through ${detailParts.length} step${detailParts.length === 1 ? "" : "s"}`}${failedCount > 0 ? ` · ${failedCount} failed` : ""}`;
 
   return (
-    <div className="flex min-w-0 flex-col gap-1" data-single={isSingleDetail ? "true" : "false"}>
+    <div
+      className="flex min-w-0 flex-col gap-2 rounded-lg border border-border/60 bg-card/40 p-2.5 shadow-none"
+      data-single={isSingleDetail ? "true" : "false"}
+    >
       {shouldCollapse ? (
         <button
           type="button"
-          className="flex w-full cursor-pointer items-center gap-2.5 border-0 bg-transparent px-0 py-0.5 text-muted-foreground transition-colors hover:text-foreground/70"
+          className="flex w-full cursor-pointer items-center gap-2.5 rounded-md border border-transparent bg-transparent px-2 py-1.5 text-muted-foreground transition-colors hover:border-border/50 hover:bg-background hover:text-foreground/70"
           onClick={() => setIsExpanded((prev) => !prev)}
           aria-expanded={isExpanded}
           aria-label={isExpanded ? "Hide tool activity details" : "Show tool activity details"}
@@ -1678,7 +1699,7 @@ function ToolActivityRollup({
         </button>
       ) : (
         !isSingleDetail ? (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 px-1 text-xs text-muted-foreground">
             {isWorking ? <span className="size-2 rounded-full bg-primary animate-pulse flex-shrink-0" /> : null}
             <span className={cn(
               "truncate",
@@ -1791,8 +1812,8 @@ function ShowWidgetToolCard({
   }, [onSendPrompt]);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/70 p-3.5 shadow-none">
+      <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
         <div className="text-sm font-medium text-foreground">{displayName}</div>
         <Badge
           variant={
@@ -1824,7 +1845,7 @@ function ShowWidgetToolCard({
           srcDoc={iframeDocument}
           sandbox="allow-scripts allow-forms allow-popups allow-downloads"
           height={height}
-          className="w-full border-0 rounded-md bg-background"
+          className="w-full rounded-md border border-border/50 bg-background"
         />
       ) : null}
 
@@ -1963,7 +1984,7 @@ export function MessageGroup({
   return (
     <div className="flex flex-col gap-1">
       {showAssistantHeader ? (
-        <Badge variant="outline" className="w-fit gap-1.5 px-1.5 py-0 text-xs font-normal text-muted-foreground">
+        <Badge variant="outline" className="w-fit gap-1.5 border-border/60 bg-background px-1.5 py-0 text-xs font-normal text-muted-foreground">
           <span className="size-1.5 rounded-full bg-primary/40" />
           {assistantLabel}
         </Badge>
@@ -2066,6 +2087,13 @@ export function AssistantExperienceView({
   emptyState,
   emptyStateSuggestions,
   launchContext,
+  popupOpen: controlledPopupOpen,
+  defaultPopupOpen = false,
+  onPopupOpenChange,
+  popupPosition = "bottom-right",
+  popupTriggerLabel,
+  popupTriggerIcon,
+  popupTriggerVariant = "icon",
   draft: controlledDraft,
   onDraftChange,
   showConversationList = false,
@@ -2085,6 +2113,7 @@ export function AssistantExperienceView({
   renderToolInvocation,
 }: AssistantExperienceViewProps) {
   const [draft, setDraft] = useControllableDraft(controlledDraft, onDraftChange);
+  const [uncontrolledPopupOpen, setUncontrolledPopupOpen] = useState(defaultPopupOpen);
   const [isPlanHidden, setIsPlanHidden] = useState(false);
   const [dismissedAskToolCallIds, setDismissedAskToolCallIds] = useState<string[]>([]);
   const [askOverlayState, setAskOverlayState] = useState<{
@@ -2113,6 +2142,9 @@ export function AssistantExperienceView({
   const uploadFiles = controller.uploadFiles;
   const loadOlderMessages = controller.loadOlderMessages;
   const setConversationModel = controller.setConversationModel;
+  const isPopupMode = mode === "popup";
+  const resolvedPopupOpen = controlledPopupOpen ?? uncontrolledPopupOpen;
+  const surfaceMode: LemmaAssistantMode = isPopupMode ? "popup" : mode;
 
   const availableModels = useMemo(
     () => {
@@ -2130,6 +2162,14 @@ export function AssistantExperienceView({
     [controller.availableModels],
   );
   const launchContextItems = useMemo(() => normalizeLaunchContext(launchContext), [launchContext]);
+  const resolvedPopupTriggerLabel = popupTriggerLabel || `Open ${plainLabelFromNode(title) || "assistant"}`;
+
+  const handlePopupOpenChange = useCallback((open: boolean) => {
+    if (controlledPopupOpen === undefined) {
+      setUncontrolledPopupOpen(open);
+    }
+    onPopupOpenChange?.(open);
+  }, [controlledPopupOpen, onPopupOpenChange]);
 
   const resizeComposer = useCallback(() => {
     const textarea = inputRef.current;
@@ -2219,6 +2259,14 @@ export function AssistantExperienceView({
       inputRef.current?.focus();
     });
   }, [activeConversationId, scrollToLatest]);
+
+  useEffect(() => {
+    if (!isPopupMode || !resolvedPopupOpen) return;
+    requestAnimationFrame(() => {
+      scrollToLatest("auto");
+      inputRef.current?.focus();
+    });
+  }, [isPopupMode, resolvedPopupOpen, scrollToLatest]);
 
   useEffect(() => {
     resizeComposer();
@@ -2447,12 +2495,12 @@ export function AssistantExperienceView({
     ? <LemmaMarkIcon className="size-4.5 text-primary-foreground" />
     : badge;
 
-  return (
+  const assistantSurface = (
     <div
-      className={cn(assistantRootClassName(mode, appearance, radius, showConversationList), className)}
+      className={cn(assistantRootClassName(surfaceMode, appearance, radius, showConversationList), className)}
       data-appearance={appearance}
       data-density={density}
-      data-mode={mode}
+      data-mode={surfaceMode}
       data-chrome-style={resolvedChromeStyle}
       data-status-placement={statusPlacement}
       data-radius={radius}
@@ -2554,7 +2602,7 @@ export function AssistantExperienceView({
           {launchContextItems.length > 0 ? (
             <div className={cn(
               "border-b border-border/60 bg-muted/10",
-              mode === "embedded" ? "px-4 py-3" : "px-4 py-3 sm:px-6",
+              surfaceMode === "embedded" || surfaceMode === "popup" ? "px-4 py-3" : "px-4 py-3 sm:px-6",
             )}>
               <div className="flex flex-wrap gap-3">
                 {launchContextItems.map((item, index) => {
@@ -2562,12 +2610,14 @@ export function AssistantExperienceView({
                   const promptText = item.prompt || defaultLaunchContextPrompt(item);
                   const card = (
                     <Card className={cn(
-                      "border-border/60 bg-background/85 shadow-none",
-                      mode === "side-panel" ? "w-full" : "min-w-[16rem] flex-1",
+                      "border-border/60 bg-card/70 shadow-none",
+                      surfaceMode === "side-panel" ? "w-full" : "min-w-[16rem] flex-1",
                     )}>
-                      <CardHeader className="pb-3">
+                      <CardHeader className="gap-3 border-b border-border/50 pb-3">
                         <CardDescription className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-                          <span className="text-foreground/70">{launchContextIcon(item.kind)}</span>
+                          <span className="flex size-7 items-center justify-center rounded-md border border-border/50 bg-background text-foreground/70">
+                            {launchContextIcon(item.kind)}
+                          </span>
                           <span>{launchContextKindLabel(item.kind)}</span>
                         </CardDescription>
                         <CardTitle className="text-sm">{item.title}</CardTitle>
@@ -2576,9 +2626,9 @@ export function AssistantExperienceView({
                         ) : null}
                       </CardHeader>
                       {(item.meta || item.prompt || item.onSelect || item.href) ? (
-                        <CardContent className="flex flex-wrap items-center gap-2 pt-0">
+                        <CardContent className="flex flex-wrap items-center gap-2 pt-3">
                           {item.meta ? (
-                            <Badge variant="secondary" className="max-w-full truncate">{item.meta}</Badge>
+                            <Badge variant="secondary" className="max-w-full truncate border border-border/50 bg-background text-muted-foreground">{item.meta}</Badge>
                           ) : null}
                           {promptText ? (
                             <Button
@@ -2613,7 +2663,7 @@ export function AssistantExperienceView({
                       ) : null}
                     </Card>
                   );
-                  return <div key={`${item.kind}-${index}`} className={cn(mode === "side-panel" ? "w-full" : "flex min-w-[16rem] flex-1")}>{card}</div>;
+                  return <div key={`${item.kind}-${index}`} className={cn(surfaceMode === "side-panel" ? "w-full" : "flex min-w-[16rem] flex-1")}>{card}</div>;
                 })}
               </div>
             </div>
@@ -2622,8 +2672,14 @@ export function AssistantExperienceView({
           <AssistantMessageViewport
             ref={messagesContainerRef}
             onScroll={updatePinnedState}
-            className={cn(mode === "embedded" && "px-4 py-4 sm:px-4", mode === "side-panel" && "px-4 py-4 sm:px-5 lg:px-5")}
-            innerClassName={cn(mode === "side-panel" && "max-w-none", mode === "embedded" && "max-w-none")}
+            className={cn(
+              (surfaceMode === "embedded" || surfaceMode === "popup") && "px-4 py-4 sm:px-4",
+              surfaceMode === "side-panel" && "px-4 py-4 sm:px-5 lg:px-5",
+            )}
+            innerClassName={cn(
+              surfaceMode === "side-panel" && "max-w-none",
+              (surfaceMode === "embedded" || surfaceMode === "popup") && "max-w-none",
+            )}
           >
             <div className="flex w-full flex-col gap-5" aria-live="polite" aria-atomic="false">
             {controller.messages.length === 0 && !isConversationBusy ? (
@@ -2826,5 +2882,58 @@ export function AssistantExperienceView({
         </AssistantComposer>
       </div>
     </div>
+  );
+
+  if (!isPopupMode) {
+    return assistantSurface;
+  }
+
+  return (
+    <>
+      <div className={cn("fixed z-40", assistantPopupPositionClassName(popupPosition))}>
+        <Button
+          type="button"
+          size={popupTriggerVariant === "pill" ? "sm" : "icon"}
+          onClick={() => handlePopupOpenChange(true)}
+          className={cn(
+            "border border-border/60 bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition-transform hover:scale-[1.02] hover:bg-primary/90",
+            popupTriggerVariant === "pill"
+              ? "h-12 rounded-full px-4 text-sm font-medium"
+              : "size-14 rounded-full",
+          )}
+          aria-label={resolvedPopupTriggerLabel}
+          title={resolvedPopupTriggerLabel}
+        >
+          {popupTriggerIcon ?? <LemmaMarkIcon className={cn(popupTriggerVariant === "pill" ? "size-4.5" : "size-5")} />}
+          {popupTriggerVariant === "pill" ? (
+            <span className="ml-2 truncate">{resolvedPopupTriggerLabel}</span>
+          ) : (
+            <span className="sr-only">{resolvedPopupTriggerLabel}</span>
+          )}
+        </Button>
+      </div>
+
+      <Dialog open={resolvedPopupOpen} onOpenChange={handlePopupOpenChange}>
+        <DialogContent showCloseButton={false} className="overflow-hidden border-0 bg-transparent p-0 shadow-none sm:max-w-5xl">
+          <div className="sr-only">
+            <DialogTitle>{plainLabelFromNode(title) || "Assistant"}</DialogTitle>
+            <DialogDescription>{plainLabelFromNode(subtitle) || "Assistant workspace"}</DialogDescription>
+          </div>
+          <div className="relative">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={() => handlePopupOpenChange(false)}
+              className="absolute right-3 top-3 z-10 size-8 rounded-full border border-border/60 bg-background/90 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
+              aria-label="Close assistant"
+            >
+              <X className="size-4" />
+            </Button>
+            {assistantSurface}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

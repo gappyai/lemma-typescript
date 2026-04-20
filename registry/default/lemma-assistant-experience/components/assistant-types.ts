@@ -9,7 +9,9 @@ import type {
 export type LemmaAssistantAppearance = "default" | "minimal" | "borderless" | "contained";
 export type LemmaAssistantDensity = "compact" | "comfortable" | "spacious";
 export type LemmaAssistantRadius = "none" | "sm" | "md" | "lg" | "xl";
-export type LemmaAssistantMode = "page" | "embedded" | "side-panel";
+export type LemmaAssistantMode = "page" | "embedded" | "side-panel" | "popup";
+export type AssistantPopupPosition = "bottom-right" | "bottom-left" | "top-right" | "top-left";
+export type AssistantPopupTriggerVariant = "icon" | "pill";
 export type AssistantLaunchContextKind = "record" | "file" | "table" | "search_result" | "page";
 
 export interface AssistantConversationListItem {
@@ -105,4 +107,11 @@ export interface AssistantExperienceCustomizationProps {
   renderPresentedFile?: (args: AssistantPresentedFileRenderArgs) => ReactNode;
   renderPendingFile?: (args: AssistantPendingFileRenderArgs) => ReactNode;
   launchContext?: AssistantLaunchContextItem | AssistantLaunchContextItem[];
+  popupOpen?: boolean;
+  defaultPopupOpen?: boolean;
+  onPopupOpenChange?: (open: boolean) => void;
+  popupPosition?: AssistantPopupPosition;
+  popupTriggerLabel?: string;
+  popupTriggerIcon?: ReactNode;
+  popupTriggerVariant?: AssistantPopupTriggerVariant;
 }

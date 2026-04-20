@@ -68,5 +68,5 @@ This is the execution tracker for the registry cleanup. Keep this file crisp: mo
 - Added initial `lemma-document-viewer` and `lemma-document-editor` blocks for richer reading and authoring shells.
 - Added `lemma-document-creator` plus a docstore-backed example workspace with modal and full-page document flows on top of pod files instead of assuming table-backed pages or embedded editors.
 - Added `lemma-document-workspace` as the canonical near-fullscreen Tiptap-backed document surface with structured `lemma.document` JSON storage, page/modal modes, creation flow wiring, file-reference blocks, metadata rails, backlinks, and assistant context.
-- Added explicit `page` / `embedded` / `side-panel` modes plus typed launch-context cards to `lemma-assistant-experience`.
+- Added explicit `page` / `embedded` / `side-panel` / `popup` modes plus typed launch-context cards to `lemma-assistant-experience`.
 - Updated the root agent guide and external Lemma desk skill docs to use the live 22-block registry surface and avoid deleted registry block names in new scaffold guidance.
