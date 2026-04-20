@@ -231,136 +231,28 @@
     },
     {
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-file-viewer",
-      "type": "registry:block",
-      "title": "Lemma File Viewer",
-      "description": "A file preview workspace with breadcrumb context, metadata rails, and image, PDF, text, markdown, converted HTML, and download fallbacks.",
-      "dependencies": [
-        "lemma-sdk",
-        "lucide-react",
-        "react-markdown",
-        "remark-gfm",
-        "clsx",
-        "tailwind-merge"
-      ],
-      "registryDependencies": [
-        "breadcrumb",
-        "button",
-        "skeleton"
-      ],
-      "files": [
-        {
-          "path": "registry/default/lemma-file-viewer/components/lemma-file-viewer.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-file-viewer.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "lemma-document-workspace",
       "type": "registry:block",
       "title": "Lemma Document Workspace",
-      "description": "The canonical Lemma document workspace for create, read, and edit flows with ProseKit JSON content, slash commands, scoped document styling, metadata, backlinks, comments/activity hooks, and assistant handoff context.",
+      "description": "The canonical Lemma pod-file workspace for create, read, edit, and preview flows across structured documents, text, images, PDFs, converted HTML, download fallbacks, metadata, comments/activity hooks, and assistant handoff context.",
       "dependencies": [
+        "lemma-sdk",
         "prosekit",
         "lucide-react",
         "clsx",
         "tailwind-merge"
       ],
       "registryDependencies": [
-        "badge",
         "button",
         "dialog",
-        "input"
+        "input",
+        "textarea"
       ],
       "files": [
         {
           "path": "registry/default/lemma-document-workspace/components/lemma-document-workspace.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-document-workspace.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-document-creator",
-      "type": "registry:block",
-      "title": "Lemma Document Creator",
-      "description": "A lightweight supporting creator for markdown/import flows that need explicit folder, filename, template, and pod-file metadata controls outside the canonical workspace.",
-      "dependencies": [
-        "lemma-sdk",
-        "lucide-react",
-        "clsx",
-        "tailwind-merge"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "dialog",
-        "input",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/lemma-document-creator/components/lemma-document-creator.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-document-creator.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-document-viewer",
-      "type": "registry:block",
-      "title": "Lemma Document Viewer",
-      "description": "A supporting read-only document renderer for markdown or static preview contexts; prefer lemma-document-workspace intent=\"read\" for the canonical block-native experience.",
-      "dependencies": [
-        "lucide-react",
-        "react-markdown",
-        "remark-gfm",
-        "clsx",
-        "tailwind-merge"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "dialog"
-      ],
-      "files": [
-        {
-          "path": "registry/default/lemma-document-viewer/components/lemma-document-viewer.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-document-viewer.tsx"
-        }
-      ]
-    },
-    {
-      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
-      "name": "lemma-document-editor",
-      "type": "registry:block",
-      "title": "Lemma Document Editor",
-      "description": "A supporting markdown authoring surface with write/preview/split modes; prefer lemma-document-workspace for rich block documents, creation, and assistant-aware editing.",
-      "dependencies": [
-        "lucide-react",
-        "react-markdown",
-        "remark-gfm",
-        "clsx",
-        "tailwind-merge"
-      ],
-      "registryDependencies": [
-        "badge",
-        "button",
-        "dialog",
-        "input",
-        "tabs",
-        "textarea"
-      ],
-      "files": [
-        {
-          "path": "registry/default/lemma-document-editor/components/lemma-document-editor.tsx",
-          "type": "registry:component",
-          "target": "components/lemma/lemma-document-editor.tsx"
         }
       ]
     },
@@ -591,6 +483,34 @@
           "path": "registry/default/lemma-workflow-runner/components/lemma-workflow-runner.tsx",
           "type": "registry:component",
           "target": "components/lemma/lemma-workflow-runner.tsx"
+        }
+      ]
+    },
+    {
+      "$schema": "https://ui.shadcn.com/schema/registry-item.json",
+      "name": "lemma-action-surface",
+      "type": "registry:block",
+      "title": "Lemma Action Surface",
+      "description": "A first-class long-running action launcher for direct actions, functions, workflows, and agents with button, line, and panel variants plus inspectable progress surfaces.",
+      "dependencies": [
+        "lemma-sdk",
+        "lucide-react",
+        "clsx",
+        "tailwind-merge"
+      ],
+      "registryDependencies": [
+        "badge",
+        "button",
+        "card",
+        "dialog",
+        "separator",
+        "textarea"
+      ],
+      "files": [
+        {
+          "path": "registry/default/lemma-action-surface/components/lemma-action-surface.tsx",
+          "type": "registry:component",
+          "target": "components/lemma/lemma-action-surface.tsx"
         }
       ]
     },

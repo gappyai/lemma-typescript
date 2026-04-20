@@ -33,15 +33,20 @@ import {
   TableHandleRowTrigger,
 } from "prosekit/react/table-handle"
 import {
+  AlertCircle,
   Bold,
   CheckSquare,
   Code2,
   Columns3,
   Database,
+  Download,
+  ExternalLink,
+  File,
   FileText,
   Hash,
   Heading1,
   Heading2,
+  Image,
   Italic,
   Link2,
   List,
@@ -53,6 +58,7 @@ import {
   Plus,
   Quote,
   Redo2,
+  RefreshCw,
   Rows3,
   Save,
   Search,
@@ -74,7 +80,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
-import { useFiles, useFileTree, useTables } from "lemma-sdk/react"
+import { useFile, useFiles, useFileTree, useTables } from "lemma-sdk/react"
 import type { DatastoreDirectoryTreeNode, FileResponse, LemmaClient } from "lemma-sdk"
 
 export type LemmaDocumentWorkspaceMode = "page" | "modal"
@@ -83,8 +89,9 @@ export type LemmaDocumentWorkspaceSaveState = "saved" | "saving" | "dirty" | "er
 export type LemmaDocumentWorkspaceAppearance = "default" | "minimal" | "borderless" | "contained"
 export type LemmaDocumentWorkspaceDensity = "compact" | "comfortable" | "spacious"
 export type LemmaDocumentWorkspaceRadius = "none" | "sm" | "md" | "lg" | "xl"
+export type LemmaDocumentWorkspaceFileFormat = "auto" | "structured" | "markdown" | "text" | "image" | "pdf" | "html" | "download"
 export type LemmaDocumentNode = NodeJSON
-export type LemmaDocumentEditor = Editor<BasicExtension>
+export type LemmaRichDocumentEditor = Editor<BasicExtension>
 type MaybePromise<T> = T | Promise<T>
 
 export interface LemmaDocumentWorkspaceMetadataItem {
@@ -149,7 +156,7 @@ export interface LemmaDocumentWorkspaceCommand {
   icon?: React.ReactNode
   keywords?: string[]
   disabled?: boolean
-  run: (editor: LemmaDocumentEditor, context: LemmaDocumentWorkspaceContext) => void | Promise<void>
+  run: (editor: LemmaRichDocumentEditor, context: LemmaDocumentWorkspaceContext) => void | Promise<void>
 }
 
 export interface LemmaDocumentWorkspaceContext {
@@ -160,11 +167,28 @@ export interface LemmaDocumentWorkspaceContext {
   json: LemmaDocumentNode
   intent: LemmaDocumentWorkspaceIntent
   pathLabel?: React.ReactNode
+  file?: FileResponse | null
+  path?: string
+}
+
+export interface LemmaDocumentWorkspaceFileOptions {
+  path?: string
+  file?: FileResponse | null
+  format?: LemmaDocumentWorkspaceFileFormat
+  enabled?: boolean
+  defaultDirectoryPath?: string
+  defaultFileName?: string
+  searchEnabled?: boolean
+  convertedArtifact?: string
+  textEditable?: boolean
+  showMetadata?: boolean
+  showBreadcrumbs?: boolean
 }
 
 export interface LemmaDocumentWorkspaceProps {
   client?: LemmaClient
   podId?: string
+  file?: LemmaDocumentWorkspaceFileOptions
   titleValue?: string
   defaultTitle?: string
   onTitleChange?: (value: string) => void
@@ -202,6 +226,9 @@ export interface LemmaDocumentWorkspaceProps {
   appearance?: LemmaDocumentWorkspaceAppearance
   density?: LemmaDocumentWorkspaceDensity
   radius?: LemmaDocumentWorkspaceRadius
+  onCreateSuccess?: (file: FileResponse, context: LemmaDocumentWorkspaceContext) => void
+  onSaveSuccess?: (file: FileResponse, context: LemmaDocumentWorkspaceContext) => void
+  onOpenExternal?: (file: FileResponse | null, path: string) => void
 }
 
 const slashRegex = canUseRegexLookbehind() ? /(?<!\S)\/(\S.*)?$/u : /\/(\S.*)?$/u
@@ -209,6 +236,7 @@ const slashRegex = canUseRegexLookbehind() ? /(?<!\S)\/(\S.*)?$/u : /\/(\S.*)?$/
 export function LemmaDocumentWorkspace({
   client,
   podId,
+  file: fileOptions,
   titleValue,
   defaultTitle = "",
   onTitleChange,
@@ -222,7 +250,7 @@ export function LemmaDocumentWorkspace({
   intent = "edit",
   open,
   onOpenChange,
-  saveState = "saved",
+  saveState: controlledSaveState = "saved",
   onSave,
   saveDisabled = false,
   placeholder = "Write, or press / for blocks.",
@@ -246,6 +274,9 @@ export function LemmaDocumentWorkspace({
   appearance = "default",
   density = "comfortable",
   radius = "lg",
+  onCreateSuccess,
+  onSaveSuccess,
+  onOpenExternal,
 }: LemmaDocumentWorkspaceProps) {
   const [uncontrolledTitle, setUncontrolledTitle] = React.useState(defaultTitle)
   const [uncontrolledSummary, setUncontrolledSummary] = React.useState(defaultSummary)
@@ -267,24 +298,56 @@ export function LemmaDocumentWorkspace({
   const [recordsFiltersText, setRecordsFiltersText] = React.useState("")
   const [recordsSortsText, setRecordsSortsText] = React.useState("")
   const [selectedRecordColumns, setSelectedRecordColumns] = React.useState<string[]>([])
+  const [localFile, setLocalFile] = React.useState<FileResponse | null>(null)
+  const [fileContent, setFileContent] = React.useState<string | null>(null)
+  const [loadedFileSnapshot, setLoadedFileSnapshot] = React.useState<{
+    title: string
+    summary: string
+    contentKey: string
+    text: string
+    path: string
+  } | null>(null)
+  const [objectUrl, setObjectUrl] = React.useState<string | null>(null)
+  const [fileError, setFileError] = React.useState<Error | null>(null)
+  const [isLoadingFile, setIsLoadingFile] = React.useState(false)
+  const [isSavingFile, setIsSavingFile] = React.useState(false)
+  const [textDraft, setTextDraft] = React.useState("")
   const contentKey = React.useMemo(() => safeStringify(value ?? defaultValue ?? ""), [defaultValue, value])
   const initialContent = React.useMemo(() => normalizeDocumentContent(value ?? defaultValue ?? ""), [contentKey])
   const [docSnapshot, setDocSnapshot] = React.useState(() => summarizeDocument(initialContent))
   const latestContentRef = React.useRef(initialContent)
   const suppressChangeRef = React.useRef(false)
   const fallbackClient = React.useMemo(() => client ?? (null as unknown as LemmaClient), [client])
+  const scopedClient = React.useMemo(() => client ? (podId ? client.withPod(podId) : client) : null, [client, podId])
 
   const editable = intent !== "read"
   const isCreateIntent = intent === "create"
   const resolvedTitle = titleValue ?? uncontrolledTitle
   const resolvedSummary = summaryValue ?? uncontrolledSummary
   const canUseBuiltinInsertPicker = Boolean(client)
+  const filePath = fileOptions?.path?.trim() ?? ""
+  const fileEnabled = Boolean(fileOptions && (fileOptions.enabled ?? true) && scopedClient && (filePath || isCreateIntent))
+  const fileState = useFile({
+    client: fallbackClient,
+    podId,
+    path: filePath,
+    enabled: Boolean(fileEnabled && filePath && !fileOptions?.file && !isCreateIntent),
+  })
+  const resolvedFile = localFile ?? fileOptions?.file ?? fileState.file
+  const fileFormat = inferWorkspaceFileFormat(fileOptions?.format ?? "auto", resolvedFile, filePath)
+  const isStructuredFile = Boolean(fileOptions && (isCreateIntent || fileFormat === "structured"))
+  const isTextFile = Boolean(fileOptions && !isCreateIntent && (fileFormat === "markdown" || fileFormat === "text"))
+  const isInlinePreviewFile = Boolean(fileOptions && !isCreateIntent && !isStructuredFile && !isTextFile)
+  const usesStructuredEditor = !fileOptions || isStructuredFile
+  const fileDisplayPath = filePath || buildWorkspaceFilePath(fileOptions?.defaultDirectoryPath, fileOptions?.defaultFileName)
+  const resolvedPathLabel = pathLabel ?? (fileOptions ? displayWorkspacePath(fileDisplayPath) : undefined)
+  const resolvedLastEditedLabel = lastEditedLabel ?? (resolvedFile?.updated_at ? `Updated ${formatWorkspaceDate(resolvedFile.updated_at)}` : undefined)
 
   const editor = React.useMemo(() => {
     return createEditor({
       extension: defineDocumentExtension(placeholder, editable),
       defaultContent: latestContentRef.current,
-    }) as LemmaDocumentEditor
+    }) as LemmaRichDocumentEditor
   }, [editable, placeholder])
 
   const setTitle = React.useCallback((nextTitle: string) => {
@@ -335,9 +398,263 @@ export function LemmaDocumentWorkspace({
       html: getDocumentHTML(editor),
       json,
       intent,
-      pathLabel,
+      pathLabel: resolvedPathLabel,
+      file: resolvedFile,
+      path: fileDisplayPath,
     }
-  }, [editor, intent, pathLabel, resolvedSummary, resolvedTitle])
+  }, [editor, fileDisplayPath, intent, resolvedFile, resolvedPathLabel, resolvedSummary, resolvedTitle])
+
+  const loadPodFile = React.useCallback(async (signal?: AbortSignal) => {
+    if (!fileEnabled || !scopedClient || !filePath || isCreateIntent) return
+
+    setIsLoadingFile(true)
+    setFileError(null)
+    setFileContent(null)
+    setObjectUrl((previous) => {
+      if (previous) URL.revokeObjectURL(previous)
+      return null
+    })
+
+    try {
+      const nextFile = fileOptions?.file ?? await scopedClient.files.get(filePath)
+      if (signal?.aborted) return
+      setLocalFile(nextFile)
+
+      if (fileFormat === "download") return
+
+      if (fileFormat === "html") {
+        const html = await scopedClient.files.converted.render(filePath)
+        if (signal?.aborted) return
+        setFileContent(typeof html === "string" ? html : String(html ?? ""))
+        return
+      }
+
+      const blob = await scopedClient.files.download(filePath)
+      if (signal?.aborted) return
+
+      if (fileFormat === "image" || fileFormat === "pdf") {
+        setObjectUrl(URL.createObjectURL(blob))
+        return
+      }
+
+      const text = await blob.text()
+      if (signal?.aborted) return
+      setFileContent(text)
+
+      if (fileFormat === "structured") {
+        const parsed = parsePersistedWorkspaceDocumentBody(text)
+        const nextContent = parsed?.content ?? normalizeDocumentContent(text)
+        const nextTitle = parsed?.title ?? humanizeWorkspaceFileName(nextFile.name || nextFile.path)
+        const nextSummary = parsed?.summary ?? nextFile.description?.trim() ?? ""
+        suppressChangeRef.current = true
+        try {
+          editor.setContent(nextContent)
+          latestContentRef.current = nextContent
+          setDocSnapshot(summarizeDocument(nextContent))
+          if (titleValue == null) setUncontrolledTitle(nextTitle)
+          if (summaryValue == null) setUncontrolledSummary(nextSummary)
+          setLoadedFileSnapshot({
+            title: nextTitle,
+            summary: nextSummary,
+            contentKey: safeStringify(nextContent),
+            text: documentTextFromContent(nextContent),
+            path: nextFile.path,
+          })
+        } finally {
+          suppressChangeRef.current = false
+        }
+      } else if (fileFormat === "markdown" || fileFormat === "text") {
+        setTextDraft(text)
+        setLoadedFileSnapshot({
+          title: humanizeWorkspaceFileName(nextFile.name || nextFile.path),
+          summary: nextFile.description?.trim() ?? "",
+          contentKey: "",
+          text,
+          path: nextFile.path,
+        })
+      }
+    } catch (error) {
+      if (signal?.aborted) return
+      setFileError(error instanceof Error ? error : new Error("Failed to load pod file."))
+    } finally {
+      if (!signal?.aborted) setIsLoadingFile(false)
+    }
+  }, [editor, fileEnabled, fileFormat, fileOptions?.file, filePath, isCreateIntent, scopedClient, summaryValue, titleValue])
+
+  React.useEffect(() => {
+    setLocalFile(null)
+    setLoadedFileSnapshot(null)
+  }, [filePath])
+
+  React.useEffect(() => {
+    if (!fileOptions) return
+    if (isCreateIntent) {
+      const nextTitle = titleValue ?? defaultTitle
+      const nextSummary = summaryValue ?? defaultSummary
+      const nextContent = normalizeDocumentContent(value ?? defaultValue ?? "")
+      suppressChangeRef.current = true
+      try {
+        editor.setContent(nextContent)
+        latestContentRef.current = nextContent
+        setDocSnapshot(summarizeDocument(nextContent))
+      } finally {
+        suppressChangeRef.current = false
+      }
+      setLoadedFileSnapshot({
+        title: nextTitle,
+        summary: nextSummary,
+        contentKey: safeStringify(nextContent),
+        text: documentTextFromContent(nextContent),
+        path: buildWorkspaceFilePath(fileOptions.defaultDirectoryPath, fileOptions.defaultFileName),
+      })
+      return
+    }
+    const controller = new AbortController()
+    void loadPodFile(controller.signal)
+    return () => {
+      controller.abort()
+      setObjectUrl((previous) => {
+        if (previous) URL.revokeObjectURL(previous)
+        return null
+      })
+    }
+  }, [
+    defaultSummary,
+    defaultTitle,
+    defaultValue,
+    editor,
+    fileOptions?.defaultDirectoryPath,
+    fileOptions?.defaultFileName,
+    isCreateIntent,
+    loadPodFile,
+    summaryValue,
+    titleValue,
+    value,
+  ])
+
+  const fileMetadata = React.useMemo(() => {
+    if (!resolvedFile) return metadata
+    return [
+      ...metadata,
+      { label: "Path", value: displayWorkspacePath(resolvedFile.path) },
+      { label: "Type", value: resolvedFile.mime_type ?? fileFormat },
+      { label: "Size", value: typeof resolvedFile.size_bytes === "number" ? formatBytes(resolvedFile.size_bytes) : "Unknown" },
+      { label: "Search", value: resolvedFile.search_enabled === false ? "Disabled" : resolvedFile.indexed_at ? `Indexed ${formatWorkspaceDate(resolvedFile.indexed_at)}` : "Index pending" },
+    ]
+  }, [fileFormat, metadata, resolvedFile])
+
+  const structuredFileDirty = Boolean(
+    fileOptions &&
+    isStructuredFile &&
+    loadedFileSnapshot &&
+    (resolvedTitle !== loadedFileSnapshot.title ||
+      resolvedSummary !== loadedFileSnapshot.summary ||
+      safeStringify(latestContentRef.current) !== loadedFileSnapshot.contentKey),
+  )
+  const textFileDirty = Boolean(fileOptions && isTextFile && loadedFileSnapshot && textDraft !== loadedFileSnapshot.text)
+  const effectiveSaveState: LemmaDocumentWorkspaceSaveState = fileOptions
+    ? fileError
+      ? "error"
+      : isSavingFile
+        ? "saving"
+        : structuredFileDirty || textFileDirty
+          ? "dirty"
+          : "saved"
+    : controlledSaveState
+
+  const savePodFile = React.useCallback(async () => {
+    if (!fileOptions || !scopedClient || isSavingFile) return
+    setIsSavingFile(true)
+    setFileError(null)
+    try {
+      const context = getWorkspaceContext()
+      const targetPath = filePath || buildWorkspaceFilePath(fileOptions.defaultDirectoryPath, fileOptions.defaultFileName || documentFileNameFromTitle(context.title))
+      let updated: FileResponse
+
+      if (isTextFile) {
+        updated = await scopedClient.files.update(targetPath, {
+          file: new Blob([textDraft], { type: inferWorkspaceTextMimeType(resolvedFile?.mime_type, targetPath, fileFormat) }),
+        })
+        setTextDraft(textDraft)
+        setLoadedFileSnapshot({
+          title: humanizeWorkspaceFileName(updated.name || updated.path),
+          summary: updated.description?.trim() ?? "",
+          contentKey: "",
+          text: textDraft,
+          path: updated.path,
+        })
+      } else {
+        const nextTitle = context.title.trim() || humanizeWorkspaceFileName(targetPath)
+        const nextSummary = context.summary.trim()
+        const body = buildWorkspaceDocumentBody({
+          title: nextTitle,
+          summary: nextSummary,
+          content: context.json,
+        })
+        const blob = new Blob([body], { type: "application/json;charset=utf-8" })
+        if (isCreateIntent || !filePath) {
+          updated = await scopedClient.files.upload(blob, {
+            name: fileOptions.defaultFileName || documentFileNameFromTitle(nextTitle),
+            directoryPath: normalizePath(fileOptions.defaultDirectoryPath),
+            description: nextSummary || undefined,
+            searchEnabled: fileOptions.searchEnabled ?? true,
+          })
+          onCreateSuccess?.(updated, { ...context, file: updated, path: updated.path })
+        } else {
+          updated = await scopedClient.files.update(filePath, {
+            file: blob,
+            description: nextSummary || undefined,
+            name: filePath.toLowerCase().endsWith(".lemma-doc.json") ? undefined : documentFileNameFromTitle(nextTitle),
+          })
+        }
+        setLoadedFileSnapshot({
+          title: nextTitle,
+          summary: nextSummary,
+          contentKey: safeStringify(context.json),
+          text: context.text,
+          path: updated.path,
+        })
+      }
+
+      setLocalFile(updated)
+      onSaveSuccess?.(updated, { ...getWorkspaceContext(), file: updated, path: updated.path })
+      await fileState.refresh?.()
+    } catch (error) {
+      setFileError(error instanceof Error ? error : new Error("Failed to save pod file."))
+    } finally {
+      setIsSavingFile(false)
+    }
+  }, [
+    fileFormat,
+    fileOptions,
+    filePath,
+    fileState,
+    getWorkspaceContext,
+    isCreateIntent,
+    isSavingFile,
+    isTextFile,
+    onCreateSuccess,
+    onSaveSuccess,
+    resolvedFile?.mime_type,
+    scopedClient,
+    textDraft,
+  ])
+
+  const handleDownload = React.useCallback(async () => {
+    if (!scopedClient || !filePath) return
+    const blob = await scopedClient.files.download(filePath)
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = downloadFileNameFromPath(filePath)
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }, [filePath, scopedClient])
+
+  const effectiveOnSave = fileOptions ? savePodFile : onSave
+  const effectiveSaveDisabled = fileOptions
+    ? saveDisabled || isLoadingFile || isSavingFile || (!structuredFileDirty && !textFileDirty && !isCreateIntent)
+    : saveDisabled
 
   const fileTreeState = useFileTree({
     client: fallbackClient,
@@ -630,22 +947,40 @@ export function LemmaDocumentWorkspace({
       <ScopedDocumentStyles />
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/40 bg-background/80 px-4 py-1.5 backdrop-blur-sm">
         <div className="flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
-          {pathLabel ? <span className="truncate">{pathLabel}</span> : null}
-          {pathLabel && lastEditedLabel ? <span>·</span> : null}
-          {lastEditedLabel ? <span>{lastEditedLabel}</span> : null}
-          <span className={cn(saveState === "dirty" ? "font-medium text-foreground" : saveState === "error" ? "text-destructive" : null)}>{saveStateLabel(saveState, intent)}</span>
+          {resolvedPathLabel ? <span className="truncate">{resolvedPathLabel}</span> : null}
+          {resolvedPathLabel && resolvedLastEditedLabel ? <span>·</span> : null}
+          {resolvedLastEditedLabel ? <span>{resolvedLastEditedLabel}</span> : null}
+          <span className={cn(effectiveSaveState === "dirty" ? "font-medium text-foreground" : effectiveSaveState === "error" ? "text-destructive" : null)}>{saveStateLabel(effectiveSaveState, intent)}</span>
           <span>·</span>
-          <span>{docSnapshot.words} words</span>
+          <span>{isTextFile ? `${textDraft.length} characters` : `${docSnapshot.words} words`}</span>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {headerActions}
+          {fileOptions && filePath ? (
+            <>
+              <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={() => void loadPodFile()} disabled={isLoadingFile}>
+                <RefreshCw className={cn("size-3.5", isLoadingFile ? "animate-spin" : null)} />
+                Refresh
+              </Button>
+              <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={() => void handleDownload()}>
+                <Download className="size-3.5" />
+                Download
+              </Button>
+              {onOpenExternal ? (
+                <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={() => onOpenExternal(resolvedFile, filePath)}>
+                  <ExternalLink className="size-3.5" />
+                  Open
+                </Button>
+              ) : null}
+            </>
+          ) : null}
           {onAskAssistant ? (
             <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={askAssistant}>
               <WandSparkles className="size-3.5" />
               Ask
             </Button>
           ) : null}
-          {editable ? (
+          {editable && usesStructuredEditor ? (
             <Button variant="ghost" size="sm" className="h-7 gap-1.5 px-2 text-xs" onClick={() => setToolbarVisible((v) => !v)}>
               <Pilcrow className="size-3.5" />
               Format
@@ -655,9 +990,9 @@ export function LemmaDocumentWorkspace({
             <PanelRightOpen className="size-3.5" />
             Details
           </Button>
-          {onSave ? (
-            <Button size="sm" className="h-7 gap-1.5 px-3 text-xs" onClick={onSave} disabled={saveDisabled || saveState === "saving"}>
-              <Save className="size-3.5" />
+          {effectiveOnSave ? (
+            <Button size="sm" className="h-7 gap-1.5 px-3 text-xs" onClick={() => void effectiveOnSave()} disabled={effectiveSaveDisabled || effectiveSaveState === "saving"}>
+              {effectiveSaveState === "saving" ? <RefreshCw className="size-3.5 animate-spin" /> : <Save className="size-3.5" />}
               {isCreateIntent ? "Create" : "Save"}
             </Button>
           ) : null}
@@ -666,7 +1001,28 @@ export function LemmaDocumentWorkspace({
 
       <div className="min-h-0 flex-1 overflow-auto">
         <div className={cn("mx-auto w-full max-w-[860px]", contentPaddingClassName(density))}>
-          {editable ? (
+          {fileError ? (
+            <WorkspaceFileError error={fileError} radius={radius} onDownload={filePath ? handleDownload : undefined} />
+          ) : isLoadingFile ? (
+            <WorkspaceFileLoading />
+          ) : isInlinePreviewFile ? (
+            <WorkspaceFilePreview
+              kind={fileFormat}
+              title={resolvedFile?.name ?? fileNameFromPath(filePath)}
+              content={fileContent}
+              objectUrl={objectUrl}
+              radius={radius}
+              onDownload={handleDownload}
+            />
+          ) : isTextFile ? (
+            <WorkspaceTextFileEditor
+              value={textDraft}
+              onChange={setTextDraft}
+              editable={editable && (fileOptions?.textEditable ?? true)}
+              density={density}
+              radius={radius}
+            />
+          ) : editable ? (
             <input
               value={resolvedTitle}
               onChange={(event) => setTitle(event.target.value)}
@@ -688,7 +1044,7 @@ export function LemmaDocumentWorkspace({
             <p className={cn("mt-1 text-muted-foreground", inlineSummaryClassName(density))}>{resolvedSummary}</p>
           ) : null}
 
-          {editable && toolbarVisible ? (
+          {editable && toolbarVisible && usesStructuredEditor ? (
             <div className={cn("sticky top-0 z-20 mt-4 -mx-1 border border-border/50 bg-background/95 backdrop-blur-sm", radiusClassName(radius, "control"))}>
               <ProseKitToolbar editor={editor} onOpenInsert={() => setCommandMenuOpen((current) => !current)} />
               {commandMenuOpen ? (
@@ -705,27 +1061,29 @@ export function LemmaDocumentWorkspace({
             </div>
           ) : null}
 
-          <ProseKit editor={editor}>
-            <div className="lemma-prosekit-editor relative">
-              <div
-                ref={editor.mount}
-                data-lemma-editor=""
-                aria-label="Document body"
-                className={cn(
-                  "ProseMirror lemma-prosekit-mount min-h-[70vh] outline-none",
-                  editable ? "cursor-text" : "cursor-default",
-                )}
-                onFocus={() => setEditorFocused(true)}
-                onBlur={() => setEditorFocused(false)}
-              />
-              {editable ? (
-                <>
-                  <SlashMenu commands={commandItems} onSelect={executeCommand} />
-                  <DocumentTableHandle />
-                </>
-              ) : null}
-            </div>
-          </ProseKit>
+          {usesStructuredEditor ? (
+            <ProseKit editor={editor}>
+              <div className="lemma-prosekit-editor relative">
+                <div
+                  ref={editor.mount}
+                  data-lemma-editor=""
+                  aria-label="Document body"
+                  className={cn(
+                    "ProseMirror lemma-prosekit-mount min-h-[70vh] outline-none",
+                    editable ? "cursor-text" : "cursor-default",
+                  )}
+                  onFocus={() => setEditorFocused(true)}
+                  onBlur={() => setEditorFocused(false)}
+                />
+                {editable ? (
+                  <>
+                    <SlashMenu commands={commandItems} onSelect={executeCommand} />
+                    <DocumentTableHandle />
+                  </>
+                ) : null}
+              </div>
+            </ProseKit>
+          ) : null}
         </div>
       </div>
 
@@ -743,7 +1101,7 @@ export function LemmaDocumentWorkspace({
               <InspectorRow label="Words" value={String(docSnapshot.words)} />
               <InspectorRow label="Characters" value={String(docSnapshot.characters)} />
               {status ? <InspectorRow label="Status" value={status} /> : null}
-              {metadata.map((item, index) => (
+              {fileMetadata.map((item, index) => (
                 <InspectorRow key={index} label={item.label} value={item.value} />
               ))}
             </InspectorCard>
@@ -1032,6 +1390,122 @@ export function LemmaDocumentWorkspace({
   return <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col">{content}</div>
 }
 
+function WorkspaceFileLoading() {
+  return (
+    <div className="grid gap-3 py-8">
+      <div className="h-8 w-1/3 animate-pulse rounded-md bg-muted" />
+      <div className="h-24 w-full animate-pulse rounded-md bg-muted" />
+      <div className="h-[28rem] w-full animate-pulse rounded-md bg-muted" />
+    </div>
+  )
+}
+
+function WorkspaceFileError({
+  error,
+  radius,
+  onDownload,
+}: {
+  error: Error
+  radius: LemmaDocumentWorkspaceRadius
+  onDownload?: () => void | Promise<void>
+}) {
+  return (
+    <div className="flex min-h-[32rem] flex-col items-center justify-center gap-3 text-center">
+      <span className={cn("flex size-11 items-center justify-center border border-destructive/30 bg-destructive/10 text-destructive", radiusClassName(radius, "control"))}>
+        <AlertCircle className="size-5" />
+      </span>
+      <div>
+        <p className="font-medium text-foreground">Preview unavailable</p>
+        <p className="mt-1 max-w-md text-sm text-muted-foreground">{error.message}</p>
+      </div>
+      {onDownload ? (
+        <Button variant="outline" size="sm" onClick={() => void onDownload()}>
+          <Download data-icon="inline-start" />
+          Download file
+        </Button>
+      ) : null}
+    </div>
+  )
+}
+
+function WorkspaceFilePreview({
+  kind,
+  title,
+  content,
+  objectUrl,
+  radius,
+  onDownload,
+}: {
+  kind: LemmaDocumentWorkspaceFileFormat
+  title: string
+  content: string | null
+  objectUrl: string | null
+  radius: LemmaDocumentWorkspaceRadius
+  onDownload: () => void | Promise<void>
+}) {
+  if (kind === "image" && objectUrl) {
+    return (
+      <div className="flex min-h-[34rem] items-center justify-center">
+        <img src={objectUrl} alt={title} className={cn("max-h-full max-w-full object-contain", radiusClassName(radius, "surface"))} />
+      </div>
+    )
+  }
+
+  if (kind === "pdf" && objectUrl) {
+    return <iframe title={title} src={objectUrl} className={cn("h-full min-h-[34rem] w-full border border-border/40 bg-background", radiusClassName(radius, "surface"))} />
+  }
+
+  if (kind === "html" && content != null) {
+    return <iframe title={title} srcDoc={content} sandbox="" className={cn("h-full min-h-[34rem] w-full border border-border/40 bg-background", radiusClassName(radius, "surface"))} />
+  }
+
+  return (
+    <div className="flex min-h-[32rem] flex-col items-center justify-center gap-3 text-center">
+      <span className={cn("flex size-11 items-center justify-center border border-border/60 bg-muted/40 text-muted-foreground", radiusClassName(radius, "control"))}>
+        {kind === "image" ? <Image className="size-5" /> : kind === "pdf" || kind === "html" ? <FileText className="size-5" /> : <File className="size-5" />}
+      </span>
+      <div>
+        <p className="font-medium text-foreground">No inline preview</p>
+        <p className="mt-1 text-sm text-muted-foreground">Download the file or open it from another workflow.</p>
+      </div>
+      <Button variant="outline" size="sm" onClick={() => void onDownload()}>
+        <Download data-icon="inline-start" />
+        Download file
+      </Button>
+    </div>
+  )
+}
+
+function WorkspaceTextFileEditor({
+  value,
+  onChange,
+  editable,
+  density,
+  radius,
+}: {
+  value: string
+  onChange: (value: string) => void
+  editable: boolean
+  density: LemmaDocumentWorkspaceDensity
+  radius: LemmaDocumentWorkspaceRadius
+}) {
+  if (!editable) {
+    return (
+      <pre className={cn("min-h-[34rem] overflow-auto whitespace-pre-wrap border border-border/40 bg-card font-mono text-xs leading-6 text-foreground", radiusClassName(radius, "surface"), textFilePaddingClassName(density))}>
+        {value}
+      </pre>
+    )
+  }
+
+  return (
+    <Textarea
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      className={cn("min-h-[34rem] resize-none border-border/40 bg-card font-mono text-xs leading-6 shadow-none", radiusClassName(radius, "surface"), textFilePaddingClassName(density))}
+    />
+  )
+}
+
 function defineDocumentExtension(placeholder: string, editable: boolean) {
   const base = union(
     defineBasicExtension(),
@@ -1044,10 +1518,10 @@ function ProseKitToolbar({
   editor,
   onOpenInsert,
 }: {
-  editor: LemmaDocumentEditor
+  editor: LemmaRichDocumentEditor
   onOpenInsert: () => void
 }) {
-  const deriveToolbarItems = React.useCallback((editor: LemmaDocumentEditor) => getToolbarItems(editor), [])
+  const deriveToolbarItems = React.useCallback((editor: LemmaRichDocumentEditor) => getToolbarItems(editor), [])
   const items = useEditorDerivedValue<BasicExtension, ToolbarItems>(deriveToolbarItems, { editor })
 
   return (
@@ -1129,7 +1603,7 @@ type ToolbarItems = {
   table?: ToolbarCommand
 }
 
-function getToolbarItems(editor: LemmaDocumentEditor): ToolbarItems {
+function getToolbarItems(editor: LemmaRichDocumentEditor): ToolbarItems {
   return {
     undo: editor.commands.undo ? {
       isActive: false,
@@ -1366,7 +1840,7 @@ function Grip({ className }: { className?: string }) {
   )
 }
 
-function getTableHandleState(editor: LemmaDocumentEditor) {
+function getTableHandleState(editor: LemmaRichDocumentEditor) {
   return {
     addTableColumnBefore: {
       canExec: editor.commands.addTableColumnBefore?.canExec() ?? false,
@@ -1531,7 +2005,7 @@ function ReferenceList({ items, radius }: { items: LemmaDocumentWorkspaceReferen
   )
 }
 
-function insertBlockText(editor: LemmaDocumentEditor, text: string, kind: "paragraph" | "blockquote") {
+function insertBlockText(editor: LemmaRichDocumentEditor, text: string, kind: "paragraph" | "blockquote") {
   prepareForBlockInsert(editor)
   const paragraph = editor.nodes.paragraph(text)
   if (kind === "blockquote") {
@@ -1542,7 +2016,7 @@ function insertBlockText(editor: LemmaDocumentEditor, text: string, kind: "parag
   editor.commands.insertDefaultBlock()
 }
 
-function insertSeededTable(editor: LemmaDocumentEditor) {
+function insertSeededTable(editor: LemmaRichDocumentEditor) {
   prepareForBlockInsert(editor)
   const paragraph = editor.nodes.paragraph
   const headerCell = (text: string) => editor.nodes.tableHeaderCell({}, paragraph(text))
@@ -1569,7 +2043,7 @@ function insertSeededTable(editor: LemmaDocumentEditor) {
   editor.commands.insertDefaultBlock()
 }
 
-function insertFileBlock(editor: LemmaDocumentEditor, block: LemmaDocumentWorkspaceFileBlock) {
+function insertFileBlock(editor: LemmaRichDocumentEditor, block: LemmaDocumentWorkspaceFileBlock) {
   insertEmbedBlock(editor, [
     paragraphNode(editor, "File"),
     paragraphNode(editor, block.title.trim() || fileNameFromPath(block.path)),
@@ -1579,7 +2053,7 @@ function insertFileBlock(editor: LemmaDocumentEditor, block: LemmaDocumentWorksp
   ])
 }
 
-function insertRecordsBlock(editor: LemmaDocumentEditor, block: LemmaDocumentWorkspaceRecordsBlock) {
+function insertRecordsBlock(editor: LemmaRichDocumentEditor, block: LemmaDocumentWorkspaceRecordsBlock) {
   const filters = normalizeRecordsFilters(block.filters)
   const columns = normalizeStringList(block.columns)
   const sorts = normalizeStringList(block.sorts)
@@ -1596,7 +2070,7 @@ function insertRecordsBlock(editor: LemmaDocumentEditor, block: LemmaDocumentWor
   ])
 }
 
-function insertEmbedBlock(editor: LemmaDocumentEditor, blocks: Array<ReturnType<LemmaDocumentEditor["nodes"]["paragraph"]> | null | undefined>) {
+function insertEmbedBlock(editor: LemmaRichDocumentEditor, blocks: Array<ReturnType<LemmaRichDocumentEditor["nodes"]["paragraph"]> | null | undefined>) {
   const content = blocks.filter((block): block is NonNullable<typeof block> => Boolean(block))
   if (content.length === 0) return
   prepareForBlockInsert(editor)
@@ -1606,18 +2080,18 @@ function insertEmbedBlock(editor: LemmaDocumentEditor, blocks: Array<ReturnType<
   editor.commands.insertDefaultBlock()
 }
 
-function prepareForBlockInsert(editor: LemmaDocumentEditor) {
+function prepareForBlockInsert(editor: LemmaRichDocumentEditor) {
   if (editor.nodes.list.isActive()) {
     editor.commands.unwrapList()
   }
 }
 
-function optionalParagraphNode(editor: LemmaDocumentEditor, text: string | null | undefined) {
+function optionalParagraphNode(editor: LemmaRichDocumentEditor, text: string | null | undefined) {
   const normalized = text?.trim()
   return normalized ? paragraphNode(editor, normalized) : null
 }
 
-function paragraphNode(editor: LemmaDocumentEditor, text: string) {
+function paragraphNode(editor: LemmaRichDocumentEditor, text: string) {
   return editor.nodes.paragraph(text)
 }
 
@@ -1629,6 +2103,149 @@ function fileNameFromPath(path: string): string {
   const normalized = path.replace(/\\/g, "/")
   const parts = normalized.split("/").filter(Boolean)
   return parts[parts.length - 1] ?? normalized
+}
+
+function buildWorkspaceFilePath(directoryPath?: string, fileName?: string): string {
+  const directory = normalizePath(directoryPath)
+  const name = normalizeWorkspaceFileName(fileName || "untitled-document.lemma-doc.json")
+  return `${directory === "/" ? "" : directory}/${name}` || `/${name}`
+}
+
+function normalizeWorkspaceFileName(name: string): string {
+  const trimmed = name.trim().replace(/\\/g, "/").split("/").filter(Boolean).pop() ?? ""
+  return trimmed || "untitled-document.lemma-doc.json"
+}
+
+function documentFileNameFromTitle(title: string): string {
+  const slug = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+  return `${slug || "untitled-document"}.lemma-doc.json`
+}
+
+function stripWorkspaceDocumentExtension(name: string): string {
+  return name.toLowerCase().endsWith(".lemma-doc.json") ? name.slice(0, -".lemma-doc.json".length) : name
+}
+
+function humanizeWorkspaceFileName(path: string): string {
+  const base = stripWorkspaceDocumentExtension(fileNameFromPath(path)).replace(/\.[^.]+$/, "")
+  const spaced = base.replace(/[-_]+/g, " ").trim()
+  if (!spaced) return "Untitled document"
+  return spaced.replace(/\b\w/g, (value) => value.toUpperCase())
+}
+
+function displayWorkspacePath(path: string): string {
+  const normalized = path.trim().replace(/\\/g, "/")
+  const parts = normalized.split("/")
+  for (let index = parts.length - 1; index >= 0; index -= 1) {
+    if (!parts[index]) continue
+    parts[index] = stripWorkspaceDocumentExtension(parts[index])
+    break
+  }
+  return parts.join("/")
+}
+
+function downloadFileNameFromPath(path: string): string {
+  const name = fileNameFromPath(path)
+  if (!name.toLowerCase().endsWith(".lemma-doc.json")) return name
+  return `${stripWorkspaceDocumentExtension(name)}.json`
+}
+
+function extensionFromPath(path: string): string {
+  const name = fileNameFromPath(path)
+  const index = name.lastIndexOf(".")
+  if (index < 0) return ""
+  return name.slice(index + 1).toLowerCase()
+}
+
+function inferWorkspaceFileFormat(
+  requested: LemmaDocumentWorkspaceFileFormat,
+  file: FileResponse | null | undefined,
+  path: string,
+): LemmaDocumentWorkspaceFileFormat {
+  if (requested !== "auto") return requested
+  const mime = file?.mime_type?.toLowerCase() ?? ""
+  const extension = extensionFromPath(path)
+  const name = fileNameFromPath(path).toLowerCase()
+  if (name.endsWith(".lemma-doc.json")) return "structured"
+  if (mime.startsWith("image/") || /^(jpg|jpeg|png|gif|webp|svg|bmp|ico|tiff|avif)$/.test(extension)) return "image"
+  if (mime === "application/pdf" || extension === "pdf") return "pdf"
+  if (extension === "md" || extension === "markdown" || extension === "mdx") return "markdown"
+  if (isWorkspaceTextLikeMime(mime) || isWorkspaceTextLikeFile(extension, name)) return "text"
+  if (/^(doc|docx|ppt|pptx|xls|xlsx|pages|rtf)$/.test(extension)) return "html"
+  return "download"
+}
+
+function isWorkspaceTextLikeMime(mime: string): boolean {
+  return mime.startsWith("text/") || /(json|xml|yaml|toml|javascript|typescript|shellscript|x-sh|graphql)/.test(mime)
+}
+
+function isWorkspaceTextLikeFile(extension: string, name: string): boolean {
+  if (name === "dockerfile" || name === "makefile") return true
+  return /^(txt|text|csv|log|json|jsonc|xml|yaml|yml|toml|ini|conf|env|js|mjs|cjs|jsx|ts|mts|cts|tsx|css|scss|sass|less|html|htm|py|rb|go|rs|java|kt|swift|c|h|cc|cpp|hpp|cs|php|sh|bash|zsh|fish|sql|graphql|gql)$/.test(extension)
+}
+
+function inferWorkspaceTextMimeType(mimeType: string | null | undefined, path: string, kind: LemmaDocumentWorkspaceFileFormat): string {
+  if (mimeType?.trim()) return mimeType
+  const extension = extensionFromPath(path)
+  if (kind === "markdown") return "text/markdown;charset=utf-8"
+  if (extension === "json" || extension === "jsonc") return "application/json;charset=utf-8"
+  if (extension === "yaml" || extension === "yml") return "application/yaml;charset=utf-8"
+  if (extension === "html" || extension === "htm") return "text/html;charset=utf-8"
+  if (extension === "csv") return "text/csv;charset=utf-8"
+  return "text/plain;charset=utf-8"
+}
+
+function buildWorkspaceDocumentBody({
+  title,
+  summary,
+  content,
+}: {
+  title: string
+  summary: string
+  content: LemmaDocumentNode
+}): string {
+  return JSON.stringify(
+    {
+      type: "lemma.document",
+      version: 1,
+      title: title.trim() || "Untitled document",
+      summary: summary.trim(),
+      content,
+    },
+    null,
+    2,
+  )
+}
+
+function parsePersistedWorkspaceDocumentBody(body: string): {
+  title: string | null
+  summary: string | null
+  content: LemmaDocumentNode
+} | null {
+  const trimmed = body.trim()
+  if (!trimmed.startsWith("{")) return null
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      type?: string
+      title?: unknown
+      summary?: unknown
+      content?: unknown
+    }
+    const content = parsed.type === "doc"
+      ? sanitizeDocument(parsed)
+      : sanitizeDocument(parsed.content)
+    if (parsed.type !== "lemma.document" && parsed.type !== "doc") return null
+    return {
+      title: typeof parsed.title === "string" ? parsed.title : null,
+      summary: typeof parsed.summary === "string" ? parsed.summary : null,
+      content,
+    }
+  } catch {
+    return null
+  }
 }
 
 function normalizeRecordsFilters(filters: Array<string | LemmaDocumentWorkspaceRecordsFilter> | undefined): string[] {
@@ -1914,7 +2531,7 @@ function documentTextFromContent(content: LemmaDocumentNode | null | undefined):
   return parts.join(" ").replace(/\s+/g, " ").trim()
 }
 
-function getDocumentHTML(editor: LemmaDocumentEditor): string {
+function getDocumentHTML(editor: LemmaRichDocumentEditor): string {
   try {
     if (typeof document === "undefined") return ""
     return editor.getDocHTML({ document })
@@ -2010,6 +2627,17 @@ function formatBytes(value?: number): string {
   return `${size >= 10 || unitIndex === 0 ? Math.round(size) : size.toFixed(1)} ${units[unitIndex]}`
 }
 
+function formatWorkspaceDate(value: string): string {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date)
+}
+
 function formatFileMeta(file: FileResponse): string {
   const parts = [
     file.kind || undefined,
@@ -2093,6 +2721,12 @@ function inspectorSlideClassName(focused: boolean) {
 }
 
 function inspectorPaddingClassName(density: LemmaDocumentWorkspaceDensity) {
+  if (density === "compact") return "p-3"
+  if (density === "spacious") return "p-6"
+  return "p-4"
+}
+
+function textFilePaddingClassName(density: LemmaDocumentWorkspaceDensity) {
   if (density === "compact") return "p-3"
   if (density === "spacious") return "p-6"
   return "p-4"

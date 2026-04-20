@@ -81,14 +81,14 @@ export function useTaskSession({
   }, []);
 
   const setTaskId = useCallback((nextTaskId: string | null) => {
-    abortRef.current?.abort();
-    abortRef.current = null;
-
     setTaskIdState((currentTaskId) => {
       if (currentTaskId === nextTaskId) {
         return currentTaskId;
       }
 
+      abortRef.current?.abort();
+      abortRef.current = null;
+      taskIdRef.current = nextTaskId;
       setError(null);
       setIsStreaming(false);
 

@@ -475,7 +475,7 @@ export function RecordDetail({
                 <EmptyDetailState
                   icon={FileText}
                   title="Files are ready to attach"
-                  description="Pass renderFiles to plug in lemma-file-browser, lemma-file-viewer, or a record-specific attachment surface."
+                  description="Pass renderFiles to plug in lemma-file-browser, lemma-document-workspace, or a record-specific attachment surface."
                   appearance={appearance}
                   radius={radius}
                 />

@@ -221,18 +221,14 @@ npx shadcn@latest add @lemma/lemma-detail-panel
 npx shadcn@latest add @lemma/lemma-record-form
 npx shadcn@latest add @lemma/lemma-global-search
 npx shadcn@latest add @lemma/lemma-file-browser
-npx shadcn@latest add @lemma/lemma-file-viewer
 npx shadcn@latest add @lemma/lemma-document-workspace
-npx shadcn@latest add @lemma/lemma-document-creator
-npx shadcn@latest add @lemma/lemma-document-viewer
-npx shadcn@latest add @lemma/lemma-document-editor
 npx shadcn@latest add @lemma/lemma-members
 npx shadcn@latest add @lemma/lemma-comments
 npx shadcn@latest add @lemma/lemma-insights
 npx shadcn@latest add @lemma/lemma-assistant-experience
 ```
 
-Those commands are representative. The registry currently ships 22 canonical blocks.
+Those commands are representative. The registry currently ships 19 canonical blocks.
 
 Current registry items:
 
@@ -241,8 +237,8 @@ Current registry items:
 | Assistant | `lemma-assistant-experience` |
 | Navigation | `lemma-breadcrumbs`, `lemma-global-search`, `lemma-page-tree` |
 | Records | `lemma-records-view`, `lemma-detail-panel`, `lemma-record-form`, `lemma-status-flow` |
-| Files | `lemma-file-browser`, `lemma-file-viewer` |
-| Documents | `lemma-document-workspace`, `lemma-document-creator`, `lemma-document-viewer`, `lemma-document-editor`, `lemma-markdown-editor` |
+| Files | `lemma-file-browser`, `lemma-document-workspace` |
+| Documents | `lemma-document-workspace`, `lemma-markdown-editor` |
 | People | `lemma-members`, `lemma-notification-bell`, `lemma-user-menu` |
 | Analytics | `lemma-insights` |
 | Collaboration | `lemma-activity-feed`, `lemma-comments` |
@@ -329,15 +325,14 @@ File blocks support:
 - pod-level file browsing and search, not only record-linked attachments
 - upload, download, search, rename, move, folder creation, picker mode, and composition-friendly link actions
 - selection-aware file browsing so `lemma-file-browser` can drive a paired workspace preview
-- image, PDF, text, markdown, converted HTML, metadata, and breadcrumb-aware previews through `lemma-file-viewer`
+- image, PDF, text, markdown, converted HTML, metadata, and download fallbacks through `lemma-document-workspace` with pod-file params
 
 Document blocks support:
 
-- Notion/Coda-style block documents through `lemma-document-workspace`, with Tiptap JSON content, page/modal modes, title and summary chrome, file/reference/assistant blocks, save state, metadata, backlinks, and assistant-context rails
-- docstore-native creation through `lemma-document-workspace` or the simpler `lemma-document-creator`, with folder targeting, title/summary setup, pod-file metadata, and `mode="page" | "modal"`
-- long-form reading surfaces through `lemma-document-workspace` or `lemma-document-viewer`, with full-page and modal presentation, metadata, backlinks, references, and assistant-context rails
-- long-form authoring through `lemma-document-workspace` or `lemma-document-editor`, with full-page and modal presentation, title/summary chrome, save-state affordances, outline, references, and assistant-context rails
-- a clean separation between richer document UX and the lower-level pod file workspace, while keeping pod files as the primary document store and avoiding embedded-first document editing
+- Notion/Coda-style block documents through `lemma-document-workspace`, with ProseKit JSON content, page/modal modes, title and summary chrome, file/reference/assistant blocks, save state, metadata, backlinks, and assistant-context rails
+- pod-file-native creation, reading, editing, and preview through one workspace, with folder targeting, title/summary setup, pod-file metadata, and `mode="page" | "modal"`
+- non-document file previews through the same workspace, including image, PDF, text, markdown, converted HTML, and download fallback behavior
+- records and attachments should pass pod file paths into `lemma-document-workspace`; records should not own document bodies directly
 
 People blocks support:
 

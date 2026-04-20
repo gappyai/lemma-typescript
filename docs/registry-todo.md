@@ -27,11 +27,6 @@ This is the execution tracker for the registry cleanup. Keep this file crisp: mo
 
 ## Later
 
-- Add first-class long-running action surfaces.
-  - Actions can run direct mutations, functions, workflows, or agents.
-  - Records tables and detail panels should show a live working row/tab until terminal state.
-  - Agent/workflow progress should be resumable and inspectable, not just a spinner.
-
 - Add recipe/example packs after primitives are strong.
   - Issue tracker.
   - CRM workspace.
@@ -59,14 +54,15 @@ This is the execution tracker for the registry cleanup. Keep this file crisp: mo
 - Expanded `lemma-records-view` as the consolidation center with preset view mixes, comments/activity/files section hooks, column visibility defaults, pinned columns, widths, and default sort resolution.
 - Added one shared record action contract for row, detail, and bulk actions with direct update, function run, and workflow start support.
 - Kept `lemma-detail-panel` on the canonical `records-detail` renderer and moved its actions onto the shared record action contract.
+- Added `lemma-action-surface` as the canonical long-running launcher for direct actions, functions, workflows, and agents, with button/line/panel variants plus inspectable progress surfaces and resumable workflow/agent handling.
 - Added conditional field visibility and section visibility to `lemma-record-form` and records-view create sheets.
 - Added funnel chart support to `lemma-insights`.
 - Added read-only and tracker modes to `lemma-status-flow`.
 - Updated the README and hook recipes to document the canonical registry surface, consolidated records views, and pod member mutation hooks.
-- Set the long-term document direction in `docs/document-system-direction.md`, choosing future `lemma-document-editor` / `lemma-document-viewer` blocks and a Tiptap-based foundation while keeping `lemma-markdown-editor` interim.
-- Upgraded `lemma-file-browser` and `lemma-file-viewer` into a shared workspace story with rename, move, folder creation, picker mode, link actions, selection-aware browsing, metadata rails, and richer preview context.
-- Added initial `lemma-document-viewer` and `lemma-document-editor` blocks for richer reading and authoring shells.
-- Added `lemma-document-creator` plus a docstore-backed example workspace with modal and full-page document flows on top of pod files instead of assuming table-backed pages or embedded editors.
-- Added `lemma-document-workspace` as the canonical near-fullscreen Tiptap-backed document surface with structured `lemma.document` JSON storage, page/modal modes, creation flow wiring, file-reference blocks, metadata rails, backlinks, and assistant context.
+- Set the long-term document direction in `docs/document-system-direction.md`, converging document and file preview surfaces into `lemma-document-workspace` while keeping `lemma-markdown-editor` as a lightweight primitive.
+- Upgraded `lemma-file-browser` into the file navigation side of the workspace story with rename, move, folder creation, picker mode, link actions, and selection-aware browsing.
+- Removed standalone document creator/viewer/editor and file viewer blocks in favor of pod-file params on `lemma-document-workspace`.
+- Added `lemma-document-workspace` as the canonical near-fullscreen ProseKit-backed pod-file surface with structured `lemma.document` JSON storage, page/modal modes, creation flow wiring, file-reference blocks, metadata rails, backlinks, file previews, and assistant context.
 - Added explicit `page` / `embedded` / `side-panel` / `popup` modes plus typed launch-context cards to `lemma-assistant-experience`.
-- Updated the root agent guide and external Lemma desk skill docs to use the live 22-block registry surface and avoid deleted registry block names in new scaffold guidance.
+- Reworked the example workflow page to use `lemma-action-surface` for workflow and agent launches, and scoped `lemma-workflow-runner` to the chosen workflow instead of showing an unfiltered run dump.
+- Updated the root agent guide and external Lemma desk skill docs to use the live registry surface and avoid deleted registry block names in new scaffold guidance.

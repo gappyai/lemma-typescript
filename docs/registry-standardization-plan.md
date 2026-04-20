@@ -91,12 +91,8 @@ Current implementation status:
 | `lemma-record-form` | Canonical create/edit primitive | No | This is the only schema-driven record form block we should maintain. | yes | `inline`, `sheet`, `modal`, `wizard`; field groups; field order; conditional visibility; searchable FK inputs; direct/function submit |
 | `lemma-global-search` | Search and command palette | No | Core shell/search primitive for Airtable, Notion, and Linear-like apps. | yes | `dialog`, `inline`, `page`; grouped results; quick actions; assistant handoff; record/file scopes |
 | `lemma-breadcrumbs` | Shell navigation | No | Small but useful primitive for route, record, page, and file navigation. | yes | route, record, file-path, page-tree aware |
-| `lemma-file-browser` | Canonical file workspace | No | Defines the main pod-files story: folders, search, upload, browse, and retrieval for unstructured content. | yes | workspace browser, compact browser, search/results mode, picker mode, folder-tree mode |
-| `lemma-file-viewer` | Canonical file preview | No | The main reader/preview surface for datastore files and converted artifacts. | yes | inline, sheet, modal, full-page, split preview, document reader |
-| `lemma-document-workspace` | Canonical document workspace | No | The flagship create/read/edit surface for block-native pod-backed documents. | yes | page, modal, create, read, edit, assistant context, references, metadata rails |
-| `lemma-document-creator` | Lightweight document creation | Partial | Useful for explicit file/template/import flows beside the richer workspace. | yes | page, modal, folder targeting, starter templates, import path |
-| `lemma-document-viewer` | Supporting document reader | Partial | A focused read-only surface for structured documents when the full workspace is too much. | yes | page, modal, metadata rail, references, assistant launch |
-| `lemma-document-editor` | Supporting document authoring | Partial | A focused authoring surface for structured documents when the full workspace is not needed. | yes | page, modal, save state, outline, references, assistant launch |
+| `lemma-file-browser` | Canonical file browser | No | Defines the pod-file navigation story: folders, search, upload, browse, picker mode, and file operations. | yes | workspace browser, compact browser, search/results mode, picker mode, folder-tree mode |
+| `lemma-document-workspace` | Canonical pod-file workspace | No | The flagship create/read/edit/preview surface for structured documents and general pod files. | yes | page, modal, create, read, edit, preview, assistant context, references, metadata rails, image/PDF/text/HTML/download fallback |
 | `lemma-markdown-editor` | Lightweight markdown editor | No | Useful for plain markdown fields and notes beside the richer block-native document lane. | yes | write, preview, split, read-only |
 | `lemma-members` | People/member and access workspace | No | This should grow beyond chips/selects into the standard members page most apps will need. | yes | chip, avatar group, member select, user resolver, members list page, access admin workspace |
 | `lemma-comments` | Record discussion thread | No | Important detail primitive for issue trackers, projects, requests, and docs. | yes | inline, sidebar, compact, read-only, composer on/off |
@@ -213,7 +209,7 @@ Required work:
 - Add clearer status semantics for issue/project workflows.
 - Support denser inline usage inside detail headers and list rows.
 
-### 8. `lemma-file-browser` + `lemma-file-viewer`
+### 8. `lemma-file-browser` + `lemma-document-workspace`
 
 Must define one unified files story.
 
@@ -223,16 +219,16 @@ Required work:
 - Support folder navigation, path breadcrumbs, search, converted previews, upload, move, rename, and delete.
 - Add file picker/link flows as optional integrations for records and workflows.
 - Make attachments a usage mode, not the central abstraction.
-- Standardize preview and action surfaces between browser and viewer.
+- Route selected files into `lemma-document-workspace` for preview/edit actions.
 
-### 9. `lemma-markdown-editor` + `lemma-file-viewer`
+### 9. `lemma-markdown-editor` + `lemma-document-workspace`
 
 Must become credible document tooling over time, not just "good enough markdown."
 
 Required work:
 
 - Treat this as a phase 4/5 investment rather than a near-term blocker.
-- Evaluate replacing the current editing surface with a stronger foundation such as Tiptap or Plate.
+- Keep `lemma-markdown-editor` focused on simple fields while `lemma-document-workspace` owns pod-file documents and previews.
 - Aim for Notion-quality reading and authoring for internal docs, notes, and knowledge pages.
 - Ensure file viewing and document authoring feel like one document system, not disconnected widgets.
 
@@ -456,7 +452,7 @@ Acceptance criteria:
 Primary files:
 
 - `registry/default/lemma-file-browser/components/lemma-file-browser.tsx`
-- `registry/default/lemma-file-viewer/components/lemma-file-viewer.tsx`
+- `registry/default/lemma-document-workspace/components/lemma-document-workspace.tsx`
 - `registry/default/lemma-markdown-editor/components/lemma-markdown-editor.tsx`
 
 Scope:
