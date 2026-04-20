@@ -26,6 +26,7 @@ The problem to solve is not component count. The problem is overlap, duplicate m
 - One canonical record form system.
 - One canonical assistant system.
 - One unified files story.
+- One canonical document workspace story over pod-backed files.
 - One canonical members and access-management story.
 - Workflow-specific experiences should be built as presets, recipes, or app templates, not as first-class registry blocks.
 - Shared props and behavior matter more than shipping more blocks.
@@ -92,7 +93,11 @@ Current implementation status:
 | `lemma-breadcrumbs` | Shell navigation | No | Small but useful primitive for route, record, page, and file navigation. | yes | route, record, file-path, page-tree aware |
 | `lemma-file-browser` | Canonical file workspace | No | Defines the main pod-files story: folders, search, upload, browse, and retrieval for unstructured content. | yes | workspace browser, compact browser, search/results mode, picker mode, folder-tree mode |
 | `lemma-file-viewer` | Canonical file preview | No | The main reader/preview surface for datastore files and converted artifacts. | yes | inline, sheet, modal, full-page, split preview, document reader |
-| `lemma-markdown-editor` | Canonical text/document editor | No | Important for internal docs, notes, and Notion-like experiences, with a later push toward Notion-quality authoring. | yes | write, preview, split, read-only, document mode later |
+| `lemma-document-workspace` | Canonical document workspace | No | The flagship create/read/edit surface for block-native pod-backed documents. | yes | page, modal, create, read, edit, assistant context, references, metadata rails |
+| `lemma-document-creator` | Lightweight document creation | Partial | Useful for explicit file/template/import flows beside the richer workspace. | yes | page, modal, folder targeting, starter templates, import path |
+| `lemma-document-viewer` | Supporting document reader | Partial | A focused read-only surface for structured documents when the full workspace is too much. | yes | page, modal, metadata rail, references, assistant launch |
+| `lemma-document-editor` | Supporting document authoring | Partial | A focused authoring surface for structured documents when the full workspace is not needed. | yes | page, modal, save state, outline, references, assistant launch |
+| `lemma-markdown-editor` | Lightweight markdown editor | No | Useful for plain markdown fields and notes beside the richer block-native document lane. | yes | write, preview, split, read-only |
 | `lemma-members` | People/member and access workspace | No | This should grow beyond chips/selects into the standard members page most apps will need. | yes | chip, avatar group, member select, user resolver, members list page, access admin workspace |
 | `lemma-comments` | Record discussion thread | No | Important detail primitive for issue trackers, projects, requests, and docs. | yes | inline, sidebar, compact, read-only, composer on/off |
 | `lemma-activity-feed` | Event and history feed | No | Needed for Linear/Jira-like history and audit surfaces. | yes | record feed, workspace feed, compact, grouped by day/source |

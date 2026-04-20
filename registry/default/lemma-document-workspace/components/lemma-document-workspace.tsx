@@ -33,7 +33,6 @@ import {
   TableHandleRowTrigger,
 } from "prosekit/react/table-handle"
 import {
-  Bot,
   Bold,
   CheckSquare,
   Code2,
@@ -64,9 +63,19 @@ import {
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
+import { useFiles, useFileTree, useTables } from "lemma-sdk/react"
+import type { DatastoreDirectoryTreeNode, FileResponse, LemmaClient } from "lemma-sdk"
 
 export type LemmaDocumentWorkspaceMode = "page" | "modal"
 export type LemmaDocumentWorkspaceIntent = "create" | "edit" | "read"
@@ -76,6 +85,7 @@ export type LemmaDocumentWorkspaceDensity = "compact" | "comfortable" | "spaciou
 export type LemmaDocumentWorkspaceRadius = "none" | "sm" | "md" | "lg" | "xl"
 export type LemmaDocumentNode = NodeJSON
 export type LemmaDocumentEditor = Editor<BasicExtension>
+type MaybePromise<T> = T | Promise<T>
 
 export interface LemmaDocumentWorkspaceMetadataItem {
   label: React.ReactNode
@@ -110,6 +120,28 @@ export interface LemmaDocumentWorkspaceAction {
   onSelect: (context: LemmaDocumentWorkspaceContext) => void
 }
 
+export interface LemmaDocumentWorkspaceFileBlock {
+  title: string
+  path: string
+  description?: string
+  meta?: string
+  href?: string
+}
+
+export interface LemmaDocumentWorkspaceRecordsFilter {
+  label?: string
+  value: string
+}
+
+export interface LemmaDocumentWorkspaceRecordsBlock {
+  table: string
+  title?: string
+  description?: string
+  filters?: Array<string | LemmaDocumentWorkspaceRecordsFilter>
+  columns?: string[]
+  sorts?: string[]
+}
+
 export interface LemmaDocumentWorkspaceCommand {
   id: string
   label: React.ReactNode
@@ -117,7 +149,7 @@ export interface LemmaDocumentWorkspaceCommand {
   icon?: React.ReactNode
   keywords?: string[]
   disabled?: boolean
-  run: (editor: LemmaDocumentEditor, context: LemmaDocumentWorkspaceContext) => void
+  run: (editor: LemmaDocumentEditor, context: LemmaDocumentWorkspaceContext) => void | Promise<void>
 }
 
 export interface LemmaDocumentWorkspaceContext {
@@ -131,6 +163,8 @@ export interface LemmaDocumentWorkspaceContext {
 }
 
 export interface LemmaDocumentWorkspaceProps {
+  client?: LemmaClient
+  podId?: string
   titleValue?: string
   defaultTitle?: string
   onTitleChange?: (value: string) => void
@@ -157,8 +191,9 @@ export interface LemmaDocumentWorkspaceProps {
   assistantContext?: LemmaDocumentWorkspaceContextItem[]
   assistantActions?: LemmaDocumentWorkspaceAction[]
   commands?: LemmaDocumentWorkspaceCommand[]
-  onInsertFile?: (context: LemmaDocumentWorkspaceContext) => void
-  onInsertRecords?: (context: LemmaDocumentWorkspaceContext) => void
+  filePickerRootPath?: string
+  onInsertFile?: (context: LemmaDocumentWorkspaceContext) => MaybePromise<LemmaDocumentWorkspaceFileBlock | void>
+  onInsertRecords?: (context: LemmaDocumentWorkspaceContext) => MaybePromise<LemmaDocumentWorkspaceRecordsBlock | void>
   onAskAssistant?: (context: LemmaDocumentWorkspaceContext) => void
   onOpenComments?: (context: LemmaDocumentWorkspaceContext) => void
   onOpenActivity?: (context: LemmaDocumentWorkspaceContext) => void
@@ -172,6 +207,8 @@ export interface LemmaDocumentWorkspaceProps {
 const slashRegex = canUseRegexLookbehind() ? /(?<!\S)\/(\S.*)?$/u : /\/(\S.*)?$/u
 
 export function LemmaDocumentWorkspace({
+  client,
+  podId,
   titleValue,
   defaultTitle = "",
   onTitleChange,
@@ -198,6 +235,7 @@ export function LemmaDocumentWorkspace({
   assistantContext = [],
   assistantActions = [],
   commands = [],
+  filePickerRootPath = "/",
   onInsertFile,
   onInsertRecords,
   onAskAssistant,
@@ -216,16 +254,31 @@ export function LemmaDocumentWorkspace({
   const [commandQuery, setCommandQuery] = React.useState("")
   const [toolbarVisible, setToolbarVisible] = React.useState(true)
   const [editorFocused, setEditorFocused] = React.useState(false)
+  const [filePickerOpen, setFilePickerOpen] = React.useState(false)
+  const [filePickerDirectory, setFilePickerDirectory] = React.useState(normalizePath(filePickerRootPath))
+  const [selectedFilePath, setSelectedFilePath] = React.useState<string | null>(null)
+  const [fileReferenceTitle, setFileReferenceTitle] = React.useState("")
+  const [fileReferenceDescription, setFileReferenceDescription] = React.useState("")
+  const [fileReferenceMeta, setFileReferenceMeta] = React.useState("")
+  const [recordsPickerOpen, setRecordsPickerOpen] = React.useState(false)
+  const [selectedTableName, setSelectedTableName] = React.useState("")
+  const [recordsReferenceTitle, setRecordsReferenceTitle] = React.useState("")
+  const [recordsReferenceDescription, setRecordsReferenceDescription] = React.useState("")
+  const [recordsFiltersText, setRecordsFiltersText] = React.useState("")
+  const [recordsSortsText, setRecordsSortsText] = React.useState("")
+  const [selectedRecordColumns, setSelectedRecordColumns] = React.useState<string[]>([])
   const contentKey = React.useMemo(() => safeStringify(value ?? defaultValue ?? ""), [defaultValue, value])
   const initialContent = React.useMemo(() => normalizeDocumentContent(value ?? defaultValue ?? ""), [contentKey])
   const [docSnapshot, setDocSnapshot] = React.useState(() => summarizeDocument(initialContent))
   const latestContentRef = React.useRef(initialContent)
   const suppressChangeRef = React.useRef(false)
+  const fallbackClient = React.useMemo(() => client ?? (null as unknown as LemmaClient), [client])
 
   const editable = intent !== "read"
   const isCreateIntent = intent === "create"
   const resolvedTitle = titleValue ?? uncontrolledTitle
   const resolvedSummary = summaryValue ?? uncontrolledSummary
+  const canUseBuiltinInsertPicker = Boolean(client)
 
   const editor = React.useMemo(() => {
     return createEditor({
@@ -285,6 +338,119 @@ export function LemmaDocumentWorkspace({
       pathLabel,
     }
   }, [editor, intent, pathLabel, resolvedSummary, resolvedTitle])
+
+  const fileTreeState = useFileTree({
+    client: fallbackClient,
+    podId,
+    enabled: canUseBuiltinInsertPicker && filePickerOpen,
+    rootPath: normalizePath(filePickerRootPath),
+  })
+
+  const pickerFilesState = useFiles({
+    client: fallbackClient,
+    podId,
+    enabled: canUseBuiltinInsertPicker && filePickerOpen,
+    directoryPath: filePickerDirectory,
+  })
+
+  const tablesState = useTables({
+    client: fallbackClient,
+    podId,
+    enabled: canUseBuiltinInsertPicker && recordsPickerOpen,
+  })
+
+  const folderEntries = React.useMemo(
+    () => flattenDirectoryTree(fileTreeState.tree),
+    [fileTreeState.tree],
+  )
+
+  const selectedFile = React.useMemo(
+    () => pickerFilesState.files.find((file) => file.path === selectedFilePath) ?? null,
+    [pickerFilesState.files, selectedFilePath],
+  )
+
+  const selectedTable = React.useMemo(
+    () => tablesState.tables.find((table) => table.name === selectedTableName) ?? null,
+    [selectedTableName, tablesState.tables],
+  )
+
+  const openBuiltinFilePicker = React.useCallback(() => {
+    setFilePickerDirectory(normalizePath(filePickerRootPath))
+    setSelectedFilePath(null)
+    setFileReferenceTitle("")
+    setFileReferenceDescription("")
+    setFileReferenceMeta("")
+    setFilePickerOpen(true)
+  }, [filePickerRootPath])
+
+  const openBuiltinRecordsPicker = React.useCallback(() => {
+    setRecordsReferenceTitle("")
+    setRecordsReferenceDescription("")
+    setRecordsFiltersText("")
+    setRecordsSortsText("")
+    setSelectedRecordColumns([])
+    setSelectedTableName("")
+    setRecordsPickerOpen(true)
+  }, [])
+
+  React.useEffect(() => {
+    setFilePickerDirectory(normalizePath(filePickerRootPath))
+  }, [filePickerRootPath])
+
+  React.useEffect(() => {
+    setSelectedFilePath(null)
+  }, [filePickerDirectory])
+
+  React.useEffect(() => {
+    if (!selectedFile) return
+    setFileReferenceTitle((current) => current.trim() ? current : displayFileLabel(selectedFile))
+  }, [selectedFile])
+
+  React.useEffect(() => {
+    if (!recordsPickerOpen || selectedTableName || tablesState.tables.length === 0) return
+    setSelectedTableName(tablesState.tables[0]?.name ?? "")
+  }, [recordsPickerOpen, selectedTableName, tablesState.tables])
+
+  React.useEffect(() => {
+    if (!selectedTable) return
+    setRecordsReferenceTitle((current) => current.trim() ? current : `Filtered ${selectedTable.name}`)
+    setSelectedRecordColumns(selectedTable.columns.slice(0, 4).map((column) => column.name))
+  }, [selectedTable])
+
+  const confirmFileReference = React.useCallback(() => {
+    if (!selectedFile) return
+    insertFileBlock(editor, {
+      title: fileReferenceTitle.trim() || displayFileLabel(selectedFile),
+      path: selectedFile.path,
+      description: fileReferenceDescription.trim() || undefined,
+      meta: fileReferenceMeta.trim() || formatFileMeta(selectedFile),
+    })
+    setFilePickerOpen(false)
+    window.setTimeout(emitChange, 0)
+  }, [editor, emitChange, fileReferenceDescription, fileReferenceMeta, fileReferenceTitle, selectedFile])
+
+  const confirmRecordsReference = React.useCallback(() => {
+    if (!selectedTable) return
+    insertRecordsBlock(editor, {
+      table: selectedTable.name,
+      title: recordsReferenceTitle.trim() || `Filtered ${selectedTable.name}`,
+      description: recordsReferenceDescription.trim() || undefined,
+      filters: parseLineList(recordsFiltersText),
+      columns: selectedRecordColumns,
+      sorts: parseLineList(recordsSortsText),
+    })
+    setRecordsPickerOpen(false)
+    window.setTimeout(emitChange, 0)
+  }, [
+    editor,
+    emitChange,
+    recordsFiltersText,
+    recordsReferenceDescription,
+    recordsReferenceTitle,
+    recordsSortsText,
+    selectedRecordColumns,
+    selectedTable,
+  ])
 
   const defaultCommands = React.useMemo<LemmaDocumentWorkspaceCommand[]>(() => [
     {
@@ -351,49 +517,62 @@ export function LemmaDocumentWorkspace({
       keywords: ["grid"],
       run: (nextEditor) => insertSeededTable(nextEditor),
     },
-    {
-      id: "file-reference",
-      label: "File",
-      description: "Link a pod file",
-      icon: <Link2 className="size-4" />,
-      keywords: ["attachment", "docstore", "pdf", "image"],
-      run: (nextEditor, context) => {
-        if (onInsertFile) {
-          onInsertFile(context)
-          return
-        }
-        insertBlockText(nextEditor, "File reference: choose a file from the pod.", "blockquote")
-      },
-    },
-    {
-      id: "record-view",
-      label: "Records",
-      description: "Add pod data context",
-      icon: <Database className="size-4" />,
-      keywords: ["table", "data"],
-      run: (nextEditor, context) => {
-        if (onInsertRecords) {
-          onInsertRecords(context)
-          return
-        }
-        insertBlockText(nextEditor, "Record context: add a live view from the host desk.", "blockquote")
-      },
-    },
-    {
-      id: "assistant",
-      label: "Assistant",
-      description: "Ask with this document",
-      icon: <Bot className="size-4" />,
-      keywords: ["ai", "summarize"],
-      run: (nextEditor, context) => {
-        if (onAskAssistant) {
-          onAskAssistant(context)
-          return
-        }
-        insertBlockText(nextEditor, "Assistant prompt: summarize this section and suggest next actions.", "blockquote")
-      },
-    },
-  ], [onAskAssistant, onInsertFile, onInsertRecords])
+    // Temporarily disabled until the file/records embed flow is rebuilt.
+    // {
+    //   id: "file-reference",
+    //   label: "File",
+    //   description: "Link a pod file",
+    //   icon: <Link2 className="size-4" />,
+    //   keywords: ["attachment", "docstore", "pdf", "image"],
+    //   run: async (nextEditor, context) => {
+    //     if (canUseBuiltinInsertPicker) {
+    //       openBuiltinFilePicker()
+    //       return
+    //     }
+    //     if (onInsertFile) {
+    //       const fileBlock = await onInsertFile(context)
+    //       if (fileBlock) {
+    //         insertFileBlock(nextEditor, fileBlock)
+    //       }
+    //       return
+    //     }
+    //     insertFileBlock(nextEditor, {
+    //       title: "Pod file",
+    //       path: "/documents/example.md",
+    //       description: "Linked from the document workspace.",
+    //       meta: "Connect a file picker to insert a real pod file here.",
+    //     })
+    //   },
+    // },
+    // {
+    //   id: "record-view",
+    //   label: "Records",
+    //   description: "Embed a filtered pod data view",
+    //   icon: <Database className="size-4" />,
+    //   keywords: ["table", "data", "filtered", "view"],
+    //   run: async (nextEditor, context) => {
+    //     if (canUseBuiltinInsertPicker) {
+    //       openBuiltinRecordsPicker()
+    //       return
+    //     }
+    //     if (onInsertRecords) {
+    //       const recordsBlock = await onInsertRecords(context)
+    //       if (recordsBlock) {
+    //         insertRecordsBlock(nextEditor, recordsBlock)
+    //       }
+    //       return
+    //     }
+    //     insertRecordsBlock(nextEditor, {
+    //       title: "Open issues",
+    //       table: "issues",
+    //       description: "Embed a filtered records view from the host desk.",
+    //       filters: ["status = open", "priority in (high, urgent)"],
+    //       columns: ["identifier", "title", "status", "assignee"],
+    //       sorts: ["updated_at desc"],
+    //     })
+    //   },
+    // },
+  ], [canUseBuiltinInsertPicker, onInsertFile, onInsertRecords, openBuiltinFilePicker, openBuiltinRecordsPicker])
 
   const commandItems = React.useMemo(() => [...defaultCommands, ...commands], [commands, defaultCommands])
   const filteredCommands = React.useMemo(() => {
@@ -412,10 +591,11 @@ export function LemmaDocumentWorkspace({
 
   const executeCommand = React.useCallback((command: LemmaDocumentWorkspaceCommand) => {
     if (command.disabled || !editable) return
-    command.run(editor, getWorkspaceContext())
     setCommandMenuOpen(false)
     setCommandQuery("")
-    window.setTimeout(emitChange, 0)
+    void Promise.resolve(command.run(editor, getWorkspaceContext())).finally(() => {
+      window.setTimeout(emitChange, 0)
+    })
   }, [editable, editor, emitChange, getWorkspaceContext])
 
   const askAssistant = React.useCallback(() => {
@@ -636,6 +816,201 @@ export function LemmaDocumentWorkspace({
           </div>
         </aside>
       ) : null}
+
+      <Dialog open={filePickerOpen} onOpenChange={setFilePickerOpen}>
+        <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Insert file reference</DialogTitle>
+            <DialogDescription>Pick a folder, choose a file, then save the reference into this document.</DialogDescription>
+          </DialogHeader>
+          <div className="grid min-h-0 gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+            <div className="min-h-0 overflow-auto rounded-lg border border-border/60 bg-muted/15 p-2">
+              <p className="px-2 py-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">Folders</p>
+              <div className="mt-1 space-y-1">
+                {folderEntries.length > 0 ? folderEntries.map((entry) => (
+                  <button
+                    key={entry.path}
+                    type="button"
+                    onClick={() => setFilePickerDirectory(entry.path)}
+                    className={cn(
+                      "flex w-full items-center gap-2 px-2 py-2 text-left text-sm transition-colors hover:bg-muted/55",
+                      radiusClassName(radius, "control"),
+                      filePickerDirectory === entry.path ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+                    )}
+                    style={{ paddingLeft: `${entry.depth * 14 + 8}px` }}
+                  >
+                    <FileText className="size-4 shrink-0" />
+                    <span className="truncate">{entry.path === "/" ? "Root" : entry.name}</span>
+                  </button>
+                )) : (
+                  <p className="px-2 py-3 text-sm text-muted-foreground">No folders found.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="min-h-0 space-y-4">
+              <div className="rounded-lg border border-border/60 bg-muted/10 p-3">
+                <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Current folder</p>
+                <p className="mt-1 truncate text-sm text-foreground">{filePickerDirectory}</p>
+              </div>
+
+              <div className="min-h-0 overflow-auto rounded-lg border border-border/60">
+                <div className="border-b border-border/60 px-3 py-2 text-sm font-medium text-foreground">Files</div>
+                <div className="max-h-64 overflow-auto p-2">
+                  {fileTreeState.error ? (
+                    <p className="text-sm text-destructive">{fileTreeState.error.message}</p>
+                  ) : pickerFilesState.isLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading files...</p>
+                  ) : pickerFilesState.error ? (
+                    <p className="text-sm text-destructive">{pickerFilesState.error.message}</p>
+                  ) : pickerFilesState.files.filter((file) => !isDirectoryLike(file)).length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No files in this folder.</p>
+                  ) : (
+                    pickerFilesState.files.filter((file) => !isDirectoryLike(file)).map((file) => (
+                      <button
+                        key={file.id ?? file.path}
+                        type="button"
+                        onClick={() => setSelectedFilePath(file.path)}
+                        className={cn(
+                          "mb-1 flex w-full items-start justify-between gap-3 border px-3 py-2 text-left transition-colors hover:bg-muted/45",
+                          radiusClassName(radius, "control"),
+                          selectedFilePath === file.path ? "border-border bg-muted/45" : "border-transparent",
+                        )}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-foreground">{displayFileLabel(file)}</span>
+                          <span className="block truncate text-xs text-muted-foreground">{file.path}</span>
+                        </span>
+                        <span className="shrink-0 text-xs text-muted-foreground">{formatBytes(file.size_bytes)}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Reference title</p>
+                  <Input value={fileReferenceTitle} onChange={(event) => setFileReferenceTitle(event.target.value)} placeholder="Quarterly plan.pdf" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Meta</p>
+                  <Input value={fileReferenceMeta} onChange={(event) => setFileReferenceMeta(event.target.value)} placeholder="PDF | Updated Apr 20" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Description</p>
+                <Textarea value={fileReferenceDescription} onChange={(event) => setFileReferenceDescription(event.target.value)} placeholder="Why this file matters in the document context." rows={3} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setFilePickerOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={confirmFileReference} disabled={!selectedFile}>Add file reference</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={recordsPickerOpen} onOpenChange={setRecordsPickerOpen}>
+        <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Insert records reference</DialogTitle>
+            <DialogDescription>Pick a table, define filters, and save a filtered records block into this document.</DialogDescription>
+          </DialogHeader>
+          <div className="grid min-h-0 gap-4 lg:grid-cols-[16rem_minmax(0,1fr)]">
+            <div className="min-h-0 overflow-auto rounded-lg border border-border/60 bg-muted/15 p-2">
+              <p className="px-2 py-1 text-xs font-medium uppercase tracking-widest text-muted-foreground">Tables</p>
+              <div className="mt-1 space-y-1">
+                {tablesState.isLoading ? (
+                  <p className="px-2 py-3 text-sm text-muted-foreground">Loading tables...</p>
+                ) : tablesState.error ? (
+                  <p className="px-2 py-3 text-sm text-destructive">{tablesState.error.message}</p>
+                ) : tablesState.tables.length === 0 ? (
+                  <p className="px-2 py-3 text-sm text-muted-foreground">No tables found.</p>
+                ) : (
+                  tablesState.tables.map((table) => (
+                    <button
+                      key={table.id}
+                      type="button"
+                      onClick={() => setSelectedTableName(table.name)}
+                      className={cn(
+                        "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/55",
+                        radiusClassName(radius, "control"),
+                        selectedTableName === table.name ? "bg-background text-foreground shadow-sm" : "text-muted-foreground",
+                      )}
+                    >
+                      <span className="truncate">{table.name}</span>
+                      <span className="shrink-0 text-[10px] uppercase tracking-widest">{table.columns.length} cols</span>
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="min-h-0 space-y-4">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Reference title</p>
+                  <Input value={recordsReferenceTitle} onChange={(event) => setRecordsReferenceTitle(event.target.value)} placeholder="Open issues" />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Table</p>
+                  <Input value={selectedTable?.name ?? ""} readOnly placeholder="Choose a table" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Description</p>
+                <Textarea value={recordsReferenceDescription} onChange={(event) => setRecordsReferenceDescription(event.target.value)} placeholder="What this filtered records view represents." rows={2} />
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Filters</p>
+                  <Textarea value={recordsFiltersText} onChange={(event) => setRecordsFiltersText(event.target.value)} placeholder={"status = open\npriority in (high, urgent)"} rows={5} />
+                </div>
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-foreground">Sort</p>
+                  <Textarea value={recordsSortsText} onChange={(event) => setRecordsSortsText(event.target.value)} placeholder={"updated_at desc\npriority asc"} rows={5} />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground">Columns</p>
+                <div className="max-h-44 overflow-auto rounded-lg border border-border/60 p-2">
+                  {selectedTable ? (
+                    <div className="grid gap-2 md:grid-cols-2">
+                      {selectedTable.columns.map((column) => {
+                        const checked = selectedRecordColumns.includes(column.name)
+                        return (
+                          <label key={column.name} className={cn("flex items-center gap-2 border border-transparent px-2 py-1.5 text-sm hover:bg-muted/45", radiusClassName(radius, "control"))}>
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(event) => {
+                                setSelectedRecordColumns((current) => event.target.checked
+                                  ? Array.from(new Set([...current, column.name]))
+                                  : current.filter((name) => name !== column.name))
+                              }}
+                            />
+                            <span className="truncate">{column.name}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Choose a table to pick columns.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRecordsPickerOpen(false)}>Cancel</Button>
+            <Button type="button" onClick={confirmRecordsReference} disabled={!selectedTableName}>Add records reference</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 
@@ -1194,10 +1569,76 @@ function insertSeededTable(editor: LemmaDocumentEditor) {
   editor.commands.insertDefaultBlock()
 }
 
+function insertFileBlock(editor: LemmaDocumentEditor, block: LemmaDocumentWorkspaceFileBlock) {
+  insertEmbedBlock(editor, [
+    paragraphNode(editor, "File"),
+    paragraphNode(editor, block.title.trim() || fileNameFromPath(block.path)),
+    paragraphNode(editor, block.path.trim()),
+    optionalParagraphNode(editor, block.description),
+    optionalParagraphNode(editor, block.meta),
+  ])
+}
+
+function insertRecordsBlock(editor: LemmaDocumentEditor, block: LemmaDocumentWorkspaceRecordsBlock) {
+  const filters = normalizeRecordsFilters(block.filters)
+  const columns = normalizeStringList(block.columns)
+  const sorts = normalizeStringList(block.sorts)
+  const title = block.title?.trim() || `Filtered ${block.table.trim() || "records"}`
+
+  insertEmbedBlock(editor, [
+    paragraphNode(editor, "Records"),
+    optionalParagraphNode(editor, title),
+    optionalParagraphNode(editor, `Table: ${block.table.trim() || "records"}`),
+    optionalParagraphNode(editor, filters.length > 0 ? `Filters: ${filters.join(" | ")}` : undefined),
+    optionalParagraphNode(editor, columns.length > 0 ? `Columns: ${columns.join(", ")}` : undefined),
+    optionalParagraphNode(editor, sorts.length > 0 ? `Sort: ${sorts.join(", ")}` : undefined),
+    optionalParagraphNode(editor, block.description),
+  ])
+}
+
+function insertEmbedBlock(editor: LemmaDocumentEditor, blocks: Array<ReturnType<LemmaDocumentEditor["nodes"]["paragraph"]> | null | undefined>) {
+  const content = blocks.filter((block): block is NonNullable<typeof block> => Boolean(block))
+  if (content.length === 0) return
+  prepareForBlockInsert(editor)
+  editor.commands.insertNode({
+    node: editor.nodes.blockquote(...content),
+  })
+  editor.commands.insertDefaultBlock()
+}
+
 function prepareForBlockInsert(editor: LemmaDocumentEditor) {
   if (editor.nodes.list.isActive()) {
     editor.commands.unwrapList()
   }
+}
+
+function optionalParagraphNode(editor: LemmaDocumentEditor, text: string | null | undefined) {
+  const normalized = text?.trim()
+  return normalized ? paragraphNode(editor, normalized) : null
+}
+
+function paragraphNode(editor: LemmaDocumentEditor, text: string) {
+  return editor.nodes.paragraph(text)
+}
+
+function normalizeStringList(values: string[] | undefined): string[] {
+  return values?.map((value) => value.trim()).filter(Boolean) ?? []
+}
+
+function fileNameFromPath(path: string): string {
+  const normalized = path.replace(/\\/g, "/")
+  const parts = normalized.split("/").filter(Boolean)
+  return parts[parts.length - 1] ?? normalized
+}
+
+function normalizeRecordsFilters(filters: Array<string | LemmaDocumentWorkspaceRecordsFilter> | undefined): string[] {
+  return filters?.map((filter) => {
+    if (typeof filter === "string") return filter.trim()
+    const label = filter.label?.trim()
+    const value = filter.value.trim()
+    if (!value) return ""
+    return label ? `${label}: ${value}` : value
+  }).filter(Boolean) ?? []
 }
 
 function normalizeDocumentContent(value: LemmaDocumentNode | string | null | undefined): LemmaDocumentNode {
@@ -1522,6 +1963,67 @@ function plainNodeText(value: React.ReactNode) {
   if (value == null || typeof value === "boolean") return ""
   if (typeof value === "string" || typeof value === "number") return String(value)
   return ""
+}
+
+function normalizePath(path: string | null | undefined): string {
+  const trimmed = path?.trim() || "/"
+  const normalized = trimmed.startsWith("/") ? trimmed : `/${trimmed}`
+  const collapsed = normalized.replace(/\/+/g, "/")
+  return collapsed.length > 1 && collapsed.endsWith("/") ? collapsed.slice(0, -1) : collapsed
+}
+
+function flattenDirectoryTree(tree: DatastoreDirectoryTreeNode | null | undefined): Array<{ path: string; name: string; depth: number }> {
+  if (!tree) return []
+  const result: Array<{ path: string; name: string; depth: number }> = []
+  const visit = (node: DatastoreDirectoryTreeNode, depth: number) => {
+    if (node.kind === "directory") {
+      result.push({
+        path: normalizePath(node.path),
+        name: node.name || fileNameFromPath(node.path),
+        depth,
+      })
+    }
+    node.children?.forEach((child) => visit(child, depth + 1))
+  }
+  visit(tree, 0)
+  return result
+}
+
+function displayFileLabel(file: FileResponse): string {
+  return file.name?.trim() || fileNameFromPath(file.path)
+}
+
+function isDirectoryLike(file: FileResponse): boolean {
+  const kind = file.kind?.toLowerCase() || ""
+  return kind.includes("directory") || kind.includes("folder")
+}
+
+function formatBytes(value?: number): string {
+  if (!value || value <= 0) return "0 B"
+  const units = ["B", "KB", "MB", "GB", "TB"]
+  let size = value
+  let unitIndex = 0
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024
+    unitIndex += 1
+  }
+  return `${size >= 10 || unitIndex === 0 ? Math.round(size) : size.toFixed(1)} ${units[unitIndex]}`
+}
+
+function formatFileMeta(file: FileResponse): string {
+  const parts = [
+    file.kind || undefined,
+    file.updated_at ? `Updated ${new Date(file.updated_at).toLocaleDateString()}` : undefined,
+    file.size_bytes ? formatBytes(file.size_bytes) : undefined,
+  ].filter(Boolean)
+  return parts.join(" | ")
+}
+
+function parseLineList(value: string): string[] {
+  return value
+    .split("\n")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
 }
 
 function intentLabel(intent: LemmaDocumentWorkspaceIntent) {

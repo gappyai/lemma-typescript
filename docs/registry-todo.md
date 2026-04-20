@@ -6,7 +6,7 @@ This is the execution tracker for the registry cleanup. Keep this file crisp: mo
 
 - Deepen the document lane from the initial workspace into a full Notion/Coda-grade system.
   - Add real slash-command search, keyboard insertion, and block transformations to `lemma-document-workspace`.
-  - Promote file previews, record views, assistant blocks, and page references from placeholders into first-class node views.
+  - Promote file previews, record views, and future page references into fully first-class node views once the insert flow is credible.
   - Add anchored comments and stronger backlink semantics on top of the document model.
   - Add richer file/document composition so embedded files and page-body files feel native inside the workspace.
   - Define derived markdown/html/plain-text export behavior for search, previews, and interoperability.
@@ -17,8 +17,6 @@ This is the execution tracker for the registry cleanup. Keep this file crisp: mo
   - Add stronger tree and split-pane layouts if they survive real app composition.
 
 - Expand `lemma-assistant-experience`.
-  - Add embedded and side-panel modes.
-  - Add launch context for records, files, tables, search results, and pages.
   - Align assistant cards visually with records/detail/files.
 
 - Expand analytics and status primitives.
@@ -70,3 +68,5 @@ This is the execution tracker for the registry cleanup. Keep this file crisp: mo
 - Added initial `lemma-document-viewer` and `lemma-document-editor` blocks for richer reading and authoring shells.
 - Added `lemma-document-creator` plus a docstore-backed example workspace with modal and full-page document flows on top of pod files instead of assuming table-backed pages or embedded editors.
 - Added `lemma-document-workspace` as the canonical near-fullscreen Tiptap-backed document surface with structured `lemma.document` JSON storage, page/modal modes, creation flow wiring, file-reference blocks, metadata rails, backlinks, and assistant context.
+- Added explicit `page` / `embedded` / `side-panel` modes plus typed launch-context cards to `lemma-assistant-experience`.
+- Updated the root agent guide and external Lemma desk skill docs to use the live 22-block registry surface and avoid deleted registry block names in new scaffold guidance.

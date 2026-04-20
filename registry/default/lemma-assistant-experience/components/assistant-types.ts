@@ -9,6 +9,8 @@ import type {
 export type LemmaAssistantAppearance = "default" | "minimal" | "borderless" | "contained";
 export type LemmaAssistantDensity = "compact" | "comfortable" | "spacious";
 export type LemmaAssistantRadius = "none" | "sm" | "md" | "lg" | "xl";
+export type LemmaAssistantMode = "page" | "embedded" | "side-panel";
+export type AssistantLaunchContextKind = "record" | "file" | "table" | "search_result" | "page";
 
 export interface AssistantConversationListItem {
   id: string;
@@ -75,6 +77,17 @@ export interface EmptyStateSuggestion {
   icon?: ReactNode;
 }
 
+export interface AssistantLaunchContextItem {
+  kind: AssistantLaunchContextKind;
+  title: ReactNode;
+  description?: ReactNode;
+  meta?: ReactNode;
+  prompt?: string;
+  actionLabel?: ReactNode;
+  href?: string;
+  onSelect?: () => void;
+}
+
 export interface AssistantExperienceCustomizationProps {
   className?: string;
   title?: ReactNode;
@@ -91,4 +104,5 @@ export interface AssistantExperienceCustomizationProps {
   renderToolInvocation?: (args: AssistantToolRenderArgs) => ReactNode;
   renderPresentedFile?: (args: AssistantPresentedFileRenderArgs) => ReactNode;
   renderPendingFile?: (args: AssistantPendingFileRenderArgs) => ReactNode;
+  launchContext?: AssistantLaunchContextItem | AssistantLaunchContextItem[];
 }

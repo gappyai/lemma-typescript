@@ -16,11 +16,11 @@ Guide for AI agents building desks and features with the Lemma SDK.
 - `docs/hooks-guide.md` — Business-facing hook recipes and decision guide
 - `examples/` — Working example apps (inbox-crm)
 - `registry/` — Shadcn registry component source
-- `registry.json` — Registry manifest (18 canonical blocks)
+- `registry.json` — Registry manifest (22 canonical blocks)
 
 ## Registry blocks
 
-The shadcn registry ships **18 canonical blocks**. All surviving blocks accept `appearance`, `density`, and `radius` props where applicable for cross-cutting visual control.
+The shadcn registry ships **22 canonical blocks**. All surviving blocks accept `appearance`, `density`, and `radius` props where applicable for cross-cutting visual control.
 
 ### Core operator blocks
 - **lemma-records-view** — Canonical records workspace with grid, list, grouped, kanban, and linear views, `triage`/`issues`/`crm`/`docs` presets, inline editing, detail routing/sheets, and schema-aware create flows.
@@ -35,6 +35,10 @@ The shadcn registry ships **18 canonical blocks**. All surviving blocks accept `
 - **lemma-file-viewer** — Pod file preview surface for image, PDF, text, markdown, HTML, and download fallbacks.
 - **lemma-markdown-editor** — Write/preview/split markdown editor.
 - **lemma-page-tree** — Hierarchical page navigation for Notion-style workspaces.
+- **lemma-document-workspace** — Canonical block-native document workspace for create/read/edit flows over pod-backed documents.
+- **lemma-document-creator** — Lightweight explicit document creation flow for pod files, templates, and imports.
+- **lemma-document-viewer** — Supporting read-only document surface.
+- **lemma-document-editor** — Supporting authoring surface for structured pod-backed documents.
 
 ### Collaboration and analytics
 - **lemma-comments** — Record-scoped thread surface with direct/function-backed submission.

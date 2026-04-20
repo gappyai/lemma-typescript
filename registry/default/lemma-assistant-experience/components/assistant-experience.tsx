@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUp, BarChart3, CheckSquare, Mail, Plus, RotateCcw, Square, Users } from "lucide-react";
+import { ArrowUp, BarChart3, CheckSquare, Database, FileText, Hash, Mail, Plus, RotateCcw, Search, Square, Users } from "lucide-react";
 import type {
   AssistantMessagePart,
   AssistantRenderableMessage,
@@ -27,6 +27,7 @@ import type {
   AssistantControllerView,
   AssistantConversationRenderArgs,
   AssistantExperienceCustomizationProps,
+  AssistantLaunchContextItem,
   AssistantMessageRenderArgs,
   AssistantPendingFileRenderArgs,
   AssistantPresentedFileRenderArgs,
@@ -34,6 +35,7 @@ import type {
   EmptyStateSuggestion,
   LemmaAssistantAppearance,
   LemmaAssistantDensity,
+  LemmaAssistantMode,
   LemmaAssistantRadius,
 } from "./assistant-types.js";
 import {
@@ -106,6 +108,7 @@ export type AssistantStatusPlacement = "inline" | "composer" | "none";
 
 export interface AssistantExperienceViewProps extends AssistantExperienceCustomizationProps {
   controller: AssistantControllerView;
+  mode?: LemmaAssistantMode;
   appearance?: LemmaAssistantAppearance;
   density?: LemmaAssistantDensity;
   chromeStyle?: "elevated" | "subtle" | "flat";
@@ -730,12 +733,18 @@ function assistantRadiusClassName(radius: LemmaAssistantRadius, kind: AssistantR
 }
 
 function assistantRootClassName(
+  mode: LemmaAssistantMode,
   appearance: LemmaAssistantAppearance,
   radius: LemmaAssistantRadius,
   showConversationList: boolean,
 ): string {
   return cn(
-    "flex h-full min-h-0 w-full overflow-hidden",
+    "flex min-h-0 w-full overflow-hidden",
+    mode === "page"
+      ? "h-full"
+      : mode === "side-panel"
+        ? "h-full max-w-[34rem]"
+        : "h-[36rem] max-h-[75vh]",
     showConversationList ? "flex-col lg:grid lg:grid-cols-[minmax(16rem,24rem)_minmax(0,1fr)]" : "flex-col",
     appearance === "minimal" || appearance === "borderless"
       ? "border-0 bg-transparent shadow-none"
@@ -758,6 +767,36 @@ function assistantComposerInputClassName(radius: LemmaAssistantRadius): string {
     "relative flex min-h-14 items-center gap-2 border border-border/80 bg-background px-2 py-1.5 focus-within:border-primary/60 focus-within:ring-1 focus-within:ring-primary/20",
     assistantRadiusClassName(radius, "surface"),
   );
+}
+
+function launchContextKindLabel(kind: AssistantLaunchContextItem["kind"]): string {
+  if (kind === "search_result") return "Search result";
+  return kind.charAt(0).toUpperCase() + kind.slice(1);
+}
+
+function launchContextIcon(kind: AssistantLaunchContextItem["kind"]) {
+  if (kind === "record") return <Hash className="size-4" />;
+  if (kind === "file") return <FileText className="size-4" />;
+  if (kind === "table") return <Database className="size-4" />;
+  if (kind === "search_result") return <Search className="size-4" />;
+  return <BarChart3 className="size-4" />;
+}
+
+function plainLabelFromNode(value: ReactNode): string {
+  if (value == null || typeof value === "boolean") return "";
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (Array.isArray(value)) return value.map((entry) => plainLabelFromNode(entry)).join(" ").trim();
+  return "";
+}
+
+function normalizeLaunchContext(value?: AssistantLaunchContextItem | AssistantLaunchContextItem[]): AssistantLaunchContextItem[] {
+  if (!value) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+function defaultLaunchContextPrompt(item: AssistantLaunchContextItem): string {
+  const title = plainLabelFromNode(item.title).trim() || launchContextKindLabel(item.kind).toLowerCase();
+  return `Help me with this ${launchContextKindLabel(item.kind).toLowerCase()}: ${title}`;
 }
 
 function markdownComponentsForMessage(isUserMessage: boolean): Components {
@@ -2026,9 +2065,11 @@ export function AssistantExperienceView({
   placeholder = "Message Lemma Assistant",
   emptyState,
   emptyStateSuggestions,
+  launchContext,
   draft: controlledDraft,
   onDraftChange,
   showConversationList = false,
+  mode = "page",
   appearance = "default",
   density = "comfortable",
   chromeStyle,
@@ -2088,6 +2129,7 @@ export function AssistantExperienceView({
     () => new Map(controller.availableModels.map((model) => [model.id, model.name])),
     [controller.availableModels],
   );
+  const launchContextItems = useMemo(() => normalizeLaunchContext(launchContext), [launchContext]);
 
   const resizeComposer = useCallback(() => {
     const textarea = inputRef.current;
@@ -2333,6 +2375,20 @@ export function AssistantExperienceView({
     await sendMessage(message);
   }, [isConversationBusy, scrollToLatest, sendMessage]);
 
+  const handleLaunchContextPrompt = useCallback(async (item: AssistantLaunchContextItem) => {
+    const nextPrompt = (item.prompt || defaultLaunchContextPrompt(item)).trim();
+    if (!nextPrompt) return;
+    if (isConversationBusy) {
+      setDraft(nextPrompt);
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
+      return;
+    }
+    scrollToLatest("smooth");
+    await sendMessage(nextPrompt);
+  }, [isConversationBusy, scrollToLatest, sendMessage, setDraft]);
+
   const handleUploadSelection = useCallback(async (files: FileList | null) => {
     const selectedFiles = files ? Array.from(files) : [];
     if (selectedFiles.length === 0) return;
@@ -2393,9 +2449,10 @@ export function AssistantExperienceView({
 
   return (
     <div
-      className={cn(assistantRootClassName(appearance, radius, showConversationList), className)}
+      className={cn(assistantRootClassName(mode, appearance, radius, showConversationList), className)}
       data-appearance={appearance}
       data-density={density}
+      data-mode={mode}
       data-chrome-style={resolvedChromeStyle}
       data-status-placement={statusPlacement}
       data-radius={radius}
@@ -2494,9 +2551,79 @@ export function AssistantExperienceView({
             ) : undefined}
           />
 
+          {launchContextItems.length > 0 ? (
+            <div className={cn(
+              "border-b border-border/60 bg-muted/10",
+              mode === "embedded" ? "px-4 py-3" : "px-4 py-3 sm:px-6",
+            )}>
+              <div className="flex flex-wrap gap-3">
+                {launchContextItems.map((item, index) => {
+                  const actionLabel = item.actionLabel ?? "Ask";
+                  const promptText = item.prompt || defaultLaunchContextPrompt(item);
+                  const card = (
+                    <Card className={cn(
+                      "border-border/60 bg-background/85 shadow-none",
+                      mode === "side-panel" ? "w-full" : "min-w-[16rem] flex-1",
+                    )}>
+                      <CardHeader className="pb-3">
+                        <CardDescription className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+                          <span className="text-foreground/70">{launchContextIcon(item.kind)}</span>
+                          <span>{launchContextKindLabel(item.kind)}</span>
+                        </CardDescription>
+                        <CardTitle className="text-sm">{item.title}</CardTitle>
+                        {item.description ? (
+                          <CardDescription className="text-xs leading-5">{item.description}</CardDescription>
+                        ) : null}
+                      </CardHeader>
+                      {(item.meta || item.prompt || item.onSelect || item.href) ? (
+                        <CardContent className="flex flex-wrap items-center gap-2 pt-0">
+                          {item.meta ? (
+                            <Badge variant="secondary" className="max-w-full truncate">{item.meta}</Badge>
+                          ) : null}
+                          {promptText ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => { void handleLaunchContextPrompt(item); }}
+                            >
+                              {actionLabel}
+                            </Button>
+                          ) : null}
+                          {item.onSelect ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2 text-xs"
+                              onClick={item.onSelect}
+                            >
+                              Open
+                            </Button>
+                          ) : item.href ? (
+                            <a
+                              href={item.href}
+                              className="inline-flex h-7 items-center justify-center rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            >
+                              Open
+                            </a>
+                          ) : null}
+                        </CardContent>
+                      ) : null}
+                    </Card>
+                  );
+                  return <div key={`${item.kind}-${index}`} className={cn(mode === "side-panel" ? "w-full" : "flex min-w-[16rem] flex-1")}>{card}</div>;
+                })}
+              </div>
+            </div>
+          ) : null}
+
           <AssistantMessageViewport
             ref={messagesContainerRef}
             onScroll={updatePinnedState}
+            className={cn(mode === "embedded" && "px-4 py-4 sm:px-4", mode === "side-panel" && "px-4 py-4 sm:px-5 lg:px-5")}
+            innerClassName={cn(mode === "side-panel" && "max-w-none", mode === "embedded" && "max-w-none")}
           >
             <div className="flex w-full flex-col gap-5" aria-live="polite" aria-atomic="false">
             {controller.messages.length === 0 && !isConversationBusy ? (
