@@ -7,6 +7,7 @@
  */
 export enum DatastoreDataType {
     TEXT = 'TEXT',
+    FILE_PATH = 'FILE_PATH',
     INTEGER = 'INTEGER',
     FLOAT = 'FLOAT',
     BOOLEAN = 'BOOLEAN',
@@ -14,6 +15,7 @@ export enum DatastoreDataType {
     DATE = 'DATE',
     DATETIME = 'DATETIME',
     UUID = 'UUID',
+    USER = 'USER',
     VECTOR = 'VECTOR',
     SERIAL = 'SERIAL',
     ENUM = 'ENUM',
