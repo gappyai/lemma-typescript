@@ -242,7 +242,7 @@ Current registry items:
 | People | `lemma-members`, `lemma-notification-bell`, `lemma-user-menu` |
 | Analytics | `lemma-insights` |
 | Collaboration | `lemma-activity-feed`, `lemma-comments` |
-| Automation | `lemma-workflow-runner` |
+| Automation | `lemma-action-surface`, `lemma-workflow-runner` |
 
 The registry is currently served from jsDelivr against this public repo:
 
@@ -317,7 +317,7 @@ The records blocks are meant to be configured with props before you reach for a 
 Navigation blocks support:
 
 - route, record, and file-path breadcrumb builders through `lemma-breadcrumbs`
-- self-referential page hierarchies through `lemma-page-tree`, with selection, expansion, and create/reorder hooks
+- native pod-file hierarchy navigation through `lemma-page-tree`, with `rootPath`, `selectedPath`, selection, expansion, and document-creation hooks
 
 File blocks support:
 
@@ -345,9 +345,9 @@ Workflow primitives support:
 
 - lifecycle/status rendering and transitions through `lemma-status-flow`
 - read-only tracker layouts and compact step progress through `lemma-status-flow`
-- workflow run inspection through `lemma-workflow-runner`
+- native workflow run inspection through `lemma-workflow-runner`, backed by Lemma workflow run APIs and `step_history`
 - reusable history and collaboration surfaces through `lemma-activity-feed` and `lemma-comments`
-- table-backed defaults with escape hatches for custom action payloads and render slots
+- native workflow/file surfaces plus record-backed blocks where tables are the actual product data model
 
 `lemma-markdown-editor` supports:
 
@@ -361,6 +361,7 @@ Assistant blocks support:
 - assistant-name-first configuration through `assistantName`
 - shared `appearance` and `density` controls on the assistant experience surface
 - `chromeStyle`, `statusPlacement`, `radius`, model picker, conversation list, and render overrides for deeper customization
+- bounded default heights for `page` and `side-panel` modes so the message viewport scrolls instead of stretching with content; pass `className="h-full min-h-0"` inside an explicit-height parent when you want a fill-layout assistant like inbox CRM
 
 Shell blocks support:
 
@@ -458,6 +459,8 @@ npm run build
 ```
 
 `examples/inbox-crm` now mirrors the kept registry surface only. Its local `src/components/lemma` folder is a copied install target of the current canonical registry blocks, and `src/main.tsx` demonstrates those blocks in one routed operator desk.
+
+For reusable desk archetypes and live example pod ids, see [docs/recipe-packs.md](docs/recipe-packs.md). Recipe packs are provisioned with `npm run recipes:provision`.
 
 This repo includes:
 

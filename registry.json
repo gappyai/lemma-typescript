@@ -456,7 +456,7 @@
       "name": "lemma-workflow-runner",
       "type": "registry:block",
       "title": "Lemma Workflow Runner",
-      "description": "A visual workflow run viewer with step timeline, status badges (pending/running/completed/failed), progress indicators, and manual start support. For operators tracking automation.",
+      "description": "A visual workflow run viewer backed by native Lemma workflow run APIs, with step timeline, status badges, progress indicators, and manual start support.",
       "dependencies": [
         "lemma-sdk",
         "lucide-react",
@@ -651,7 +651,7 @@
       "name": "lemma-page-tree",
       "type": "registry:block",
       "title": "Lemma Page Tree",
-      "description": "A hierarchical sidebar for doc-heavy apps with self-referential FK tree building, collapsible nodes, selection highlighting, and inline child creation. Notion/Confluence/Guru-style navigation backbone.",
+      "description": "A hierarchical sidebar for doc-heavy apps backed by the pod file tree, with collapsible folders, selection highlighting, inline document creation, and an optional legacy record-wrapper mode.",
       "dependencies": [
         "lemma-sdk",
         "lucide-react",
