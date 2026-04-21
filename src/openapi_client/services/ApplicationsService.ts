@@ -2,15 +2,16 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AppDescriptorResponse } from '../models/AppDescriptorResponse.js';
 import type { ApplicationDetailResponseSchema } from '../models/ApplicationDetailResponseSchema.js';
 import type { ApplicationListResponseSchema } from '../models/ApplicationListResponseSchema.js';
 import type { AppTriggerListResponseSchema } from '../models/AppTriggerListResponseSchema.js';
 import type { AppTriggerResponseSchema } from '../models/AppTriggerResponseSchema.js';
 import type { OperationDetail } from '../models/OperationDetail.js';
+import type { OperationDetailsBatchRequest } from '../models/OperationDetailsBatchRequest.js';
+import type { OperationDetailsBatchResponse } from '../models/OperationDetailsBatchResponse.js';
+import type { OperationDiscoverResponse } from '../models/OperationDiscoverResponse.js';
 import type { OperationExecutionRequest } from '../models/OperationExecutionRequest.js';
 import type { OperationExecutionResponse } from '../models/OperationExecutionResponse.js';
-import type { OperationListResponse } from '../models/OperationListResponse.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
@@ -112,20 +113,18 @@ export class ApplicationsService {
         });
     }
     /**
-     * List Application Operations
+     * Discover Application Operations
      * @param applicationId
      * @param query
      * @param limit
-     * @param pageToken
-     * @returns OperationListResponse Successful Response
+     * @returns OperationDiscoverResponse Successful Response
      * @throws ApiError
      */
-    public static applicationOperationList(
+    public static applicationOperationDiscover(
         applicationId: string,
         query?: (string | null),
         limit: number = 100,
-        pageToken?: (string | null),
-    ): CancelablePromise<OperationListResponse> {
+    ): CancelablePromise<OperationDiscoverResponse> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/integrations/applications/{application_id}/operations',
@@ -135,7 +134,6 @@ export class ApplicationsService {
             query: {
                 'query': query,
                 'limit': limit,
-                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,
@@ -143,20 +141,24 @@ export class ApplicationsService {
         });
     }
     /**
-     * Get Application Descriptor
+     * Get Application Operation Details In Batch
      * @param applicationId
-     * @returns AppDescriptorResponse Successful Response
+     * @param requestBody
+     * @returns OperationDetailsBatchResponse Successful Response
      * @throws ApiError
      */
-    public static applicationDescriptor(
+    public static applicationOperationDetailsBatch(
         applicationId: string,
-    ): CancelablePromise<AppDescriptorResponse> {
+        requestBody: OperationDetailsBatchRequest,
+    ): CancelablePromise<OperationDetailsBatchResponse> {
         return __request(OpenAPI, {
-            method: 'GET',
-            url: '/integrations/applications/{application_id}/operations/descriptor',
+            method: 'POST',
+            url: '/integrations/applications/{application_id}/operations/details',
             path: {
                 'application_id': applicationId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

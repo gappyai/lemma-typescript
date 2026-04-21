@@ -2675,19 +2675,27 @@ exports.IconsService = IconsService;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.IntegrationsNamespace = void 0;
+const AgentToolsService_js_1 = require("./openapi_client/services/AgentToolsService.js");
 const ApplicationsService_js_1 = require("./openapi_client/services/ApplicationsService.js");
 const IntegrationsService_js_1 = require("./openapi_client/services/IntegrationsService.js");
 class IntegrationsNamespace {
     constructor(client) {
         this.client = client;
         this.operations = {
-            list: (applicationId) => this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationOperationList(applicationId)),
+            discover: (applicationId, options = {}) => this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationOperationDiscover(applicationId, options.query, options.limit ?? 100)),
+            list: async (applicationId, options = {}) => {
+                const response = await this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationOperationDiscover(applicationId, options.query, options.limit ?? 100));
+                return response.items ?? [];
+            },
             get: (applicationId, operationName) => this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationOperationDetail(applicationId, operationName)),
+            details: (applicationId, operationNames) => {
+                const body = { operation_names: operationNames };
+                return this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationOperationDetailsBatch(applicationId, body));
+            },
             execute: (applicationId, operationName, payload, accountId) => {
                 const body = { payload, account_id: accountId };
                 return this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationOperationExecute(applicationId, operationName, body));
             },
-            descriptor: (applicationId) => this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationDescriptor(applicationId)),
         };
         this.triggers = {
             list: (options = {}) => this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationTriggerList(options.applicationId, options.search, options.limit ?? 100, options.pageToken)),
@@ -2706,12 +2714,85 @@ class IntegrationsNamespace {
     get(applicationId) {
         return this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationGet(applicationId));
     }
+    helperAgent(goal, appNames, options = {}) {
+        const body = {
+            app_names: appNames,
+            goal,
+            max_operations_per_app: options.maxOperationsPerApp ?? 8,
+        };
+        return this.client.request(() => AgentToolsService_js_1.AgentToolsService.toolIntegrationHelperAgent(body));
+    }
     createConnectRequest(applicationId) {
         const payload = { application_id: applicationId };
         return this.client.request(() => IntegrationsService_js_1.IntegrationsService.integrationConnectRequestCreate(payload));
     }
 }
 exports.IntegrationsNamespace = IntegrationsNamespace;
+
+},
+"./openapi_client/services/AgentToolsService.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AgentToolsService = void 0;
+const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
+const request_js_1 = require("./openapi_client/core/request.js");
+class AgentToolsService {
+    /**
+     * Integration Helper Agent
+     * Plan how to use one or more integration applications for a goal and return recommended operations.
+     * @param requestBody
+     * @returns IntegrationHelperAgentResponse Successful Response
+     * @throws ApiError
+     */
+    static toolIntegrationHelperAgent(requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/tools/integration-helper-agent',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Web Search
+     * Run a raw web search and return structured results.
+     * @param requestBody
+     * @returns WebSearchResponse Successful Response
+     * @throws ApiError
+     */
+    static toolWebSearch(requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/tools/web-search',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Web Search Agent
+     * Run the multi-step web search agent and return a synthesized answer.
+     * @param requestBody
+     * @returns WebSearchAgentResponse Successful Response
+     * @throws ApiError
+     */
+    static toolWebSearchAgent(requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/tools/web-search-agent',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+}
+exports.AgentToolsService = AgentToolsService;
 
 },
 "./openapi_client/services/ApplicationsService.js": function (module, exports, require) {
@@ -2806,15 +2887,14 @@ class ApplicationsService {
         });
     }
     /**
-     * List Application Operations
+     * Discover Application Operations
      * @param applicationId
      * @param query
      * @param limit
-     * @param pageToken
-     * @returns OperationListResponse Successful Response
+     * @returns OperationDiscoverResponse Successful Response
      * @throws ApiError
      */
-    static applicationOperationList(applicationId, query, limit = 100, pageToken) {
+    static applicationOperationDiscover(applicationId, query, limit = 100) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/integrations/applications/{application_id}/operations',
@@ -2824,7 +2904,6 @@ class ApplicationsService {
             query: {
                 'query': query,
                 'limit': limit,
-                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,
@@ -2832,18 +2911,21 @@ class ApplicationsService {
         });
     }
     /**
-     * Get Application Descriptor
+     * Get Application Operation Details In Batch
      * @param applicationId
-     * @returns AppDescriptorResponse Successful Response
+     * @param requestBody
+     * @returns OperationDetailsBatchResponse Successful Response
      * @throws ApiError
      */
-    static applicationDescriptor(applicationId) {
+    static applicationOperationDetailsBatch(applicationId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/integrations/applications/{application_id}/operations/descriptor',
+            method: 'POST',
+            url: '/integrations/applications/{application_id}/operations/details',
             path: {
                 'application_id': applicationId,
             },
+            body: requestBody,
+            mediaType: 'application/json',
             errors: {
                 422: `Validation Error`,
             },

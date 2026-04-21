@@ -1,6 +1,9 @@
 import type { GeneratedClientAdapter } from "../generated.js";
 import type { ConnectRequestInitiateSchema } from "../openapi_client/models/ConnectRequestInitiateSchema.js";
+import type { IntegrationHelperAgentRequest } from "../openapi_client/models/IntegrationHelperAgentRequest.js";
+import type { OperationDetailsBatchRequest } from "../openapi_client/models/OperationDetailsBatchRequest.js";
 import type { OperationExecutionRequest } from "../openapi_client/models/OperationExecutionRequest.js";
+import { AgentToolsService } from "../openapi_client/services/AgentToolsService.js";
 import { ApplicationsService } from "../openapi_client/services/ApplicationsService.js";
 import { IntegrationsService } from "../openapi_client/services/IntegrationsService.js";
 
@@ -15,17 +18,44 @@ export class IntegrationsNamespace {
   }
 
   readonly operations = {
-    list: (applicationId: string) =>
-      this.client.request(() => ApplicationsService.applicationOperationList(applicationId)),
+    discover: (applicationId: string, options: { query?: string; limit?: number } = {}) =>
+      this.client.request(() => ApplicationsService.applicationOperationDiscover(
+        applicationId,
+        options.query,
+        options.limit ?? 100,
+      )),
+    list: async (applicationId: string, options: { query?: string; limit?: number } = {}) => {
+      const response = await this.client.request(() => ApplicationsService.applicationOperationDiscover(
+        applicationId,
+        options.query,
+        options.limit ?? 100,
+      ));
+      return response.items ?? [];
+    },
     get: (applicationId: string, operationName: string) =>
       this.client.request(() => ApplicationsService.applicationOperationDetail(applicationId, operationName)),
+    details: (applicationId: string, operationNames?: string[]) => {
+      const body: OperationDetailsBatchRequest = { operation_names: operationNames };
+      return this.client.request(() => ApplicationsService.applicationOperationDetailsBatch(applicationId, body));
+    },
     execute: (applicationId: string, operationName: string, payload: Record<string, unknown>, accountId?: string) => {
       const body: OperationExecutionRequest = { payload, account_id: accountId };
       return this.client.request(() => ApplicationsService.applicationOperationExecute(applicationId, operationName, body));
     },
-    descriptor: (applicationId: string) =>
-      this.client.request(() => ApplicationsService.applicationDescriptor(applicationId)),
   };
+
+  helperAgent(
+    goal: string,
+    appNames: string[],
+    options: { maxOperationsPerApp?: number } = {},
+  ) {
+    const body: IntegrationHelperAgentRequest = {
+      app_names: appNames,
+      goal,
+      max_operations_per_app: options.maxOperationsPerApp ?? 8,
+    };
+    return this.client.request(() => AgentToolsService.toolIntegrationHelperAgent(body));
+  }
 
   readonly triggers = {
     list: (options: { applicationId?: string; search?: string; limit?: number; pageToken?: string } = {}) =>

@@ -2,6 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { IntegrationHelperAgentRequest } from '../models/IntegrationHelperAgentRequest.js';
+import type { IntegrationHelperAgentResponse } from '../models/IntegrationHelperAgentResponse.js';
 import type { WebSearchAgentRequest } from '../models/WebSearchAgentRequest.js';
 import type { WebSearchAgentResponse } from '../models/WebSearchAgentResponse.js';
 import type { WebSearchRequest } from '../models/WebSearchRequest.js';
@@ -10,6 +12,26 @@ import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class AgentToolsService {
+    /**
+     * Integration Helper Agent
+     * Plan how to use one or more integration applications for a goal and return recommended operations.
+     * @param requestBody
+     * @returns IntegrationHelperAgentResponse Successful Response
+     * @throws ApiError
+     */
+    public static toolIntegrationHelperAgent(
+        requestBody: IntegrationHelperAgentRequest,
+    ): CancelablePromise<IntegrationHelperAgentResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/tools/integration-helper-agent',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * Web Search
      * Run a raw web search and return structured results.
