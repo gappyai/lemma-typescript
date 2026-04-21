@@ -65,6 +65,31 @@ export { useFiles } from "./useFiles.js";
 export type { UseFilesOptions, UseFilesResult } from "./useFiles.js";
 export { useFile } from "./useFile.js";
 export type { UseFileOptions, UseFileResult } from "./useFile.js";
+export { useDatastoreQuery } from "./useDatastoreQuery.js";
+export type {
+  UseDatastoreQueryOptions,
+  UseDatastoreQueryResult,
+} from "./useDatastoreQuery.js";
+export { useUploadFile } from "./useUploadFile.js";
+export type {
+  UploadFileInput,
+  UseUploadFileOptions,
+  UseUploadFileResult,
+} from "./useUploadFile.js";
+export { useUpdateFile } from "./useUpdateFile.js";
+export type {
+  UpdateFileInput,
+  UseUpdateFileOptions,
+  UseUpdateFileResult,
+} from "./useUpdateFile.js";
+export { useDeleteFile } from "./useDeleteFile.js";
+export type { UseDeleteFileOptions, UseDeleteFileResult } from "./useDeleteFile.js";
+export { useCreateFolder } from "./useCreateFolder.js";
+export type {
+  CreateFolderInput,
+  UseCreateFolderOptions,
+  UseCreateFolderResult,
+} from "./useCreateFolder.js";
 export { useFileSearch } from "./useFileSearch.js";
 export type { UseFileSearchOptions, UseFileSearchResult } from "./useFileSearch.js";
 export { useFileTree } from "./useFileTree.js";
@@ -75,12 +100,29 @@ export type {
   UseFilePreviewOptions,
   UseFilePreviewResult,
 } from "./useFilePreview.js";
+export { useGlobalSearch } from "./useGlobalSearch.js";
+export type {
+  GlobalSearchFileResult,
+  GlobalSearchFilesSource,
+  GlobalSearchRecordResult,
+  GlobalSearchResult,
+  GlobalSearchTableSource,
+  UseGlobalSearchOptions,
+  UseGlobalSearchResult,
+} from "./useGlobalSearch.js";
 export { useTables } from "./useTables.js";
 export type { UseTablesOptions, UseTablesResult } from "./useTables.js";
 export { useTable } from "./useTable.js";
 export type { UseTableOptions, UseTableResult } from "./useTable.js";
 export { useRecords } from "./useRecords.js";
 export type { UseRecordsOptions, UseRecordsResult } from "./useRecords.js";
+export { useRecordAggregates } from "./useRecordAggregates.js";
+export type {
+  RecordAggregateMetric,
+  RecordAggregateOrderBy,
+  UseRecordAggregatesOptions,
+  UseRecordAggregatesResult,
+} from "./useRecordAggregates.js";
 export { useRecord } from "./useRecord.js";
 export type { UseRecordOptions, UseRecordResult } from "./useRecord.js";
 export { useCreateRecord } from "./useCreateRecord.js";

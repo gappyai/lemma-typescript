@@ -16,6 +16,13 @@ Business-facing guide for building Lemma desks. Each recipe shows the hooks to u
 | Update a record from a button | `useUpdateRecord` | One-shot update with loading/error state |
 | Delete a record from a button | `useDeleteRecord` | One-shot delete with loading/error state |
 | Bulk create/update/delete | `useBulkRecords` | Shared loading state across batch operations |
+| Upload a pod file | `useUploadFile` | Headless file upload with loading/error state |
+| Rename or move a file | `useUpdateFile` | One-shot file update covering rename, move, and metadata changes |
+| Delete a file | `useDeleteFile` | Headless file delete for custom file browsers |
+| Create a folder | `useCreateFolder` | Headless folder creation for file workspaces |
+| Run a custom read-only SQL query | `useDatastoreQuery` | Headless access to joins, aggregates, and custom SQL-backed reads |
+| Build KPI cards or chart rows | `useRecordAggregates` | High-level aggregate query hook for count/sum/avg/grouped reporting |
+| Search across tables and files | `useGlobalSearch` | Multi-source search hook for custom command bars and omniboxes |
 | Add an org member into a pod | `useAddPodMember` | Canonical pod membership add flow for stock members/admin UI |
 | Change a pod member's role | `useUpdatePodMemberRole` | One-shot role transition with loading/error state |
 | Remove a pod member | `useRemovePodMember` | Canonical pod membership removal flow |
@@ -218,6 +225,191 @@ function IssuesList({ client }: { client: LemmaClient }) {
 ### 4. Add Comment Button
 
 A one-shot create that routes through a function.
+
+### 5. Headless File Actions
+
+Build your own file workspace without depending on a stock file-browser component.
+
+```tsx
+import {
+  useCreateFolder,
+  useDeleteFile,
+  useFiles,
+  useUpdateFile,
+  useUploadFile,
+} from "lemma-sdk/react";
+
+function FilesWorkspace({ client }: { client: LemmaClient }) {
+  const files = useFiles({
+    client,
+    directoryPath: "/docs",
+  });
+
+  const upload = useUploadFile({ client });
+  const createFolder = useCreateFolder({ client });
+  const renameFile = useUpdateFile({ client });
+  const deleteFile = useDeleteFile({ client });
+
+  return (
+    <div>
+      <button
+        onClick={() => {
+          const blob = new Blob(["hello world"], { type: "text/plain" });
+          void upload.upload(blob, {
+            name: "hello.txt",
+            directoryPath: "/docs",
+          }).then(() => files.refresh());
+        }}
+      >
+        Upload file
+      </button>
+
+      <button
+        onClick={() => {
+          void createFolder.createFolder("drafts", {
+            directoryPath: "/docs",
+          }).then(() => files.refresh());
+        }}
+      >
+        New folder
+      </button>
+
+      <ul>
+        {files.files.map((file) => (
+          <li key={file.path}>
+            <span>{file.name}</span>
+            <button
+              onClick={() => {
+                void renameFile.update(
+                  { name: `renamed-${file.name}` },
+                  { path: file.path },
+                ).then(() => files.refresh());
+              }}
+            >
+              Rename
+            </button>
+            <button
+              onClick={() => {
+                void deleteFile.remove({ path: file.path }).then(() => files.refresh());
+              }}
+            >
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### 6. KPI And Grouped Reporting
+
+Use `useRecordAggregates` when your app needs counts, sums, averages, or grouped chart rows without depending on a stock insights block.
+
+```tsx
+import { useRecordAggregates } from "lemma-sdk/react";
+
+function PipelineSummary({ client }: { client: LemmaClient }) {
+  const totals = useRecordAggregates({
+    client,
+    tableName: "deals",
+    metrics: [
+      { key: "open_deals", op: "count" },
+      { key: "pipeline_value", op: "sum", field: "amount" },
+    ],
+    filters: [{ field: "status", op: "!=", value: "closed_lost" }],
+  });
+
+  const byStage = useRecordAggregates({
+    client,
+    tableName: "deals",
+    groupBy: "stage",
+    metrics: [
+      { key: "deal_count", op: "count" },
+      { key: "total_amount", op: "sum", field: "amount" },
+    ],
+    orderBy: [{ field: "total_amount", direction: "desc" }],
+  });
+
+  return (
+    <div>
+      <pre>{JSON.stringify(totals.row, null, 2)}</pre>
+      <pre>{JSON.stringify(byStage.rows, null, 2)}</pre>
+    </div>
+  );
+}
+```
+
+### 7. Multi-Source Search
+
+Use `useGlobalSearch` for a custom desk command bar that searches multiple tables and files without depending on a stock search component.
+
+```tsx
+import { useMemo } from "react";
+import { useGlobalSearch } from "lemma-sdk/react";
+
+function DeskSearch({ client, query }: { client: LemmaClient; query: string }) {
+  const search = useGlobalSearch({
+    client,
+    query,
+    tables: [
+      {
+        tableName: "issues",
+        label: "Issues",
+        searchFields: ["identifier", "title", "description"],
+        displayField: "title",
+        subtitleField: "status",
+      },
+      {
+        tableName: "deals",
+        label: "Deals",
+        searchFields: ["name", "company", "stage"],
+        displayField: "name",
+        subtitleField: "stage",
+      },
+    ],
+    files: {
+      enabled: true,
+      label: "Docs",
+      limit: 6,
+    },
+  });
+
+  const groups = useMemo(() => {
+    const grouped = new Map<string, { sourceLabel: string; items: typeof search.results }>();
+    search.results.forEach((result) => {
+      const existing = grouped.get(result.sourceKey);
+      if (existing) {
+        existing.items.push(result);
+        return;
+      }
+      grouped.set(result.sourceKey, {
+        sourceLabel: result.sourceLabel,
+        items: [result],
+      });
+    });
+    return Array.from(grouped.entries());
+  }, [search.results]);
+
+  return (
+    <div>
+      {groups.map(([sourceKey, group]) => (
+        <section key={sourceKey}>
+          <h3>{group.sourceLabel}</h3>
+          <ul>
+            {group.items.map((result) => (
+              <li key={result.kind === "record" ? `${result.tableName}:${result.id}` : result.path}>
+                {result.title}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+```
 
 ```tsx
 import { useState } from "react";
@@ -677,6 +869,12 @@ const { options, isLoading } = useForeignKeyOptions({
 ```
 
 If `labelField` is not set, the hook auto-detects the best label column in this order: `name` > `title` > `label` > `email` > `slug` > FK column > `id`.
+
+### Headless helpers
+
+Reach for helper exports when the behavior is shared but the UI should stay app-local:
+
+- `lemma-sdk`: `formatRecordDisplayValue`, `detectRecordStatusColumn`, `buildRecordSchemaFields`, `buildSchemaFormFields`
 
 ---
 
