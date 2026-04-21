@@ -47,12 +47,10 @@ export class IntegrationsNamespace {
   helperAgent(
     goal: string,
     appNames: string[],
-    options: { maxOperationsPerApp?: number } = {},
   ) {
     const body: IntegrationHelperAgentRequest = {
       app_names: appNames,
       goal,
-      max_operations_per_app: options.maxOperationsPerApp ?? 8,
     };
     return this.client.request(() => AgentToolsService.toolIntegrationHelperAgent(body));
   }

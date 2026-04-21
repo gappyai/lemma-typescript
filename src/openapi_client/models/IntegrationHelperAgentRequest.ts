@@ -14,9 +14,5 @@ export type IntegrationHelperAgentRequest = {
      * What the caller wants to achieve with one or more integrations.
      */
     goal: string;
-    /**
-     * Maximum recommended operations per application in the final plan.
-     */
-    max_operations_per_app?: number;
 };
 

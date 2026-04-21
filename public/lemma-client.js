@@ -2714,11 +2714,10 @@ class IntegrationsNamespace {
     get(applicationId) {
         return this.client.request(() => ApplicationsService_js_1.ApplicationsService.applicationGet(applicationId));
     }
-    helperAgent(goal, appNames, options = {}) {
+    helperAgent(goal, appNames) {
         const body = {
             app_names: appNames,
             goal,
-            max_operations_per_app: options.maxOperationsPerApp ?? 8,
         };
         return this.client.request(() => AgentToolsService_js_1.AgentToolsService.toolIntegrationHelperAgent(body));
     }
