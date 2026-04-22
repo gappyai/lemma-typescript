@@ -2,16 +2,16 @@
 
 import * as React from "react"
 import { AlertCircle, Check, ChevronsUpDown, Loader2, RefreshCw, Search, ShieldPlus, User, UserPlus, Users, X } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Badge } from "@/components/lemma/ui/badge"
+import { Button } from "@/components/lemma/ui/button"
+import { Input } from "@/components/lemma/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/lemma/ui/select"
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
-import { Skeleton } from "@/components/ui/skeleton"
+} from "@/components/lemma/ui/popover"
+import { Skeleton } from "@/components/lemma/ui/skeleton"
 import {
   useAddPodMember,
   useMembers,
@@ -20,7 +20,7 @@ import {
   useUpdatePodMemberRole,
 } from "lemma-sdk/react"
 import { PodRole, type LemmaClient, type OrganizationMember, type PodMember } from "lemma-sdk"
-import { cn } from "@/lib/utils"
+import { cn } from "@/components/lemma/lib/utils"
 
 export type LemmaMemberAppearance = "default" | "minimal" | "borderless" | "contained"
 export type LemmaMemberDensity = "compact" | "comfortable" | "spacious"
@@ -100,11 +100,11 @@ export function LemmaMembers({
   organizationId,
   enabled = true,
   title = "Members",
-  description = "Manage who has access to this pod and what role they have.",
+  description = "People who have access to this pod.",
   searchPlaceholder = "Search members...",
-  allowRoleEdit = true,
-  allowRemove = true,
-  allowAdd = true,
+  allowRoleEdit = false,
+  allowRemove = false,
+  allowAdd = false,
   defaultAddRole = PodRole.POD_USER,
   currentUserId,
   appearance = "default",

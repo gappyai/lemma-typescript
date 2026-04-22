@@ -2,16 +2,16 @@
 
 import { forwardRef, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import { X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/components/lemma/lib/utils";
+import { Button } from "@/components/lemma/ui/button";
+import { Badge } from "@/components/lemma/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/lemma/ui/select";
 import type {
   AssistantConversationListItem,
   AssistantConversationRenderArgs,

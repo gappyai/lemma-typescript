@@ -68,7 +68,7 @@ import {
   WandSparkles,
   X,
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/lemma/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -76,10 +76,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
+} from "@/components/lemma/ui/dialog"
+import { Input } from "@/components/lemma/ui/input"
+import { Textarea } from "@/components/lemma/ui/textarea"
+import { cn } from "@/components/lemma/lib/utils"
 import { useFile, useFiles, useFileTree, useTables } from "lemma-sdk/react"
 import type { DatastoreDirectoryTreeNode, FileResponse, LemmaClient } from "lemma-sdk"
 

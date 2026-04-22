@@ -12,12 +12,12 @@ import {
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { AvailableModels, type ConversationModel } from "lemma-sdk";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/components/lemma/lib/utils";
+import { Button } from "@/components/lemma/ui/button";
+import { Textarea } from "@/components/lemma/ui/textarea";
+import { Badge } from "@/components/lemma/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/lemma/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/lemma/ui/dialog";
 import { ArrowUp, BarChart3, CheckSquare, Database, FileText, Hash, Mail, Plus, RotateCcw, Search, Square, Users, X } from "lucide-react";
 import type {
   AssistantMessagePart,

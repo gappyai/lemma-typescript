@@ -4,10 +4,10 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { LemmaClient, type FlowRun, type FunctionRun, type Task, type TaskMessage } from "lemma-sdk";
 import { useAgentRun, useFunctionRun, useWorkflowStart } from "lemma-sdk/react";
 import { AlertCircle, Bot, CheckCircle2, ChevronRight, Loader2, Play, Sparkles, Workflow, XCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/components/lemma/lib/utils";
+import { Badge } from "@/components/lemma/ui/badge";
+import { Button } from "@/components/lemma/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/lemma/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -15,9 +15,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/lemma/ui/dialog";
+import { Separator } from "@/components/lemma/ui/separator";
+import { Textarea } from "@/components/lemma/ui/textarea";
 
 export type LemmaActionSurfaceAppearance = "default" | "minimal" | "borderless" | "contained";
 export type LemmaActionSurfaceDensity = "compact" | "comfortable" | "spacious";

@@ -12,17 +12,17 @@ import {
   Search,
   X,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/lemma/ui/badge"
+import { Button } from "@/components/lemma/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { cn } from "@/lib/utils"
+} from "@/components/lemma/ui/dialog"
+import { Input } from "@/components/lemma/ui/input"
+import { Separator } from "@/components/lemma/ui/separator"
+import { cn } from "@/components/lemma/lib/utils"
 
 type SearchRecord = Record<string, unknown>
 type ResultIcon = React.ComponentType<{ className?: string }>

@@ -2,7 +2,7 @@
 
 `lemma-sdk` is the headless TypeScript SDK for Lemma. Use `lemma-sdk` for the core client and shared helpers, and use `lemma-sdk/react` as the main app-building surface for hooks and auth primitives.
 
-`AuthGuard` intentionally stays in `lemma-sdk/react`. The product direction is hooks-first and shell-agnostic. The registry remains available, but it is intentionally small and no longer the center of the recommended development model. See [docs/headless-first-direction.md](docs/headless-first-direction.md).
+`AuthGuard` intentionally stays in `lemma-sdk/react`. The product direction remains hooks-first and shell-agnostic, and the registry ships stock Lemma UI blocks when you want installable assistant, records, file, workflow, collaboration, or shell surfaces.
 
 ## Install
 
@@ -218,31 +218,31 @@ function WorkflowButton({ client }: { client: LemmaClient }) {
 
 ## Registry
 
-The registry is optional UI scaffolding, not the default product story. Most desks should be built from hooks and app-local UI.
-
-If you still want registry installs, they remain available:
+The registry is optional UI scaffolding for teams that want stock Lemma blocks on top of the headless SDK.
 
 After running `npx lemma-sdk init-shadcn`, install blocks like:
 
 ```bash
-npx shadcn@latest add @lemma/lemma-assistant-experience
-npx shadcn@latest add @lemma/lemma-document-workspace
+npx shadcn@latest add @lemma/lemma-records-view
+npx shadcn@latest add @lemma/lemma-detail-panel
+npx shadcn@latest add @lemma/lemma-record-form
 npx shadcn@latest add @lemma/lemma-global-search
-npx shadcn@latest add @lemma/lemma-members
-npx shadcn@latest add @lemma/lemma-action-surface
+npx shadcn@latest add @lemma/lemma-file-browser
+npx shadcn@latest add @lemma/lemma-document-workspace
+npx shadcn@latest add @lemma/lemma-comments
+npx shadcn@latest add @lemma/lemma-assistant-experience
 ```
 
-The registry is intentionally small now. It currently ships 5 published blocks.
-
-Current registry items:
+The registry currently ships 19 canonical blocks:
 
 | Area | Items |
 | --- | --- |
-| Assistant | `lemma-assistant-experience` |
-| Documents | `lemma-document-workspace` |
-| Search | `lemma-global-search` |
-| People | `lemma-members` |
-| Automation | `lemma-action-surface` |
+| Core operator blocks | `lemma-records-view`, `lemma-detail-panel`, `lemma-record-form`, `lemma-status-flow` |
+| Search, files, and pages | `lemma-global-search`, `lemma-breadcrumbs`, `lemma-file-browser`, `lemma-markdown-editor`, `lemma-page-tree`, `lemma-document-workspace` |
+| Collaboration and analytics | `lemma-comments`, `lemma-activity-feed`, `lemma-insights`, `lemma-action-surface`, `lemma-workflow-runner` |
+| Assistant and shell | `lemma-assistant-experience`, `lemma-members`, `lemma-notification-bell`, `lemma-user-menu` |
+
+Registry blocks now install against a shared `lemma-ui` primitive layer that ships with this registry. Consumers no longer need a pre-existing app-local `@/components/ui/*` shadcn tree just to use Lemma blocks.
 
 The registry is currently served from jsDelivr against this public repo:
 
@@ -251,13 +251,50 @@ The registry is currently served from jsDelivr against this public repo:
 
 For more stable installs, pin the registry URL to a tag or commit SHA instead of `@main`.
 
-Published blocks:
+Blocks that install a CSS file, such as records view, should be imported by your app's global stylesheet:
 
-- `lemma-assistant-experience` for the hardest assistant/chat runtime surface
-- `lemma-document-workspace` for rich document/file create-read-edit-preview flows
+```css
+@import "@/styles/lemma-records-view.css";
+```
+
+Core registry blocks:
+
+- `lemma-records-view` for a lean records browser by default, with explicit workspace presets for grid, list, grouped, kanban, and linear operator flows
+- `lemma-detail-panel` for standalone record detail rendering with shared records-detail internals
+- `lemma-record-form` for schema-aware create and edit flows with searchable foreign-key controls
+- `lemma-status-flow` for interactive status transitions and lifecycle display
 - `lemma-global-search` for a stock command-bar style omnibox
-- `lemma-members` for stock pod membership management
-- `lemma-action-surface` for long-running function/workflow/agent launches
+- `lemma-file-browser` and `lemma-document-workspace` for file browsing, editing, preview, and document-native workflows
+- `lemma-comments`, `lemma-activity-feed`, and `lemma-insights` for collaboration and reporting
+- `lemma-action-surface` and `lemma-workflow-runner` for long-running actions and workflow history
+- `lemma-assistant-experience`, `lemma-members`, `lemma-notification-bell`, and `lemma-user-menu` for assistant and shell surfaces
+
+### Block Defaults
+
+The registry now treats generic blocks as read-first and low-chrome by default.
+
+- base blocks should render useful data without assuming a full workspace shell
+- presets are the place for opinionated operator UX such as inline detail, multi-view boards, and heavier toolbars
+- `appearance`, `density`, and `radius` remain available as local override props on major blocks, but they are optional; prefer setting visual defaults in your app shell or wrapper components instead of passing them everywhere
+
+`lemma-records-view` now defaults to:
+
+- one explicit view instead of an inferred multi-view workspace
+- no search bar unless you opt in through `chrome.search` or pass search config
+- no filter launcher unless you opt in through `chrome.filters` or provide default filters
+- no create button unless you opt in through `chrome.create` or pass create config
+- no row-selection chrome unless you opt in through `chrome.selection` or provide bulk actions
+- `detailMode="sheet"` for the base block, with inline detail reserved for explicit presets or explicit props
+- no schema-name heuristics that silently promote a table into `kanban` or `linear`
+
+For records workspaces, the split is:
+
+- use the base block for simple table/list browsing
+- pass `availableViews` only when you want a view switcher
+- pass `chrome={{ search: true, filters: true, create: true, viewSwitcher: true, selection: true }}` when you want workspace controls on the base block
+- use `preset="triage" | "issues" | "crm" | "docs"` when you want a stock operator workspace
+
+`lemma-members` now defaults to a read-only membership list. Add management behavior explicitly with `allowAdd`, `allowRoleEdit`, and `allowRemove`.
 
 `lemma-global-search` supports:
 
@@ -277,15 +314,29 @@ Document blocks support:
 People blocks support:
 
 - `LemmaMemberChip`, `LemmaAvatarGroup`, `LemmaMemberSelect`, and `LemmaUserField`
-- a stock `LemmaMembers` admin workspace for pod membership, role changes, removal, and add-from-organization flows via `organizationId`, `allowAdd`, `allowRoleEdit`, and `allowRemove`
+- a stock `LemmaMembers` surface that is read-only by default, and upgrades into a membership admin workspace only when `allowAdd`, `allowRoleEdit`, or `allowRemove` are enabled
 - pod member labels for owner, creator, assignee, participant, and author fields
 - searchable member picking backed by `useMembers`
 
 Workflow primitives support:
 
+- lifecycle/status rendering and transitions through `lemma-status-flow`
 - direct, function-backed, workflow-backed, and agent-backed launches through `lemma-action-surface`
 - inline, row, and panel presentation modes for long-running actions with inspectable progress
-- native workflow/file surfaces plus app-local record UIs where tables are the actual product data model
+- native workflow run inspection through `lemma-workflow-runner`
+
+Navigation and file blocks support:
+
+- route, record, and file-path breadcrumb builders through `lemma-breadcrumbs`
+- native pod-file hierarchy navigation through `lemma-page-tree`
+- datastore folder navigation, upload, rename, move, folder creation, picker mode, and delete handling through `lemma-file-browser`
+- write, preview, and split modes through `lemma-markdown-editor`
+
+Collaboration and analytics blocks support:
+
+- record-scoped discussion through `lemma-comments`
+- unified audit and history timelines through `lemma-activity-feed`
+- dashboard-style stat cards and charts through `lemma-insights`
 
 Assistant blocks support:
 
@@ -295,9 +346,38 @@ Assistant blocks support:
 - bounded default heights for `page` and `side-panel` modes so the message viewport scrolls instead of stretching with content; pass `className="h-full min-h-0"` inside an explicit-height parent when you want a fill-layout assistant like inbox CRM
 
 ```tsx
+import { LemmaRecordsView } from "@/components/lemma/lemma-records-view";
 import { LemmaAssistantExperience } from "@/components/lemma/assistant/assistant-experience";
 import { LemmaActionSurface } from "@/components/lemma/lemma-action-surface";
 import { LemmaGlobalSearch } from "@/components/lemma/lemma-global-search";
+
+<LemmaRecordsView
+  client={client}
+  podId={podId}
+  tableName="tickets"
+/>;
+
+<LemmaRecordsView
+  client={client}
+  podId={podId}
+  tableName="deals"
+  defaultView="list"
+  availableViews={["list", "grid"]}
+  chrome={{ search: true, filters: true, create: true, viewSwitcher: true, selection: true }}
+  hiddenFields={["id", "created_at", "updated_at"]}
+  foreignKeyLabels={{ company_id: "name" }}
+  onCreateOptions={{
+    submitVia: "function",
+    submitFunctionName: "create-deal",
+  }}
+/>;
+
+<LemmaRecordsView
+  client={client}
+  podId={podId}
+  tableName="deals"
+  preset="crm"
+/>;
 
 <LemmaGlobalSearch
   client={client}
@@ -320,8 +400,6 @@ import { LemmaGlobalSearch } from "@/components/lemma/lemma-global-search";
   }}
   minQueryLength={3}
   debounceMs={450}
-  appearance="minimal"
-  density="compact"
 />;
 
 <LemmaActionSurface
@@ -335,7 +413,6 @@ import { LemmaGlobalSearch } from "@/components/lemma/lemma-global-search";
 <LemmaAssistantExperience
   client={client}
   assistantName="sales-copilot"
-  density="compact"
 />;
 ```
 
