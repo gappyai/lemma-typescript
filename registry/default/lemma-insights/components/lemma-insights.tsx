@@ -448,7 +448,14 @@ function ChartCard({
                 cx="50%"
                 cy="50%"
                 outerRadius={height / 3}
-                label={({ category, percent }) => `${formatCategory(String(category))} ${(percent * 100).toFixed(0)}%`}
+                label={({ payload, percent }) => {
+                  const category =
+                    payload && typeof payload === "object" && "category" in payload
+                      ? String(payload.category ?? "")
+                      : "";
+                  const ratio = typeof percent === "number" ? percent : 0;
+                  return `${formatCategory(category)} ${(ratio * 100).toFixed(0)}%`;
+                }}
                 labelLine={false}
               >
                 {data.map((_, i) => (
