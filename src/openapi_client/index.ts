@@ -96,6 +96,7 @@ export type { EventWorkflowStartInput } from './models/EventWorkflowStartInput.j
 export type { EventWorkflowStartOutput } from './models/EventWorkflowStartOutput.js';
 export type { ExecuteFunctionRequest } from './models/ExecuteFunctionRequest.js';
 export type { ExpressionInputBinding } from './models/ExpressionInputBinding.js';
+export { FeedbackCategory } from './models/FeedbackCategory.js';
 export { FileInfo } from './models/FileInfo.js';
 export type { FileListResponse } from './models/FileListResponse.js';
 export type { FileResponse } from './models/FileResponse.js';
@@ -159,6 +160,7 @@ export type { OrganizationMemberResponse } from './models/OrganizationMemberResp
 export type { OrganizationMessageResponse } from './models/OrganizationMessageResponse.js';
 export type { OrganizationResponse } from './models/OrganizationResponse.js';
 export { OrganizationRole } from './models/OrganizationRole.js';
+export type { OrganizationSlugAvailabilityResponse } from './models/OrganizationSlugAvailabilityResponse.js';
 export type { OutlookSurfaceConfig } from './models/OutlookSurfaceConfig.js';
 export type { OutlookSurfaceConfigInput } from './models/OutlookSurfaceConfigInput.js';
 export type { PlanListResponse } from './models/PlanListResponse.js';
@@ -185,6 +187,8 @@ export type { PodUpdateRequest } from './models/PodUpdateRequest.js';
 export type { RecentUsageResponse } from './models/RecentUsageResponse.js';
 export type { RecordListResponse } from './models/RecordListResponse.js';
 export type { RecordResponse } from './models/RecordResponse.js';
+export type { ReportFeedbackRequest } from './models/ReportFeedbackRequest.js';
+export type { ReportFeedbackResponse } from './models/ReportFeedbackResponse.js';
 export type { ResourceFileListResponse } from './models/ResourceFileListResponse.js';
 export type { ResourcePermissionListResponse } from './models/ResourcePermissionListResponse.js';
 export type { ResourcePermissionResponse } from './models/ResourcePermissionResponse.js';
@@ -273,6 +277,7 @@ export type { WhatsAppSurfaceConfigInput } from './models/WhatsAppSurfaceConfigI
 export type { WorkflowCreateRequest } from './models/WorkflowCreateRequest.js';
 export type { WorkflowEdge } from './models/WorkflowEdge.js';
 export type { WorkflowGraphUpdateRequest } from './models/WorkflowGraphUpdateRequest.js';
+export type { WorkflowInstallListResponse } from './models/WorkflowInstallListResponse.js';
 export { WorkflowInstallMode } from './models/WorkflowInstallMode.js';
 export type { WorkflowInstallRequest } from './models/WorkflowInstallRequest.js';
 export type { WorkflowListResponse } from './models/WorkflowListResponse.js';

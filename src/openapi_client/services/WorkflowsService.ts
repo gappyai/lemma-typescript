@@ -7,6 +7,7 @@ import type { FlowResponse } from '../models/FlowResponse.js';
 import type { FlowRunEntity } from '../models/FlowRunEntity.js';
 import type { WorkflowCreateRequest } from '../models/WorkflowCreateRequest.js';
 import type { WorkflowGraphUpdateRequest } from '../models/WorkflowGraphUpdateRequest.js';
+import type { WorkflowInstallListResponse } from '../models/WorkflowInstallListResponse.js';
 import type { WorkflowInstallRequest } from '../models/WorkflowInstallRequest.js';
 import type { WorkflowListResponse } from '../models/WorkflowListResponse.js';
 import type { WorkflowRunListResponse } from '../models/WorkflowRunListResponse.js';
@@ -304,6 +305,30 @@ export class WorkflowsService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Workflow Installs
+     * List the current user's installations for a workflow.
+     * @param podId
+     * @param workflowName
+     * @returns WorkflowInstallListResponse Successful Response
+     * @throws ApiError
+     */
+    public static workflowInstallList(
+        podId: string,
+        workflowName: string,
+    ): CancelablePromise<WorkflowInstallListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/workflows/{workflow_name}/installs',
+            path: {
+                'pod_id': podId,
+                'workflow_name': workflowName,
+            },
             errors: {
                 422: `Validation Error`,
             },

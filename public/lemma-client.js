@@ -2755,6 +2755,24 @@ class AgentToolsService {
         });
     }
     /**
+     * Report Feedback
+     * Record a maintainer-facing feedback report about system issues, skill issues, incorrect knowledge, or other unexpected behavior.
+     * @param requestBody
+     * @returns ReportFeedbackResponse Successful Response
+     * @throws ApiError
+     */
+    static toolReportFeedback(requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/tools/report-feedback',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Web Search
      * Run a raw web search and return structured results.
      * @param requestBody
@@ -3086,15 +3104,17 @@ class IntegrationsService {
      * OAuth Callback
      * Handle OAuth callback and complete account connection. This endpoint is public and uses state parameter for security.
      * @param error
-     * @returns AccountResponseSchema Successful Response
+     * @param format
+     * @returns string Successful Response
      * @throws ApiError
      */
-    static integrationOauthCallback(error) {
+    static integrationOauthCallback(error, format) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/integrations/connect-requests/oauth/callback',
             query: {
                 'error': error,
+                'format': format,
             },
             errors: {
                 422: `Validation Error`,
@@ -3282,6 +3302,46 @@ class OrganizationsService {
             url: '/organizations/invitations/{invitation_id}/accept',
             path: {
                 'invitation_id': invitationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Check Organization Slug Availability
+     * Check whether an organization slug is available
+     * @param slug
+     * @returns OrganizationSlugAvailabilityResponse Successful Response
+     * @throws ApiError
+     */
+    static orgSlugAvailability(slug) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/organizations/slug-availability',
+            query: {
+                'slug': slug,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Suggested Organizations
+     * Get auto-join organizations matching the current user's email domain
+     * @param limit
+     * @param pageToken
+     * @returns OrganizationListResponse Successful Response
+     * @throws ApiError
+     */
+    static orgSuggested(limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/organizations/suggested',
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,
@@ -5167,6 +5227,27 @@ class WorkflowsService {
             },
             body: requestBody,
             mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Workflow Installs
+     * List the current user's installations for a workflow.
+     * @param podId
+     * @param workflowName
+     * @returns WorkflowInstallListResponse Successful Response
+     * @throws ApiError
+     */
+    static workflowInstallList(podId, workflowName) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/workflows/{workflow_name}/installs',
+            path: {
+                'pod_id': podId,
+                'workflow_name': workflowName,
+            },
             errors: {
                 422: `Validation Error`,
             },

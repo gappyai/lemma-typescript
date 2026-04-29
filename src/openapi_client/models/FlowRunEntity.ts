@@ -20,6 +20,7 @@ export type FlowRunEntity = {
     started_at?: (string | null);
     status?: FlowRunStatus;
     step_history?: Array<StepExecution>;
+    trigger_event_id?: (string | null);
     trigger_type?: string;
     updated_at?: string;
     user_id: string;

@@ -12,6 +12,7 @@ import type { OrganizationMemberListResponse } from '../models/OrganizationMembe
 import type { OrganizationMemberResponse } from '../models/OrganizationMemberResponse.js';
 import type { OrganizationMessageResponse } from '../models/OrganizationMessageResponse.js';
 import type { OrganizationResponse } from '../models/OrganizationResponse.js';
+import type { OrganizationSlugAvailabilityResponse } from '../models/OrganizationSlugAvailabilityResponse.js';
 import type { UpdateMemberRoleRequest } from '../models/UpdateMemberRoleRequest.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
@@ -145,6 +146,51 @@ export class OrganizationsService {
             url: '/organizations/invitations/{invitation_id}/accept',
             path: {
                 'invitation_id': invitationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Check Organization Slug Availability
+     * Check whether an organization slug is available
+     * @param slug
+     * @returns OrganizationSlugAvailabilityResponse Successful Response
+     * @throws ApiError
+     */
+    public static orgSlugAvailability(
+        slug: string,
+    ): CancelablePromise<OrganizationSlugAvailabilityResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/organizations/slug-availability',
+            query: {
+                'slug': slug,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Suggested Organizations
+     * Get auto-join organizations matching the current user's email domain
+     * @param limit
+     * @param pageToken
+     * @returns OrganizationListResponse Successful Response
+     * @throws ApiError
+     */
+    public static orgSuggested(
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<OrganizationListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/organizations/suggested',
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
             },
             errors: {
                 422: `Validation Error`,

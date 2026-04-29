@@ -126,17 +126,20 @@ export class IntegrationsService {
      * OAuth Callback
      * Handle OAuth callback and complete account connection. This endpoint is public and uses state parameter for security.
      * @param error
-     * @returns AccountResponseSchema Successful Response
+     * @param format
+     * @returns string Successful Response
      * @throws ApiError
      */
     public static integrationOauthCallback(
         error?: (string | null),
-    ): CancelablePromise<AccountResponseSchema> {
+        format?: (string | null),
+    ): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/integrations/connect-requests/oauth/callback',
             query: {
                 'error': error,
+                'format': format,
             },
             errors: {
                 422: `Validation Error`,

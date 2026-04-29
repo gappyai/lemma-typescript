@@ -4,6 +4,8 @@
 /* eslint-disable */
 import type { IntegrationHelperAgentRequest } from '../models/IntegrationHelperAgentRequest.js';
 import type { IntegrationHelperAgentResponse } from '../models/IntegrationHelperAgentResponse.js';
+import type { ReportFeedbackRequest } from '../models/ReportFeedbackRequest.js';
+import type { ReportFeedbackResponse } from '../models/ReportFeedbackResponse.js';
 import type { WebSearchAgentRequest } from '../models/WebSearchAgentRequest.js';
 import type { WebSearchAgentResponse } from '../models/WebSearchAgentResponse.js';
 import type { WebSearchRequest } from '../models/WebSearchRequest.js';
@@ -25,6 +27,26 @@ export class AgentToolsService {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/tools/integration-helper-agent',
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Report Feedback
+     * Record a maintainer-facing feedback report about system issues, skill issues, incorrect knowledge, or other unexpected behavior.
+     * @param requestBody
+     * @returns ReportFeedbackResponse Successful Response
+     * @throws ApiError
+     */
+    public static toolReportFeedback(
+        requestBody: ReportFeedbackRequest,
+    ): CancelablePromise<ReportFeedbackResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/tools/report-feedback',
             body: requestBody,
             mediaType: 'application/json',
             errors: {

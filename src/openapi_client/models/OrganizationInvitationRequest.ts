@@ -10,6 +10,7 @@ export type OrganizationInvitationRequest = {
     email: string;
     pod_id?: (string | null);
     pod_role?: (string | null);
+    redirect_uri?: (string | null);
     role: OrganizationRole;
 };
 

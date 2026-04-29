@@ -7,6 +7,7 @@
  */
 export type OrganizationMessageResponse = {
     message: string;
+    redirect_uri?: (string | null);
     success?: boolean;
 };
 
