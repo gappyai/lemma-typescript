@@ -3,16 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Tool sets available for agents.
+ * Known tool bundles an agent may request.
  */
-export enum ToolSet {
+export enum AgentToolset {
     FILE_SYSTEM = 'FILE_SYSTEM',
-    CODE_EXECUTOR = 'CODE_EXECUTOR',
     WORKSPACE_CLI = 'WORKSPACE_CLI',
     SKILLS = 'SKILLS',
     WEB_SEARCH = 'WEB_SEARCH',
     USER_INTERACTION = 'USER_INTERACTION',
     IMAGE_GENERATION = 'IMAGE_GENERATION',
     AUDIO_GENERATION = 'AUDIO_GENERATION',
-    WAIT_UNTIL = 'WAIT_UNTIL',
 }

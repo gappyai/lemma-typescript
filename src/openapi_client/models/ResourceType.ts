@@ -4,6 +4,5 @@
 /* eslint-disable */
 export enum ResourceType {
     POD = 'pod',
-    TASK = 'task',
     CONVERSATION = 'conversation',
 }

@@ -3,7 +3,7 @@ import { AuthManager, type AuthState, type AuthListener } from "./auth.js";
 import { GeneratedClientAdapter } from "./generated.js";
 import { HttpClient } from "./http.js";
 import { AgentsNamespace } from "./namespaces/agents.js";
-import { AssistantsNamespace, ConversationsNamespace } from "./namespaces/assistants.js";
+import { ConversationsNamespace } from "./namespaces/conversations.js";
 import { DesksNamespace } from "./namespaces/desks.js";
 import { FilesNamespace } from "./namespaces/files.js";
 import { FunctionsNamespace } from "./namespaces/functions.js";
@@ -48,7 +48,6 @@ export class LemmaClient {
   readonly functions: FunctionsNamespace;
   readonly agents: AgentsNamespace;
   readonly tasks: TasksNamespace;
-  readonly assistants: AssistantsNamespace;
   readonly conversations: ConversationsNamespace;
   readonly workflows: WorkflowsNamespace;
   readonly desks: DesksNamespace;
@@ -91,7 +90,6 @@ export class LemmaClient {
     this.functions = new FunctionsNamespace(this._generated, podIdFn);
     this.agents = new AgentsNamespace(this._generated, podIdFn);
     this.tasks = new TasksNamespace(this._http, podIdFn);
-    this.assistants = new AssistantsNamespace(this._http, podIdFn);
     this.conversations = new ConversationsNamespace(this._http, podIdFn);
     this.workflows = new WorkflowsNamespace(this._generated, this._http, podIdFn);
     this.desks = new DesksNamespace(this._generated, this._http, podIdFn);

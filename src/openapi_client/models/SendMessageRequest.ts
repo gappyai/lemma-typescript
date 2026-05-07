@@ -2,7 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export enum FileVisibility {
-    PRIVATE = 'PRIVATE',
-    POD = 'POD',
-}
+export type SendMessageRequest = {
+    agent_name?: (string | null);
+    content: string;
+    conversation_id?: (string | null);
+};
+

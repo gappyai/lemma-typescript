@@ -24,8 +24,17 @@ export type FlowRunEntity = {
     trigger_type?: string;
     updated_at?: string;
     user_id: string;
+    /**
+     * Agent conversation id when the workflow is waiting for a pod agent execution.
+     */
+    waiting_agent_conversation_id?: (string | null);
+    /**
+     * Function run id when the workflow is waiting for an async function.
+     */
     waiting_function_run_id?: (string | null);
-    waiting_task_id?: (string | null);
+    /**
+     * Trigger id when the workflow is waiting for an external trigger.
+     */
     waiting_trigger_id?: (string | null);
 };
 

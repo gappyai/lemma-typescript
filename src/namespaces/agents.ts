@@ -7,7 +7,7 @@ export class AgentsNamespace {
   constructor(private readonly client: GeneratedClientAdapter, private readonly podId: () => string) {}
 
   list(options: { limit?: number; pageToken?: string } = {}) {
-    return this.client.request(() => AgentsService.agentList(this.podId(), options.limit ?? 100, options.pageToken));
+    return this.client.request(() => AgentsService.agentList(this.podId(), options.pageToken, options.limit ?? 100));
   }
   create(payload: CreateAgentRequest) {
     return this.client.request(() => AgentsService.agentCreate(this.podId(), payload));

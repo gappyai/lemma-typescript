@@ -13,17 +13,17 @@ import { request as __request } from '../core/request.js';
 export class AgentsService {
     /**
      * List Agents
-     * List all agents in a pod
+     * List pod-owned agent definitions visible to the current user.
      * @param podId
-     * @param limit
      * @param pageToken
+     * @param limit
      * @returns AgentListResponse Successful Response
      * @throws ApiError
      */
     public static agentList(
         podId: string,
-        limit: number = 100,
         pageToken?: (string | null),
+        limit: number = 100,
     ): CancelablePromise<AgentListResponse> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -32,8 +32,8 @@ export class AgentsService {
                 'pod_id': podId,
             },
             query: {
-                'limit': limit,
                 'page_token': pageToken,
+                'limit': limit,
             },
             errors: {
                 422: `Validation Error`,
@@ -42,7 +42,7 @@ export class AgentsService {
     }
     /**
      * Create Agent
-     * Create a new agent in a pod
+     * Create a pod-owned agent definition with model, harness, toolsets, resource access grants, callable functions, and callable child agents.
      * @param podId
      * @param requestBody
      * @returns AgentResponse Successful Response
@@ -67,7 +67,7 @@ export class AgentsService {
     }
     /**
      * Delete Agent
-     * Delete an agent
+     * Delete a pod-owned agent definition by name.
      * @param podId
      * @param agentName
      * @returns AgentMessageResponse Successful Response
@@ -91,7 +91,7 @@ export class AgentsService {
     }
     /**
      * Get Agent
-     * Get an agent by name
+     * Get one pod-owned agent definition by its stable name.
      * @param podId
      * @param agentName
      * @returns AgentResponse Successful Response
@@ -115,7 +115,7 @@ export class AgentsService {
     }
     /**
      * Update Agent
-     * Update an agent
+     * Update an agent definition, including prompt instruction, model, toolsets, schemas, and resource/tool grants.
      * @param podId
      * @param agentName
      * @param requestBody

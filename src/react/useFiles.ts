@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
-import type { FileResponse } from "../types.js";
+import type { DatastoreFileNamespace, FileResponse } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseFilesOptions {
@@ -12,6 +12,7 @@ export interface UseFilesOptions {
   pageToken?: string;
   directoryPath?: string;
   parentId?: string;
+  namespace?: DatastoreFileNamespace | null;
 }
 
 export interface UseFilesResult {
@@ -20,7 +21,13 @@ export interface UseFilesResult {
   isLoading: boolean;
   isLoadingMore: boolean;
   error: Error | null;
-  refresh: (overrides?: { limit?: number; pageToken?: string; directoryPath?: string; parentId?: string }) => Promise<FileResponse[]>;
+  refresh: (overrides?: {
+    limit?: number;
+    pageToken?: string;
+    directoryPath?: string;
+    parentId?: string;
+    namespace?: DatastoreFileNamespace | null;
+  }) => Promise<FileResponse[]>;
   loadMore: (overrides?: { limit?: number }) => Promise<FileResponse[]>;
 }
 
@@ -33,6 +40,7 @@ export function useFiles({
   pageToken,
   directoryPath = "/",
   parentId,
+  namespace,
 }: UseFilesOptions): UseFilesResult {
   const [files, setFiles] = useState<FileResponse[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
@@ -41,7 +49,13 @@ export function useFiles({
   const [error, setError] = useState<Error | null>(null);
 
   const refresh = useCallback(async (
-    overrides: { limit?: number; pageToken?: string; directoryPath?: string; parentId?: string } = {},
+    overrides: {
+      limit?: number;
+      pageToken?: string;
+      directoryPath?: string;
+      parentId?: string;
+      namespace?: DatastoreFileNamespace | null;
+    } = {},
     signal?: AbortSignal,
   ): Promise<FileResponse[]> => {
     if (!enabled) return [];
@@ -56,6 +70,7 @@ export function useFiles({
         pageToken: overrides.pageToken ?? pageToken,
         directoryPath: overrides.directoryPath ?? directoryPath,
         parentId: overrides.parentId ?? parentId,
+        namespace: overrides.namespace ?? namespace,
       });
 
       if (signal?.aborted) return [];
@@ -70,7 +85,7 @@ export function useFiles({
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, [client, directoryPath, enabled, limit, pageToken, parentId, podId]);
+  }, [client, directoryPath, enabled, limit, namespace, pageToken, parentId, podId]);
 
   const loadMore = useCallback(async (overrides: { limit?: number } = {}): Promise<FileResponse[]> => {
     if (!enabled || !nextPageToken || isLoading || isLoadingMore) return [];
@@ -85,6 +100,7 @@ export function useFiles({
         pageToken: nextPageToken,
         directoryPath,
         parentId,
+        namespace,
       });
       const moreFiles = response.items ?? [];
       setFiles((previous) => [...previous, ...moreFiles]);
@@ -96,7 +112,7 @@ export function useFiles({
     } finally {
       setIsLoadingMore(false);
     }
-  }, [client, directoryPath, enabled, isLoading, isLoadingMore, limit, nextPageToken, parentId, podId]);
+  }, [client, directoryPath, enabled, isLoading, isLoadingMore, limit, namespace, nextPageToken, parentId, podId]);
 
   useEffect(() => {
     if (!enabled) {

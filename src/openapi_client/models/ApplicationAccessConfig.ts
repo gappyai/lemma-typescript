@@ -4,13 +4,11 @@
 /* eslint-disable */
 import type { ApplicationMode } from './ApplicationMode.js';
 /**
- * Configuration for application access.
- *
- * Defines how an agent or function can access a specific application.
+ * Configuration for application access granted to a workload.
  */
 export type ApplicationAccessConfig = {
     /**
-     * Required for FIXED mode - specific account to use
+     * Required for AGENT_OWNED mode - specific account to use
      */
     account_id?: (string | null);
     /**
@@ -18,7 +16,7 @@ export type ApplicationAccessConfig = {
      */
     app_name: string;
     /**
-     * Access mode - FIXED or DYNAMIC
+     * Application account ownership mode
      */
     mode: ApplicationMode;
 };

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
-import type { FileResponse } from "../types.js";
+import type { DatastoreFileNamespace, FileResponse } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UpdateFileInput {
@@ -11,12 +11,14 @@ export interface UpdateFileInput {
   parentId?: string;
   newPath?: string;
   searchEnabled?: boolean;
+  namespace?: DatastoreFileNamespace | null;
 }
 
 export interface UseUpdateFileOptions {
   client: LemmaClient;
   podId?: string;
   path?: string | null;
+  namespace?: DatastoreFileNamespace | null;
   enabled?: boolean;
   onSuccess?: (file: FileResponse) => void;
   onError?: (error: unknown) => void;
@@ -34,6 +36,7 @@ export function useUpdateFile<TFile extends FileResponse = FileResponse>({
   client,
   podId,
   path = null,
+  namespace,
   enabled = true,
   onSuccess,
   onError,
@@ -68,7 +71,10 @@ export function useUpdateFile<TFile extends FileResponse = FileResponse>({
 
     try {
       const scopedClient = resolvePodClient(client, podId);
-      const nextFile = await scopedClient.files.update(nextPath, input) as TFile;
+      const nextFile = await scopedClient.files.update(nextPath, {
+        ...input,
+        namespace: input.namespace ?? namespace,
+      }) as TFile;
       setUpdatedFile(nextFile);
       onSuccessRef.current?.(nextFile);
       return nextFile;
@@ -80,7 +86,7 @@ export function useUpdateFile<TFile extends FileResponse = FileResponse>({
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, isEnabled, podId, trimmedPath]);
+  }, [client, isEnabled, namespace, podId, trimmedPath]);
 
   const reset = useCallback(() => {
     setUpdatedFile(null);

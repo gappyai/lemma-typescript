@@ -312,7 +312,7 @@ export class WorkflowsService {
     }
     /**
      * List Workflow Installs
-     * List the current user's installations for a workflow.
+     * List workflow installations visible to the current user. `GLOBAL` workflows return the pod-level install; `USER` workflows return the current user's install.
      * @param podId
      * @param workflowName
      * @returns WorkflowInstallListResponse Successful Response

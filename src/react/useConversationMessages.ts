@@ -19,9 +19,13 @@ import {
 export interface UseConversationMessagesOptions {
   client: LemmaClient;
   podId?: string;
+  agentName?: string;
+  /**
+   * @deprecated Use agentName instead.
+   */
   assistantName?: string;
   /**
-   * @deprecated Use assistantName instead.
+   * @deprecated Use agentName instead.
    */
   assistantId?: string;
   organizationId?: string;
@@ -87,6 +91,7 @@ function isSettledStatus(status: unknown, isStreaming: boolean): boolean {
 export function useConversationMessages({
   client,
   podId,
+  agentName,
   assistantName,
   assistantId,
   organizationId,
@@ -127,6 +132,7 @@ export function useConversationMessages({
   } = useAssistantSession({
     client,
     podId,
+    agentName: agentName ?? assistantName ?? assistantId,
     assistantName,
     assistantId,
     organizationId,

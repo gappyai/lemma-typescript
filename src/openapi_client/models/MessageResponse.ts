@@ -5,16 +5,18 @@
 import type { NotificationContent } from './NotificationContent.js';
 import type { TextContent } from './TextContent.js';
 import type { ThinkingContent } from './ThinkingContent.js';
-import type { ToolCallRequest } from './ToolCallRequest.js';
-import type { ToolCallResponse } from './ToolCallResponse.js';
-/**
- * Response schema for task message.
- */
-export type TaskMessageResponse = {
-    content: (NotificationContent | TextContent | ThinkingContent | ToolCallRequest | ToolCallResponse);
+import type { ToolCallContent } from './ToolCallContent.js';
+import type { ToolReturnContent } from './ToolReturnContent.js';
+export type MessageResponse = {
+    agent_run_id?: (string | null);
+    content: (NotificationContent | TextContent | ThinkingContent | ToolCallContent | ToolReturnContent);
+    conversation_id: string;
     created_at: string;
     id: string;
     metadata?: (Record<string, any> | null);
     role: string;
+    sequence: number;
+    tool_call_id?: (string | null);
+    tool_name?: (string | null);
 };
 

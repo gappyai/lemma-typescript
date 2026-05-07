@@ -2,9 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { ConversationMessageResponse } from './ConversationMessageResponse.js';
-export type ConversationMessageListResponse = {
-    items: Array<ConversationMessageResponse>;
+import type { MessageResponse } from './MessageResponse.js';
+export type MessageListResponse = {
+    items: Array<MessageResponse>;
     limit: number;
     next_page_token?: (string | null);
 };

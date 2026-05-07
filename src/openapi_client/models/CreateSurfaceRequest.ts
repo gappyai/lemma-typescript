@@ -15,7 +15,7 @@ import type { TelegramSurfaceConfigInput } from './TelegramSurfaceConfigInput.js
 import type { WhatsAppCredentialsInput } from './WhatsAppCredentialsInput.js';
 import type { WhatsAppSurfaceConfigInput } from './WhatsAppSurfaceConfigInput.js';
 export type CreateSurfaceRequest = {
-    assistant_name: string;
+    agent_name?: (string | null);
     config: (SlackSurfaceConfigInput | TeamsSurfaceConfigInput | WhatsAppSurfaceConfigInput | TelegramSurfaceConfigInput | GmailSurfaceConfigInput | OutlookSurfaceConfigInput);
     credential_mode?: SurfaceCredentialMode;
     credentials?: ((SlackCredentialsInput | TeamsCredentialsInput | WhatsAppCredentialsInput | TelegramCredentialsInput) | null);

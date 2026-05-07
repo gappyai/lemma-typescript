@@ -16,9 +16,13 @@ import { normalizeError } from "./utils.js";
 
 interface ConversationScope {
   podId?: string | null;
+  agentName?: string | null;
+  /**
+   * @deprecated Use agentName instead.
+   */
   assistantName?: string | null;
   /**
-   * @deprecated Use assistantName instead.
+   * @deprecated Use agentName instead.
    */
   assistantId?: string | null;
   organizationId?: string | null;
@@ -27,9 +31,13 @@ interface ConversationScope {
 export interface UseAssistantSessionOptions {
   client: LemmaClient;
   podId?: string;
+  agentName?: string;
+  /**
+   * @deprecated Use agentName instead.
+   */
   assistantName?: string;
   /**
-   * @deprecated Use assistantName instead.
+   * @deprecated Use agentName instead.
    */
   assistantId?: string;
   organizationId?: string;
@@ -47,9 +55,13 @@ export interface CreateConversationInput {
   title?: string | null;
   model?: ConversationModel | null;
   podId?: string | null;
+  agentName?: string | null;
+  /**
+   * @deprecated Use agentName instead.
+   */
   assistantName?: string | null;
   /**
-   * @deprecated Use assistantName instead.
+   * @deprecated Use agentName instead.
    */
   assistantId?: string | null;
   organizationId?: string | null;
@@ -126,15 +138,18 @@ function normalizeScope(
   defaults: ConversationScope,
   override?: ConversationScope,
 ): ConversationScope {
-  const resolvedAssistantName = override?.assistantName
+  const resolvedAgentName = override?.agentName
+    ?? override?.assistantName
     ?? override?.assistantId
+    ?? defaults.agentName
     ?? defaults.assistantName
     ?? defaults.assistantId
     ?? null;
 
   return {
     podId: override?.podId ?? defaults.podId ?? client.podId ?? null,
-    assistantName: resolvedAssistantName,
+    agentName: resolvedAgentName,
+    assistantName: override?.assistantName ?? defaults.assistantName ?? null,
     assistantId: override?.assistantId ?? defaults.assistantId ?? null,
     organizationId: override?.organizationId ?? defaults.organizationId ?? null,
   };
@@ -165,6 +180,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   const {
     client,
     podId: defaultPodId,
+    agentName: defaultAgentName,
     assistantName: defaultAssistantName,
     assistantId: defaultAssistantId,
     organizationId: defaultOrganizationId,
@@ -296,10 +312,11 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
 
   const defaultScope = useMemo<ConversationScope>(() => ({
     podId: defaultPodId ?? null,
+    agentName: defaultAgentName ?? defaultAssistantName ?? defaultAssistantId ?? null,
     assistantName: defaultAssistantName ?? defaultAssistantId ?? null,
     assistantId: defaultAssistantId ?? null,
     organizationId: defaultOrganizationId ?? null,
-  }), [defaultAssistantId, defaultAssistantName, defaultOrganizationId, defaultPodId]);
+  }), [defaultAgentName, defaultAssistantId, defaultAssistantName, defaultOrganizationId, defaultPodId]);
 
   const listConversations = useCallback(async (input: {
     limit?: number;
@@ -313,8 +330,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
 
       const response = await scopedClient.conversations.list({
         pod_id: scope.podId ?? undefined,
-        assistant_name: scope.assistantName ?? scope.assistantId ?? undefined,
-        organization_id: scope.organizationId ?? undefined,
+        agent_name: scope.agentName ?? undefined,
         limit: input.limit,
         page_token: input.pageToken,
       });
@@ -345,12 +361,13 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       const payload = {
         title: input.title ?? undefined,
         pod_id: input.podId ?? defaultPodId ?? scopedClient.podId ?? undefined,
-        assistant_name: input.assistantName
+        agent_name: input.agentName
+          ?? input.assistantName
           ?? input.assistantId
+          ?? defaultAgentName
           ?? defaultAssistantName
           ?? defaultAssistantId
           ?? undefined,
-        organization_id: input.organizationId ?? defaultOrganizationId ?? undefined,
         model: typeof input.model === "undefined"
           ? undefined
           : (input.model as unknown as never),
@@ -361,7 +378,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       if (input.setActive !== false) {
         setConversationIdState(created.id);
         setConversation(created);
-        setConversationStatus(created.status);
+        setConversationStatus(created.status ?? undefined);
         setMessages([]);
         clearStreamingText();
         autoResumedKeyRef.current = null;
@@ -377,9 +394,9 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   }, [
     clearStreamingText,
     client,
+    defaultAgentName,
     defaultAssistantId,
     defaultAssistantName,
-    defaultOrganizationId,
     defaultPodId,
     setConversationStatus,
   ]);
@@ -523,7 +540,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       }
     } catch (streamError) {
       if (!(streamError instanceof Error && streamError.name === "AbortError")) {
-        const normalized = normalizeError(streamError, "Failed to stream assistant run.");
+        const normalized = normalizeError(streamError, "Failed to stream agent run.");
         setError(normalized);
         onErrorRef.current?.(streamError);
       }
@@ -603,7 +620,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       });
       return resolvedConversation;
     } catch (sendError) {
-      const normalized = normalizeError(sendError, "Failed to send assistant message.");
+      const normalized = normalizeError(sendError, "Failed to send agent message.");
       setError(normalized);
       onErrorRef.current?.(sendError);
       throw normalized;
@@ -640,7 +657,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
         syncAfterStream: resumeInput.syncOnTurnEnd,
       });
     } catch (resumeError) {
-      const normalized = normalizeError(resumeError, "Failed to resume assistant run.");
+      const normalized = normalizeError(resumeError, "Failed to resume agent run.");
       setError(normalized);
       onErrorRef.current?.(resumeError);
       throw normalized;
@@ -696,7 +713,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       setConversationStatus("WAITING");
       clearStreamingText();
     } catch (stopError) {
-      const normalized = normalizeError(stopError, "Failed to stop assistant run.");
+      const normalized = normalizeError(stopError, "Failed to stop agent run.");
       setError(normalized);
       onErrorRef.current?.(stopError);
       throw normalized;
@@ -752,7 +769,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     void bootstrapConversation()
       .catch((bootstrapError) => {
         if (cancelled) return;
-        const normalized = normalizeError(bootstrapError, "Failed to load assistant conversation.");
+        const normalized = normalizeError(bootstrapError, "Failed to load agent conversation.");
         setError(normalized);
         onErrorRef.current?.(bootstrapError);
       })

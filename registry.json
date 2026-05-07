@@ -123,8 +123,8 @@
       "$schema": "https://ui.shadcn.com/schema/registry-item.json",
       "name": "lemma-assistant-experience",
       "type": "registry:block",
-      "title": "Lemma Assistant Experience",
-      "description": "A stock assistant experience UI powered by useAssistantController from lemma-sdk/react.",
+      "title": "Lemma Agent Conversation Experience",
+      "description": "A stock agent conversation experience UI powered by useAssistantController from lemma-sdk/react.",
       "dependencies": [
         "lemma-sdk",
         "react-markdown",
@@ -253,7 +253,7 @@
       "name": "lemma-global-search",
       "type": "registry:block",
       "title": "Lemma Global Search",
-      "description": "A command-bar style global search across configured record tables and file search results, with progressive source loading, configurable result actions, lean appearance controls, and assistant-name handoff.",
+      "description": "A command-bar style global search across configured record tables and file search results, with progressive source loading, configurable result actions, lean appearance controls, and agent-name handoff.",
       "dependencies": [
         "lemma-sdk",
         "lucide-react",
@@ -321,7 +321,7 @@
       "name": "lemma-document-workspace",
       "type": "registry:block",
       "title": "Lemma Document Workspace",
-      "description": "The canonical Lemma pod-file workspace for create, read, edit, and preview flows across structured documents, text, images, PDFs, converted HTML, download fallbacks, metadata, comments/activity hooks, and assistant handoff context.",
+      "description": "The canonical Lemma private/pod file workspace for create, read, edit, preview, publish-to-pod, and download flows across structured documents, text, images, PDFs, converted HTML, metadata, comments/activity hooks, and agent handoff context.",
       "dependencies": [
         "lemma-sdk",
         "prosekit",

@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Mode for application access configuration.
+ * Application account ownership mode for access configuration.
  */
 export enum ApplicationMode {
-    FIXED = 'FIXED',
-    DYNAMIC = 'DYNAMIC',
+    AGENT_OWNED = 'AGENT_OWNED',
+    USER_OWNED = 'USER_OWNED',
 }

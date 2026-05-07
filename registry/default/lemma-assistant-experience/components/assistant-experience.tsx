@@ -11,7 +11,7 @@ import {
 } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { AvailableModels, type ConversationModel } from "lemma-sdk";
+import type { ConversationModel } from "lemma-sdk";
 import { cn } from "@/components/lemma/lib/utils";
 import { Button } from "@/components/lemma/ui/button";
 import { Textarea } from "@/components/lemma/ui/textarea";
@@ -1861,7 +1861,7 @@ function ShowWidgetToolCard({
 export function MessageGroup({
   message,
   conversationId,
-  assistantLabel = "Assistant",
+  assistantLabel = "Agent",
   onNavigateResource,
   onWidgetSendPrompt,
   isStreaming,
@@ -2079,11 +2079,11 @@ export function MessageGroup({
 
 export function AssistantExperienceView({
   controller,
-  title = "Lemma Assistant",
+  title = "Lemma Agent",
   subtitle = "Ask across your workspace and organization.",
   badge,
   className,
-  placeholder = "Message Lemma Assistant",
+  placeholder = "Message Lemma Agent",
   emptyState,
   emptyStateSuggestions,
   launchContext,
@@ -2153,7 +2153,7 @@ export function AssistantExperienceView({
         .filter((model) => model.trim().length > 0);
       return dynamicModels.length > 0
         ? dynamicModels
-        : (Object.values(AvailableModels) as ConversationModel[]);
+        : [];
     },
     [controller.availableModels],
   );
@@ -2162,7 +2162,7 @@ export function AssistantExperienceView({
     [controller.availableModels],
   );
   const launchContextItems = useMemo(() => normalizeLaunchContext(launchContext), [launchContext]);
-  const resolvedPopupTriggerLabel = popupTriggerLabel || `Open ${plainLabelFromNode(title) || "assistant"}`;
+  const resolvedPopupTriggerLabel = popupTriggerLabel || `Open ${plainLabelFromNode(title) || "agent"}`;
 
   const handlePopupOpenChange = useCallback((open: boolean) => {
     if (controlledPopupOpen === undefined) {
@@ -2916,8 +2916,8 @@ export function AssistantExperienceView({
       <Dialog open={resolvedPopupOpen} onOpenChange={handlePopupOpenChange}>
         <DialogContent showCloseButton={false} className="overflow-hidden border-0 bg-transparent p-0 shadow-none sm:max-w-5xl">
           <div className="sr-only">
-            <DialogTitle>{plainLabelFromNode(title) || "Assistant"}</DialogTitle>
-            <DialogDescription>{plainLabelFromNode(subtitle) || "Assistant workspace"}</DialogDescription>
+            <DialogTitle>{plainLabelFromNode(title) || "Agent"}</DialogTitle>
+            <DialogDescription>{plainLabelFromNode(subtitle) || "Agent workspace"}</DialogDescription>
           </div>
           <div className="relative">
             <Button
@@ -2926,7 +2926,7 @@ export function AssistantExperienceView({
               size="icon"
               onClick={() => handlePopupOpenChange(false)}
               className="absolute right-3 top-3 z-10 size-8 rounded-full border border-border/60 bg-background/90 text-muted-foreground shadow-sm hover:bg-background hover:text-foreground"
-              aria-label="Close assistant"
+              aria-label="Close agent"
             >
               <X className="size-4" />
             </Button>

@@ -81,7 +81,7 @@ import { Input } from "@/components/lemma/ui/input"
 import { Textarea } from "@/components/lemma/ui/textarea"
 import { cn } from "@/components/lemma/lib/utils"
 import { useFile, useFiles, useFileTree, useTables } from "lemma-sdk/react"
-import type { DatastoreDirectoryTreeNode, FileResponse, LemmaClient } from "lemma-sdk"
+import type { DatastoreDirectoryTreeNode, DatastoreFileNamespace, FileResponse, LemmaClient } from "lemma-sdk"
 
 export type LemmaDocumentWorkspaceMode = "page" | "modal"
 export type LemmaDocumentWorkspaceIntent = "create" | "edit" | "read"
@@ -174,6 +174,7 @@ export interface LemmaDocumentWorkspaceContext {
 export interface LemmaDocumentWorkspaceFileOptions {
   path?: string
   file?: FileResponse | null
+  namespace?: DatastoreFileNamespace
   format?: LemmaDocumentWorkspaceFileFormat
   enabled?: boolean
   defaultDirectoryPath?: string
@@ -326,11 +327,13 @@ export function LemmaDocumentWorkspace({
   const resolvedSummary = summaryValue ?? uncontrolledSummary
   const canUseBuiltinInsertPicker = Boolean(client)
   const filePath = fileOptions?.path?.trim() ?? ""
+  const fileNamespace = fileOptions?.namespace ?? "POD"
   const fileEnabled = Boolean(fileOptions && (fileOptions.enabled ?? true) && scopedClient && (filePath || isCreateIntent))
   const fileState = useFile({
     client: fallbackClient,
     podId,
     path: filePath,
+    namespace: fileNamespace,
     enabled: Boolean(fileEnabled && filePath && !fileOptions?.file && !isCreateIntent),
   })
   const resolvedFile = localFile ?? fileOptions?.file ?? fileState.file
@@ -416,20 +419,20 @@ export function LemmaDocumentWorkspace({
     })
 
     try {
-      const nextFile = fileOptions?.file ?? await scopedClient.files.get(filePath)
+      const nextFile = fileOptions?.file ?? await scopedClient.files.get(filePath, { namespace: fileNamespace })
       if (signal?.aborted) return
       setLocalFile(nextFile)
 
       if (fileFormat === "download") return
 
       if (fileFormat === "html") {
-        const html = await scopedClient.files.converted.render(filePath)
+        const html = await scopedClient.files.converted.render(filePath, { namespace: fileNamespace })
         if (signal?.aborted) return
         setFileContent(typeof html === "string" ? html : String(html ?? ""))
         return
       }
 
-      const blob = await scopedClient.files.download(filePath)
+      const blob = await scopedClient.files.download(filePath, { namespace: fileNamespace })
       if (signal?.aborted) return
 
       if (fileFormat === "image" || fileFormat === "pdf") {
@@ -479,7 +482,7 @@ export function LemmaDocumentWorkspace({
     } finally {
       if (!signal?.aborted) setIsLoadingFile(false)
     }
-  }, [editor, fileEnabled, fileFormat, fileOptions?.file, filePath, isCreateIntent, scopedClient, summaryValue, titleValue])
+  }, [editor, fileEnabled, fileFormat, fileNamespace, fileOptions?.file, filePath, isCreateIntent, scopedClient, summaryValue, titleValue])
 
   React.useEffect(() => {
     setLocalFile(null)
@@ -574,6 +577,7 @@ export function LemmaDocumentWorkspace({
       if (isTextFile) {
         updated = await scopedClient.files.update(targetPath, {
           file: new Blob([textDraft], { type: inferWorkspaceTextMimeType(resolvedFile?.mime_type, targetPath, fileFormat) }),
+          namespace: fileNamespace,
         })
         setTextDraft(textDraft)
         setLoadedFileSnapshot({
@@ -598,6 +602,7 @@ export function LemmaDocumentWorkspace({
             directoryPath: normalizePath(fileOptions.defaultDirectoryPath),
             description: nextSummary || undefined,
             searchEnabled: fileOptions.searchEnabled ?? true,
+            namespace: fileNamespace,
           })
           onCreateSuccess?.(updated, { ...context, file: updated, path: updated.path })
         } else {
@@ -605,6 +610,7 @@ export function LemmaDocumentWorkspace({
             file: blob,
             description: nextSummary || undefined,
             name: filePath.toLowerCase().endsWith(".lemma-doc.json") ? undefined : documentFileNameFromTitle(nextTitle),
+            namespace: fileNamespace,
           })
         }
         setLoadedFileSnapshot({
@@ -618,7 +624,7 @@ export function LemmaDocumentWorkspace({
 
       setLocalFile(updated)
       onSaveSuccess?.(updated, { ...getWorkspaceContext(), file: updated, path: updated.path })
-      await fileState.refresh?.()
+      await fileState.refresh?.({ namespace: fileNamespace })
     } catch (error) {
       setFileError(error instanceof Error ? error : new Error("Failed to save pod file."))
     } finally {
@@ -628,6 +634,7 @@ export function LemmaDocumentWorkspace({
     fileFormat,
     fileOptions,
     filePath,
+    fileNamespace,
     fileState,
     getWorkspaceContext,
     isCreateIntent,
@@ -642,14 +649,14 @@ export function LemmaDocumentWorkspace({
 
   const handleDownload = React.useCallback(async () => {
     if (!scopedClient || !filePath) return
-    const blob = await scopedClient.files.download(filePath)
+    const blob = await scopedClient.files.download(filePath, { namespace: fileNamespace })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement("a")
     anchor.href = url
     anchor.download = downloadFileNameFromPath(filePath)
     anchor.click()
     URL.revokeObjectURL(url)
-  }, [filePath, scopedClient])
+  }, [fileNamespace, filePath, scopedClient])
 
   const effectiveOnSave = fileOptions ? savePodFile : onSave
   const effectiveSaveDisabled = fileOptions
@@ -661,6 +668,7 @@ export function LemmaDocumentWorkspace({
     podId,
     enabled: canUseBuiltinInsertPicker && filePickerOpen,
     rootPath: normalizePath(filePickerRootPath),
+    namespace: fileNamespace,
   })
 
   const pickerFilesState = useFiles({
@@ -668,6 +676,7 @@ export function LemmaDocumentWorkspace({
     podId,
     enabled: canUseBuiltinInsertPicker && filePickerOpen,
     directoryPath: filePickerDirectory,
+    namespace: fileNamespace,
   })
 
   const tablesState = useTables({
@@ -1135,7 +1144,7 @@ export function LemmaDocumentWorkspace({
               </InspectorCard>
             ) : null}
 
-            <InspectorCard title="Assistant" icon={<WandSparkles className="size-4" />} radius={radius}>
+            <InspectorCard title="Agent" icon={<WandSparkles className="size-4" />} radius={radius}>
               {assistantContext.length > 0 ? (
                 <div className="space-y-2">
                   {assistantContext.map((item, index) => (

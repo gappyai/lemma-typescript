@@ -2,9 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ToolCallResponse = {
-    tool_call_id: string;
-    tool_output?: any;
-    type?: string;
-};
-
+export enum FileNamespace {
+    PERSONAL = 'PERSONAL',
+    POD = 'POD',
+}

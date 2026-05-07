@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
+import type { DatastoreFileNamespace } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
 export type FilePreviewMode = "rendered" | "artifact";
@@ -12,6 +13,7 @@ export interface UseFilePreviewOptions {
   autoLoad?: boolean;
   mode?: FilePreviewMode;
   artifact?: string;
+  namespace?: DatastoreFileNamespace | null;
 }
 
 export interface UseFilePreviewResult {
@@ -19,7 +21,12 @@ export interface UseFilePreviewResult {
   blob: Blob | null;
   isLoading: boolean;
   error: Error | null;
-  refresh: (overrides?: { path?: string | null; mode?: FilePreviewMode; artifact?: string }) => Promise<string | null>;
+  refresh: (overrides?: {
+    path?: string | null;
+    mode?: FilePreviewMode;
+    artifact?: string;
+    namespace?: DatastoreFileNamespace | null;
+  }) => Promise<string | null>;
 }
 
 export function useFilePreview({
@@ -30,6 +37,7 @@ export function useFilePreview({
   autoLoad = true,
   mode = "rendered",
   artifact = "document.md",
+  namespace,
 }: UseFilePreviewOptions): UseFilePreviewResult {
   const [content, setContent] = useState<string | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
@@ -39,7 +47,12 @@ export function useFilePreview({
   const isEnabled = enabled && trimmedPath.length > 0;
 
   const refresh = useCallback(async (
-    overrides: { path?: string | null; mode?: FilePreviewMode; artifact?: string } = {},
+    overrides: {
+      path?: string | null;
+      mode?: FilePreviewMode;
+      artifact?: string;
+      namespace?: DatastoreFileNamespace | null;
+    } = {},
     signal?: AbortSignal,
   ): Promise<string | null> => {
     const nextPath = typeof overrides.path === "string" ? overrides.path.trim() : trimmedPath;
@@ -58,8 +71,9 @@ export function useFilePreview({
 
     try {
       const scopedClient = resolvePodClient(client, podId);
+      const nextNamespace = overrides.namespace ?? namespace;
       if (nextMode === "artifact") {
-        const nextBlob = await scopedClient.files.converted.download(nextPath, nextArtifact);
+        const nextBlob = await scopedClient.files.converted.download(nextPath, nextArtifact, { namespace: nextNamespace });
         const text = await nextBlob.text();
         if (signal?.aborted) return null;
         setBlob(nextBlob);
@@ -67,7 +81,7 @@ export function useFilePreview({
         return text;
       }
 
-      const rendered = await scopedClient.files.converted.render(nextPath);
+      const rendered = await scopedClient.files.converted.render(nextPath, { namespace: nextNamespace });
       const text = typeof rendered === "string" ? rendered : String(rendered ?? "");
       if (signal?.aborted) return null;
       setBlob(null);
@@ -82,7 +96,7 @@ export function useFilePreview({
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, [artifact, client, enabled, mode, podId, trimmedPath]);
+  }, [artifact, client, enabled, mode, namespace, podId, trimmedPath]);
 
   useEffect(() => {
     if (!isEnabled) {

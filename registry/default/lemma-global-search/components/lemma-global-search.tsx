@@ -30,7 +30,7 @@ type FileSearchOptions = Parameters<LemmaClient["files"]["search"]>[1]
 type FileSearchMethod = NonNullable<FileSearchOptions>["searchMethod"]
 type FileSearchResponse = Awaited<ReturnType<LemmaClient["files"]["search"]>>
 type FileSearchResult = FileSearchResponse["results"][number]
-type AssistantConversation = Awaited<ReturnType<LemmaClient["conversations"]["createForAssistant"]>>
+type AgentConversation = Awaited<ReturnType<LemmaClient["conversations"]["createForAgent"]>>
 type SearchSourceType = "table" | "files"
 type SearchSourceStatus = "idle" | "loading" | "success" | "empty" | "error"
 
@@ -54,27 +54,30 @@ export interface LemmaGlobalSearchResultContext {
   close: () => void
 }
 
-export interface LemmaGlobalSearchAssistantContext {
+export interface LemmaGlobalSearchAgentContext {
   query: string
   results: LemmaGlobalSearchResultSummary[]
   close: () => void
 }
 
-export interface LemmaGlobalSearchAssistant {
-  assistantName: string
+export interface LemmaGlobalSearchAgent {
+  agentName: string
+  assistantName?: string
   enabled?: boolean
   label?: string
   include?: "query" | "query-and-results"
   resultLimit?: number
-  conversationTitle?: string | ((context: LemmaGlobalSearchAssistantContext) => string)
-  buildMessage?: (context: LemmaGlobalSearchAssistantContext) => string
-  href?: (conversation: AssistantConversation, context: LemmaGlobalSearchAssistantContext) => string | null | undefined
+  conversationTitle?: string | ((context: LemmaGlobalSearchAgentContext) => string)
+  buildMessage?: (context: LemmaGlobalSearchAgentContext) => string
+  href?: (conversation: AgentConversation, context: LemmaGlobalSearchAgentContext) => string | null | undefined
   onConversationCreated?: (
-    conversation: AssistantConversation,
-    context: LemmaGlobalSearchAssistantContext,
+    conversation: AgentConversation,
+    context: LemmaGlobalSearchAgentContext,
   ) => void | Promise<void>
   onError?: (error: Error) => void
 }
+
+export type LemmaGlobalSearchAssistant = LemmaGlobalSearchAgent
 
 export interface LemmaGlobalSearchTable {
   tableName: string
@@ -104,7 +107,8 @@ export interface LemmaGlobalSearchProps {
   podId?: string
   tables: LemmaGlobalSearchTable[]
   files?: LemmaGlobalSearchFiles
-  assistant?: LemmaGlobalSearchAssistant
+  agent?: LemmaGlobalSearchAgent
+  assistant?: LemmaGlobalSearchAgent
   enabled?: boolean
   placeholder?: string
   minQueryLength?: number
@@ -151,6 +155,7 @@ export function LemmaGlobalSearch({
   podId,
   tables,
   files,
+  agent,
   assistant,
   enabled = true,
   placeholder = "Search records and files...",
@@ -174,6 +179,7 @@ export function LemmaGlobalSearch({
   const trimmedQuery = query.trim()
   const debouncedQuery = useDebouncedValue(trimmedQuery, debounceMs)
   const scopedClient = React.useMemo(() => (podId ? client.withPod(podId) : client), [client, podId])
+  const agentHandoff = agent ?? assistant
   const shortcutLabel = React.useMemo(() => {
     if (typeof navigator === "undefined") return "Ctrl K"
     return /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"
@@ -221,7 +227,7 @@ export function LemmaGlobalSearch({
   const hasValidQuery = debouncedQuery.length >= minQueryLength
   const showTypeHint = trimmedQuery.length > 0 && trimmedQuery.length < minQueryLength
   const hasResults = resultGroups.length > 0
-  const assistantEnabled = Boolean(assistant?.assistantName && (assistant.enabled ?? true))
+  const assistantEnabled = Boolean((agentHandoff?.agentName ?? agentHandoff?.assistantName) && (agentHandoff.enabled ?? true))
   const assistantResults = React.useMemo(
     () => flatItems.map((item) => summarizeItem(item)),
     [flatItems],
@@ -428,11 +434,13 @@ export function LemmaGlobalSearch({
   }
 
   const handleAskAssistant = React.useCallback(async () => {
-    if (!assistant?.assistantName) return
+    const handoff = agentHandoff
+    const targetAgentName = handoff?.agentName ?? handoff?.assistantName
+    if (!handoff || !targetAgentName) return
 
-    const context: LemmaGlobalSearchAssistantContext = {
+    const context: LemmaGlobalSearchAgentContext = {
       query: debouncedQuery,
-      results: assistantResults.slice(0, assistant.resultLimit ?? 8),
+      results: assistantResults.slice(0, handoff.resultLimit ?? 8),
       close: closeSearch,
     }
 
@@ -440,18 +448,18 @@ export function LemmaGlobalSearch({
 
     try {
       const title =
-        typeof assistant.conversationTitle === "function"
-          ? assistant.conversationTitle(context)
-          : assistant.conversationTitle ?? `Search: ${debouncedQuery.slice(0, 72)}`
+        typeof handoff.conversationTitle === "function"
+          ? handoff.conversationTitle(context)
+          : handoff.conversationTitle ?? `Search: ${debouncedQuery.slice(0, 72)}`
       const message =
-        assistant.buildMessage?.(context) ??
-        buildDefaultAssistantMessage(context, assistant.include ?? "query-and-results")
-      const conversation = await scopedClient.conversations.createForAssistant(assistant.assistantName, { title })
+        handoff.buildMessage?.(context) ??
+        buildDefaultAssistantMessage(context, handoff.include ?? "query-and-results")
+      const conversation = await scopedClient.conversations.createForAgent(targetAgentName, { title })
 
       await scopedClient.conversations.messages.send(conversation.id, { content: message })
-      await assistant.onConversationCreated?.(conversation, context)
+      await handoff.onConversationCreated?.(conversation, context)
 
-      const href = assistant.href?.(conversation, context)
+      const href = handoff.href?.(conversation, context)
       if (href) {
         closeSearch()
         window.location.assign(href)
@@ -460,14 +468,14 @@ export function LemmaGlobalSearch({
 
       setAssistantState({
         status: "success",
-        message: `Sent to ${assistant.label ?? assistant.assistantName}.`,
+        message: `Sent to ${handoff.label ?? targetAgentName}.`,
       })
     } catch (assistantError) {
-      const error = toError(assistantError, "Assistant handoff failed.")
-      assistant.onError?.(error)
+      const error = toError(assistantError, "Agent handoff failed.")
+      handoff.onError?.(error)
       setAssistantState({ status: "error", message: error.message })
     }
-  }, [assistant, assistantResults, closeSearch, debouncedQuery, scopedClient])
+  }, [agentHandoff, assistantResults, closeSearch, debouncedQuery, scopedClient])
 
   const sourceProgressStates = sourceStates.filter((source) => source.status === "loading" || source.status === "error")
   const firstSourceError = sourceStates.find((source) => source.status === "error")?.error
@@ -639,9 +647,9 @@ export function LemmaGlobalSearch({
           {assistantEnabled && hasValidQuery ? (
             <div className={cn("flex items-center justify-between gap-3 px-4 py-3", appearance === "borderless" ? "border-t-0" : "border-t border-border/60")}>
               <div className="min-w-0">
-                <p className="truncate text-sm font-medium">Continue with assistant</p>
+                <p className="truncate text-sm font-medium">Continue with agent</p>
                 <p className="truncate text-xs text-muted-foreground">
-                  Send the query{assistant?.include === "query" ? "" : " and visible results"} to {assistant?.label ?? assistant?.assistantName}.
+                  Send the query{agentHandoff?.include === "query" ? "" : " and visible results"} to {agentHandoff?.label ?? agentHandoff?.agentName ?? agentHandoff?.assistantName}.
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -667,7 +675,7 @@ export function LemmaGlobalSearch({
                   ) : (
                     <Bot data-icon="inline-start" />
                   )}
-                  {assistant?.label ?? "Ask assistant"}
+                  {agentHandoff?.label ?? "Ask agent"}
                 </Button>
               </div>
             </div>
@@ -866,8 +874,8 @@ function buildFileItem(result: FileSearchResult, config?: LemmaGlobalSearchFiles
 }
 
 function buildDefaultAssistantMessage(
-  context: LemmaGlobalSearchAssistantContext,
-  include: LemmaGlobalSearchAssistant["include"],
+  context: LemmaGlobalSearchAgentContext,
+  include: LemmaGlobalSearchAgent["include"],
 ) {
   if (include === "query") {
     return `Search query: ${context.query}\n\nHelp me continue from this search.`

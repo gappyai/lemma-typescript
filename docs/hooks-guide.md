@@ -16,7 +16,7 @@ Business-facing guide for building Lemma desks. Each recipe shows the hooks to u
 | Update a record from a button | `useUpdateRecord` | One-shot update with loading/error state |
 | Delete a record from a button | `useDeleteRecord` | One-shot delete with loading/error state |
 | Bulk create/update/delete | `useBulkRecords` | Shared loading state across batch operations |
-| Upload a pod file | `useUploadFile` | Headless file upload with loading/error state |
+| Upload a private or pod file | `useUploadFile` | Headless namespace-aware file upload with loading/error state |
 | Rename or move a file | `useUpdateFile` | One-shot file update covering rename, move, and metadata changes |
 | Delete a file | `useDeleteFile` | Headless file delete for custom file browsers |
 | Create a folder | `useCreateFolder` | Headless folder creation for file workspaces |
@@ -34,6 +34,7 @@ Business-facing guide for building Lemma desks. Each recipe shows the hooks to u
 | Discover what references a record | `useReverseRelatedRecords` | Auto-discovers reverse FK relationships |
 | Run a workflow with its input schema | `useWorkflowStart` | Start, poll, resume, and inspect the workflow definition's input schema |
 | Start or poll a known workflow run | `useWorkflowRun` | Lighter-weight run surface when you already know the workflow name |
+| Run an agent turn | `useAgentRun` | Starts an agent conversation turn, streams tool calls and final output |
 | Gate the app with auth | `AuthGuard` + `useAuth` | Cookie/session auth, pod membership, access requests |
 
 ### When to use function-aware hooks
@@ -226,6 +227,40 @@ function IssuesList({ client }: { client: LemmaClient }) {
 
 A one-shot create that routes through a function.
 
+```tsx
+import { useState } from "react";
+import { useCreateRecord } from "lemma-sdk/react";
+
+function AddCommentButton({ client, issueId }: { client: LemmaClient; issueId: string }) {
+  const [body, setBody] = useState("");
+
+  const { create, isSubmitting } = useCreateRecord({
+    client,
+    tableName: "comments",
+    createVia: "function",
+    createFunctionName: "add-comment",
+    onSuccess: () => setBody(""),
+  });
+
+  return (
+    <form onSubmit={(e) => {
+      e.preventDefault();
+      if (!body.trim()) return;
+      void create({ issue_id: issueId, body });
+    }}>
+      <input
+        value={body}
+        onChange={(e) => setBody(e.target.value)}
+        placeholder="Add a comment..."
+      />
+      <button type="submit" disabled={isSubmitting || !body.trim()}>
+        {isSubmitting ? "Adding..." : "Comment"}
+      </button>
+    </form>
+  );
+}
+```
+
 ### 5. Headless File Actions
 
 Build your own file workspace without depending on a stock file-browser component.
@@ -243,12 +278,13 @@ function FilesWorkspace({ client }: { client: LemmaClient }) {
   const files = useFiles({
     client,
     directoryPath: "/docs",
+    namespace: "PRIVATE",
   });
 
-  const upload = useUploadFile({ client });
-  const createFolder = useCreateFolder({ client });
-  const renameFile = useUpdateFile({ client });
-  const deleteFile = useDeleteFile({ client });
+  const upload = useUploadFile({ client, namespace: "PRIVATE" });
+  const createFolder = useCreateFolder({ client, namespace: "PRIVATE" });
+  const renameFile = useUpdateFile({ client, namespace: "PRIVATE" });
+  const deleteFile = useDeleteFile({ client, namespace: "PRIVATE" });
 
   return (
     <div>
@@ -294,6 +330,16 @@ function FilesWorkspace({ client }: { client: LemmaClient }) {
               }}
             >
               Delete
+            </button>
+            <button
+              onClick={() => {
+                void renameFile.update(
+                  { namespace: "POD" },
+                  { path: file.path },
+                ).then(() => files.refresh());
+              }}
+            >
+              Publish to pod
             </button>
           </li>
         ))}
@@ -411,41 +457,39 @@ function DeskSearch({ client, query }: { client: LemmaClient; query: string }) {
 }
 ```
 
+### 8. Agent Turn
+
+Use `useAgentRun` when one user action should produce a single agent turn with tool-call progress and final output.
+
 ```tsx
-import { useState } from "react";
-import { useCreateRecord } from "lemma-sdk/react";
+import { useAgentRun } from "lemma-sdk/react";
 
-function AddCommentButton({ client, issueId }: { client: LemmaClient; issueId: string }) {
-  const [body, setBody] = useState("");
-
-  const { create, isSubmitting } = useCreateRecord({
+function AgentTriageButton({ client, issueId }: { client: LemmaClient; issueId: string }) {
+  const agent = useAgentRun({
     client,
-    tableName: "comments",
-    createVia: "function",
-    createFunctionName: "add-comment",
-    onSuccess: () => setBody(""),
+    agentName: "issue-triage-agent",
   });
 
   return (
-    <form onSubmit={(e) => {
-      e.preventDefault();
-      if (!body.trim()) return;
-      void create({ issue_id: issueId, body });
-    }}>
-      <input
-        value={body}
-        onChange={(e) => setBody(e.target.value)}
-        placeholder="Add a comment..."
-      />
-      <button type="submit" disabled={isSubmitting || !body.trim()}>
-        {isSubmitting ? "Adding..." : "Comment"}
+    <div>
+      <button
+        disabled={agent.isStreaming}
+        onClick={() => {
+          void agent.start({
+            issue_id: issueId,
+            prompt: "Triage this issue and return the next best action.",
+          });
+        }}
+      >
+        {agent.isStreaming ? "Running..." : "Run triage agent"}
       </button>
-    </form>
+      {agent.finalOutputText ? <pre>{agent.finalOutputText}</pre> : null}
+    </div>
   );
 }
 ```
 
-### 5. Status Transition Dropdown
+### 9. Status Transition Dropdown
 
 A dropdown that transitions an issue through a function (preserving history log).
 
@@ -486,7 +530,7 @@ function StatusTransition({ client, issueId, currentStatus }: {
 }
 ```
 
-### 6. History and Activity Feed
+### 10. History and Activity Feed
 
 Show both comments and history entries for an issue, each from different tables.
 
@@ -538,7 +582,7 @@ function IssueActivity({ client, issueId }: { client: LemmaClient; issueId: stri
 }
 ```
 
-### 7. Related Records (Forward FK)
+### 11. Related Records (Forward FK)
 
 Show issues with their assigned team and priority label joined in.
 
@@ -580,7 +624,7 @@ function IssuesWithTeams({ client }: { client: LemmaClient }) {
 }
 ```
 
-### 8. Bulk Status Assignment
+### 12. Bulk Status Assignment
 
 Select multiple issues and assign them to a sprint or cycle.
 
@@ -612,7 +656,7 @@ function BulkAssign({ client, selectedIds, sprintId }: {
 }
 ```
 
-### 9. Pod Membership Admin Actions
+### 13. Pod Membership Admin Actions
 
 Read pod members, add existing organization members into the pod, change roles, and remove access.
 
@@ -690,7 +734,7 @@ function PodMembersAdmin({
 }
 ```
 
-### 10. Function Runner Panel
+### 14. Function Runner Panel
 
 Run a function from a button, show loading state and output.
 
@@ -722,7 +766,7 @@ function TriageButton({ client, issueId }: { client: LemmaClient; issueId: strin
 }
 ```
 
-### 11. Workflow Launcher
+### 15. Workflow Launcher
 
 Start a workflow with a form for its input schema.
 

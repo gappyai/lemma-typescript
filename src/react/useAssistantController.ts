@@ -5,15 +5,20 @@ import type {
   Conversation,
   ConversationMessage,
   ConversationModel,
+  FileResponse,
 } from "../types.js";
 import { useAssistantRuntime } from "./useAssistantRuntime.js";
 import { useAssistantSession } from "./useAssistantSession.js";
 
 export interface AssistantConversationScope {
   podId?: string | null;
+  agentName?: string | null;
+  /**
+   * @deprecated Use agentName instead.
+   */
   assistantName?: string | null;
   /**
-   * @deprecated Use assistantName instead.
+   * @deprecated Use agentName instead.
    */
   assistantId?: string | null;
   organizationId?: string | null;
@@ -734,9 +739,44 @@ function isConversationRunning(status: unknown): boolean {
   return true;
 }
 
+function resolveScopedClient(client: LemmaClient, podId?: string | null): LemmaClient {
+  if (podId && podId !== client.podId) {
+    return client.withPod(podId);
+  }
+  return client;
+}
+
+async function uploadPersonalFiles(client: LemmaClient, files: File[]): Promise<FileResponse[]> {
+  const uploaded: FileResponse[] = [];
+  for (const file of files) {
+    uploaded.push(await client.files.upload(file, {
+      name: file.name,
+      namespace: "PRIVATE",
+    }));
+  }
+  return uploaded;
+}
+
+function formatPersonalFileReferences(files: FileResponse[]): string {
+  return files
+    .map((file) => {
+      const pathParts = file.path.split("/").filter(Boolean);
+      const name = file.name || pathParts[pathParts.length - 1] || file.path;
+      return `- ${name}: ${file.path}`;
+    })
+    .join("\n");
+}
+
+function appendPersonalFileReferences(content: string, files: FileResponse[]): string {
+  if (files.length === 0) return content;
+  const references = formatPersonalFileReferences(files);
+  return `${content}\n\nPersonal files available to this run:\n${references}`;
+}
+
 export function useAssistantController({
   client,
   podId,
+  agentName,
   assistantName,
   assistantId,
   organizationId,
@@ -768,28 +808,31 @@ export function useAssistantController({
 
   const scope = useMemo<AssistantConversationScope>(() => ({
     podId: podId ?? null,
+    agentName: agentName ?? assistantName ?? assistantId ?? null,
     assistantName: assistantName ?? assistantId ?? null,
     assistantId: assistantId ?? null,
     organizationId: organizationId ?? null,
-  }), [assistantId, assistantName, organizationId, podId]);
+  }), [agentName, assistantId, assistantName, organizationId, podId]);
 
   const scopeKey = useMemo(
     () => JSON.stringify({
       podId: scope.podId ?? null,
+      agentName: scope.agentName ?? null,
       assistantName: scope.assistantName ?? null,
       assistantId: scope.assistantId ?? null,
       organizationId: scope.organizationId ?? null,
     }),
-    [scope.assistantId, scope.assistantName, scope.organizationId, scope.podId],
+    [scope.agentName, scope.assistantId, scope.assistantName, scope.organizationId, scope.podId],
   );
 
   const handleAssistantSessionError = useCallback((sessionError: unknown) => {
-    setLocalError((prev) => prev || (sessionError instanceof Error ? sessionError.message : "Assistant session failed"));
+    setLocalError((prev) => prev || (sessionError instanceof Error ? sessionError.message : "Agent session failed"));
   }, []);
 
   const assistantSession = useAssistantSession({
     client,
     podId: scope.podId ?? undefined,
+    agentName: scope.agentName ?? undefined,
     assistantName: scope.assistantName ?? undefined,
     assistantId: scope.assistantId ?? undefined,
     organizationId: scope.organizationId ?? undefined,
@@ -1271,14 +1314,13 @@ export function useAssistantController({
       }
       const finalConversationId = conversationId;
 
+      let messageContent = trimmed;
       if (pendingFiles.length > 0) {
         setIsUploadingFiles(true);
         try {
-          await Promise.all(
-            pendingFiles.map((file) => client.resources.upload("conversation", finalConversationId, file, {
-              name: file.name,
-            })),
-          );
+          const fileClient = resolveScopedClient(client, scope.podId);
+          const uploadedFiles = await uploadPersonalFiles(fileClient, pendingFiles);
+          messageContent = appendPersonalFileReferences(trimmed, uploadedFiles);
           setPendingFiles([]);
           touchConversation(finalConversationId, { updated_at: new Date().toISOString() });
         } finally {
@@ -1286,13 +1328,13 @@ export function useAssistantController({
         }
       }
 
-      appendOptimisticUserMessage(trimmed, {
+      appendOptimisticUserMessage(messageContent, {
         conversationId: finalConversationId,
       });
 
       setIsStreaming(true);
       touchConversation(finalConversationId, { status: "running" as Conversation["status"] });
-      await sessionSendMessage(trimmed, {
+      await sessionSendMessage(messageContent, {
         conversationId: finalConversationId,
         createIfMissing: false,
       });
@@ -1308,12 +1350,12 @@ export function useAssistantController({
   }, [
     activeConversationId,
     appendOptimisticUserMessage,
-    client.resources,
     enabled,
     ensureConversation,
     isStreaming,
     pendingFiles,
     resetConversationState,
+    scope.podId,
     sessionIsStreaming,
     sessionSendMessage,
     touchConversation,
@@ -1337,27 +1379,33 @@ export function useAssistantController({
 
     setIsUploadingFiles(true);
     try {
-      await Promise.all(
-        normalizedFiles.map((file) => client.resources.upload("conversation", activeId, file, {
-          name: file.name,
-        })),
-      );
+      const fileClient = resolveScopedClient(client, scope.podId);
+      const uploadedFiles = await uploadPersonalFiles(fileClient, normalizedFiles);
+      const fileMessage = `Personal files available to this run:\n${formatPersonalFileReferences(uploadedFiles)}`;
 
+      setIsStreaming(true);
+      await sessionSendMessage(fileMessage, {
+        conversationId: activeId,
+        createIfMissing: false,
+      });
       await loadConversationMessages(activeId);
       touchConversation(activeId, { updated_at: new Date().toISOString() });
     } catch (err) {
       setLocalError(err instanceof Error ? err.message : "Failed to upload files");
       throw err;
     } finally {
+      setIsStreaming(false);
       setIsUploadingFiles(false);
     }
   }, [
-    client.resources,
+    client,
     enabled,
     isLoading,
     isUploadingFiles,
     loadConversationMessages,
     queuePendingFiles,
+    scope.podId,
+    sessionSendMessage,
     touchConversation,
   ]);
 

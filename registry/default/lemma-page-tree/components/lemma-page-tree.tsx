@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/lemma/ui/skeleton"
 import { useFileTree, useRecords } from "lemma-sdk/react"
 import type {
   DatastoreDirectoryTreeNode,
+  DatastoreFileNamespace,
   LemmaClient,
 } from "lemma-sdk"
 import { cn } from "@/components/lemma/lib/utils"
@@ -54,6 +55,7 @@ export interface LemmaPageTreeProps {
 
   rootPath?: string
   filesPerDirectory?: number
+  namespace?: DatastoreFileNamespace
   selectedPath?: string
   onSelect?: (node: TreeNode) => void
   onCreateDocument?: (directoryPath?: string) => void
@@ -84,6 +86,7 @@ export function LemmaPageTree({
   dataSource,
   rootPath = "/",
   filesPerDirectory = 3,
+  namespace = "POD",
   selectedPath,
   onSelect,
   onCreateDocument,
@@ -120,6 +123,7 @@ export function LemmaPageTree({
     podId,
     rootPath: normalizedRootPath,
     filesPerDirectory,
+    namespace,
     enabled: enabled && resolvedDataSource === "files",
   })
 

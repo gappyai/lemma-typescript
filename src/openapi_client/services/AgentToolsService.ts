@@ -15,13 +15,13 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class AgentToolsService {
     /**
-     * Integration Helper Agent
+     * Agent Integration Helper Agent
      * Plan how to use one or more integration applications for a goal and return recommended operations.
      * @param requestBody
      * @returns IntegrationHelperAgentResponse Successful Response
      * @throws ApiError
      */
-    public static toolIntegrationHelperAgent(
+    public static agentToolIntegrationHelperAgent(
         requestBody: IntegrationHelperAgentRequest,
     ): CancelablePromise<IntegrationHelperAgentResponse> {
         return __request(OpenAPI, {
@@ -35,13 +35,13 @@ export class AgentToolsService {
         });
     }
     /**
-     * Report Feedback
+     * Agent Report Feedback
      * Record a maintainer-facing feedback report about system issues, skill issues, incorrect knowledge, or other unexpected behavior.
      * @param requestBody
      * @returns ReportFeedbackResponse Successful Response
      * @throws ApiError
      */
-    public static toolReportFeedback(
+    public static agentToolReportFeedback(
         requestBody: ReportFeedbackRequest,
     ): CancelablePromise<ReportFeedbackResponse> {
         return __request(OpenAPI, {
@@ -55,13 +55,13 @@ export class AgentToolsService {
         });
     }
     /**
-     * Web Search
+     * Agent Web Search
      * Run a raw web search and return structured results.
      * @param requestBody
      * @returns WebSearchResponse Successful Response
      * @throws ApiError
      */
-    public static toolWebSearch(
+    public static agentToolWebSearch(
         requestBody: WebSearchRequest,
     ): CancelablePromise<WebSearchResponse> {
         return __request(OpenAPI, {
@@ -75,13 +75,13 @@ export class AgentToolsService {
         });
     }
     /**
-     * Web Search Agent
+     * Agent Web Search Agent
      * Run the multi-step web search agent and return a synthesized answer.
      * @param requestBody
      * @returns WebSearchAgentResponse Successful Response
      * @throws ApiError
      */
-    public static toolWebSearchAgent(
+    public static agentToolWebSearchAgent(
         requestBody: WebSearchAgentRequest,
     ): CancelablePromise<WebSearchAgentResponse> {
         return __request(OpenAPI, {

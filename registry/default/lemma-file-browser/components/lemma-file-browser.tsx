@@ -7,9 +7,11 @@ import {
   FileText,
   Folder,
   FolderPlus,
+  Building2,
   Home,
   Image,
   Loader2,
+  LockKeyhole,
   MoreHorizontal,
   Pencil,
   RefreshCw,
@@ -63,6 +65,7 @@ export type LemmaFileBrowserAppearance = "default" | "minimal" | "borderless" | 
 export type LemmaFileBrowserDensity = "compact" | "comfortable" | "spacious"
 export type LemmaFileBrowserRadius = "none" | "sm" | "md" | "lg" | "xl"
 export type LemmaFileBrowserMode = "browser" | "picker"
+export type LemmaFileBrowserNamespace = "PRIVATE" | "POD"
 
 export interface LemmaFileBrowserLinkAction {
   key: string
@@ -81,11 +84,14 @@ export interface LemmaFileBrowserProps {
   limit?: number
   searchMinLength?: number
   mode?: LemmaFileBrowserMode
+  namespace?: LemmaFileBrowserNamespace
+  showNamespaceTabs?: boolean
   pickLabel?: React.ReactNode
   uploadEnabled?: boolean
   deleteEnabled?: boolean
   renameEnabled?: boolean
   moveEnabled?: boolean
+  publishToPodEnabled?: boolean
   createFolderEnabled?: boolean
   linkActions?: LemmaFileBrowserLinkAction[]
   appearance?: LemmaFileBrowserAppearance
@@ -101,7 +107,7 @@ export interface LemmaFileBrowserProps {
   onUploadSuccess?: (file: FileResponse) => void
   onDeleteSuccess?: (file: FileResponse) => void
   onFolderCreateSuccess?: (folder: FileResponse) => void
-  onMutationSuccess?: (file: FileResponse, context: { kind: "rename" | "move"; previousPath: string }) => void
+  onMutationSuccess?: (file: FileResponse, context: { kind: "rename" | "move" | "publish-to-pod"; previousPath: string }) => void
 }
 
 type FileBrowserEntry =
@@ -115,6 +121,7 @@ type FileBrowserEntry =
       updatedAt?: string
       raw: FileResponse
       source: "browse"
+      namespace: LemmaFileBrowserNamespace
     }
   | {
       key: string
@@ -124,6 +131,7 @@ type FileBrowserEntry =
       preview?: string
       raw: FileSearchResultSchema
       source: "search"
+      namespace: LemmaFileBrowserNamespace
     }
 
 export function LemmaFileBrowser({
@@ -135,11 +143,14 @@ export function LemmaFileBrowser({
   limit = 100,
   searchMinLength = 2,
   mode = "browser",
+  namespace,
+  showNamespaceTabs = true,
   pickLabel = "Select",
   uploadEnabled,
   deleteEnabled,
   renameEnabled,
   moveEnabled,
+  publishToPodEnabled,
   createFolderEnabled,
   linkActions = [],
   appearance = "default",
@@ -158,6 +169,9 @@ export function LemmaFileBrowser({
   onMutationSuccess,
 }: LemmaFileBrowserProps) {
   const [currentPath, setCurrentPath] = React.useState(normalizePath(initialPath))
+  const [activeNamespace, setActiveNamespace] = React.useState<LemmaFileBrowserNamespace>(
+    namespace ?? (mode === "picker" ? "PRIVATE" : "POD"),
+  )
   const [query, setQuery] = React.useState("")
   const [uploading, setUploading] = React.useState(false)
   const [deleteTarget, setDeleteTarget] = React.useState<FileResponse | null>(null)
@@ -171,6 +185,7 @@ export function LemmaFileBrowser({
   const [moveTarget, setMoveTarget] = React.useState<FileResponse | null>(null)
   const [moveDestination, setMoveDestination] = React.useState("/")
   const [moving, setMoving] = React.useState(false)
+  const [publishingPath, setPublishingPath] = React.useState<string | null>(null)
   const [mutationError, setMutationError] = React.useState<string | null>(null)
   const [pendingPickPath, setPendingPickPath] = React.useState<string | null>(null)
   const [pendingLinkKey, setPendingLinkKey] = React.useState<string | null>(null)
@@ -179,12 +194,14 @@ export function LemmaFileBrowser({
   const trimmedQuery = query.trim()
   const hasSearch = trimmedQuery.length >= searchMinLength
   const normalizedSelectedPath = normalizeOptionalPath(selectedPath)
+  const namespaceTabsVisible = showNamespaceTabs && !hasSearch
 
   const filesState = useFiles({
     client,
     podId,
     enabled,
     directoryPath: currentPath,
+    namespace: activeNamespace,
     limit,
   })
 
@@ -202,6 +219,12 @@ export function LemmaFileBrowser({
     setCurrentPath(nextPath)
   }, [initialPath])
 
+  React.useEffect(() => {
+    if (namespace) {
+      setActiveNamespace(namespace)
+    }
+  }, [namespace])
+
   const entries = React.useMemo<FileBrowserEntry[]>(() => {
     if (hasSearch) {
       return searchState.results.map((result) => ({
@@ -212,11 +235,12 @@ export function LemmaFileBrowser({
         preview: result.content,
         raw: result,
         source: "search",
+        namespace: activeNamespace,
       }))
     }
 
     return filesState.files.map((file) => ({
-      key: file.id ?? file.path,
+      key: `${activeNamespace}:${file.id ?? file.path}`,
       title: displayFileName(file.name || fileNameFromPath(file.path)),
       path: file.path,
       kind: file.kind,
@@ -225,8 +249,9 @@ export function LemmaFileBrowser({
       updatedAt: file.updated_at,
       raw: file,
       source: "browse",
+      namespace: activeNamespace,
     }))
-  }, [filesState.files, hasSearch, searchState.results])
+  }, [activeNamespace, filesState.files, hasSearch, searchState.results])
 
   const isLoading = hasSearch ? searchState.isLoading : filesState.isLoading
   const error = hasSearch ? searchState.error : filesState.error
@@ -236,8 +261,15 @@ export function LemmaFileBrowser({
       await searchState.search({ query: trimmedQuery })
       return
     }
-    await filesState.refresh()
-  }, [filesState, hasSearch, searchState, trimmedQuery])
+    await filesState.refresh({ namespace: activeNamespace })
+  }, [activeNamespace, filesState, hasSearch, searchState, trimmedQuery])
+
+  const switchNamespace = React.useCallback((nextNamespace: LemmaFileBrowserNamespace) => {
+    if (nextNamespace === activeNamespace) return
+    setActiveNamespace(nextNamespace)
+    setQuery("")
+    setMutationError(null)
+  }, [activeNamespace])
 
   const navigateToPath = React.useCallback((path: string) => {
     const nextPath = normalizePath(path)
@@ -249,7 +281,7 @@ export function LemmaFileBrowser({
 
   const resolveEntryFile = React.useCallback(async (entry: FileBrowserEntry) => {
     if (entry.source === "browse") return entry.raw
-    return scopedClient.files.get(entry.path)
+    return scopedClient.files.get(entry.path, { namespace: entry.namespace })
   }, [scopedClient])
 
   const handleEntryOpen = React.useCallback((entry: FileBrowserEntry) => {
@@ -272,17 +304,17 @@ export function LemmaFileBrowser({
     setMutationError(null)
     try {
       for (const file of selected) {
-        const uploaded = await scopedClient.files.upload(file, { directoryPath: currentPath })
+        const uploaded = await scopedClient.files.upload(file, { directoryPath: currentPath, namespace: activeNamespace })
         onUploadSuccess?.(uploaded)
       }
-      await filesState.refresh()
+      await filesState.refresh({ namespace: activeNamespace })
     } catch (error) {
       setMutationError(error instanceof Error ? error.message : "Failed to upload files.")
     } finally {
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
     }
-  }, [currentPath, filesState, onUploadSuccess, scopedClient])
+  }, [activeNamespace, currentPath, filesState, onUploadSuccess, scopedClient])
 
   const handleCreateFolder = React.useCallback(async () => {
     const trimmedName = newFolderName.trim()
@@ -290,33 +322,33 @@ export function LemmaFileBrowser({
     setCreatingFolder(true)
     setMutationError(null)
     try {
-      const folder = await scopedClient.files.folder.create(trimmedName, { directoryPath: currentPath })
+      const folder = await scopedClient.files.folder.create(trimmedName, { directoryPath: currentPath, namespace: activeNamespace })
       onFolderCreateSuccess?.(folder)
       setCreateFolderOpen(false)
       setNewFolderName("")
-      await filesState.refresh()
+      await filesState.refresh({ namespace: activeNamespace })
     } catch (error) {
       setMutationError(error instanceof Error ? error.message : "Failed to create folder.")
     } finally {
       setCreatingFolder(false)
     }
-  }, [creatingFolder, currentPath, filesState, newFolderName, onFolderCreateSuccess, scopedClient])
+  }, [activeNamespace, creatingFolder, currentPath, filesState, newFolderName, onFolderCreateSuccess, scopedClient])
 
   const handleDelete = React.useCallback(async () => {
     if (!deleteTarget) return
     setDeleting(true)
     setMutationError(null)
     try {
-      await scopedClient.files.delete(deleteTarget.path)
+      await scopedClient.files.delete(deleteTarget.path, { namespace: activeNamespace })
       onDeleteSuccess?.(deleteTarget)
       setDeleteTarget(null)
-      await filesState.refresh()
+      await filesState.refresh({ namespace: activeNamespace })
     } catch (error) {
       setMutationError(error instanceof Error ? error.message : "Failed to delete file.")
     } finally {
       setDeleting(false)
     }
-  }, [deleteTarget, filesState, onDeleteSuccess, scopedClient])
+  }, [activeNamespace, deleteTarget, filesState, onDeleteSuccess, scopedClient])
 
   const handleRename = React.useCallback(async () => {
     const target = renameTarget
@@ -325,7 +357,7 @@ export function LemmaFileBrowser({
     setRenaming(true)
     setMutationError(null)
     try {
-      const nextFile = await scopedClient.files.update(target.path, { name: normalizeMutationName(target.path, trimmedName) })
+      const nextFile = await scopedClient.files.update(target.path, { name: normalizeMutationName(target.path, trimmedName), namespace: activeNamespace })
       const nextCurrentPath = rebaseNestedPath(currentPath, target.path, nextFile.path)
       if (nextCurrentPath !== currentPath) {
         setCurrentPath(nextCurrentPath)
@@ -340,7 +372,7 @@ export function LemmaFileBrowser({
     } finally {
       setRenaming(false)
     }
-  }, [currentPath, onMutationSuccess, onPathChange, refreshVisibleState, renameTarget, renameValue, renaming, scopedClient])
+  }, [activeNamespace, currentPath, onMutationSuccess, onPathChange, refreshVisibleState, renameTarget, renameValue, renaming, scopedClient])
 
   const handleMove = React.useCallback(async () => {
     const target = moveTarget
@@ -349,7 +381,7 @@ export function LemmaFileBrowser({
     setMoving(true)
     setMutationError(null)
     try {
-      const nextFile = await scopedClient.files.update(target.path, { directoryPath: destination })
+      const nextFile = await scopedClient.files.update(target.path, { directoryPath: destination, namespace: activeNamespace })
       const nextCurrentPath = rebaseNestedPath(currentPath, target.path, nextFile.path)
       if (nextCurrentPath !== currentPath) {
         setCurrentPath(nextCurrentPath)
@@ -364,7 +396,22 @@ export function LemmaFileBrowser({
     } finally {
       setMoving(false)
     }
-  }, [currentPath, moveDestination, moveTarget, moving, onMutationSuccess, onPathChange, refreshVisibleState, scopedClient])
+  }, [activeNamespace, currentPath, moveDestination, moveTarget, moving, onMutationSuccess, onPathChange, refreshVisibleState, scopedClient])
+
+  const handlePublishToPod = React.useCallback(async (target: FileResponse) => {
+    if (publishingPath) return
+    setPublishingPath(target.path)
+    setMutationError(null)
+    try {
+      const nextFile = await scopedClient.files.update(target.path, { namespace: "POD" })
+      onMutationSuccess?.(nextFile, { kind: "publish-to-pod", previousPath: target.path })
+      await refreshVisibleState()
+    } catch (error) {
+      setMutationError(error instanceof Error ? error.message : "Failed to publish file to pod.")
+    } finally {
+      setPublishingPath(null)
+    }
+  }, [onMutationSuccess, publishingPath, refreshVisibleState, scopedClient])
 
   const handlePick = React.useCallback(async (entry: FileBrowserEntry) => {
     if (!onPick || pendingPickPath) return
@@ -396,7 +443,7 @@ export function LemmaFileBrowser({
 
   const statusLine = hasSearch
     ? `${searchState.totalResults} search result${searchState.totalResults === 1 ? "" : "s"}`
-    : `${entries.length} item${entries.length === 1 ? "" : "s"} in ${currentPath}`
+    : `${entries.length} ${namespaceLabel(activeNamespace).toLowerCase()} item${entries.length === 1 ? "" : "s"} in ${currentPath}`
 
   return (
     <div
@@ -447,7 +494,28 @@ export function LemmaFileBrowser({
           </div>
 
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <FilePathBreadcrumb path={currentPath} radius={radius} onNavigate={navigateToPath} />
+            <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-center">
+              {namespaceTabsVisible ? (
+                <div className={cn("inline-flex shrink-0 border border-border/50 bg-muted/20 p-0.5", radiusClassName(radius, "control"))}>
+                  {(["PRIVATE", "POD"] as const).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      className={cn(
+                        "inline-flex h-7 items-center gap-1.5 px-2.5 text-xs font-medium transition-colors",
+                        radiusClassName(radius, "control"),
+                        activeNamespace === item ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+                      )}
+                      onClick={() => switchNamespace(item)}
+                    >
+                      {item === "PRIVATE" ? <LockKeyhole className="size-3.5" /> : <Building2 className="size-3.5" />}
+                      {namespaceLabel(item)}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+              <FilePathBreadcrumb path={currentPath} radius={radius} onNavigate={navigateToPath} />
+            </div>
             <div className="relative w-full md:w-72">
               <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -507,7 +575,8 @@ export function LemmaFileBrowser({
               const extension = isDirectory ? "" : extensionFromPath(entry.path)
               const isSelected = normalizedSelectedPath === normalizePath(entry.path)
               const showPickButton = mode === "picker" && !isDirectory && Boolean(onPick)
-              const rowMenuVisible = (!hasSearch && (renameEnabled || moveEnabled || deleteEnabled)) || (!isDirectory && linkActions.some((action) => !action.hidden))
+              const canPublishToPod = !hasSearch && !isDirectory && activeNamespace === "PRIVATE" && publishToPodEnabled !== false
+              const rowMenuVisible = (!hasSearch && (renameEnabled || moveEnabled || deleteEnabled || canPublishToPod)) || (!isDirectory && linkActions.some((action) => !action.hidden))
               return (
                 <div
                   key={entry.key}
@@ -539,7 +608,8 @@ export function LemmaFileBrowser({
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        onClick={() => void downloadFile(scopedClient, entry.path)}
+                        onClick={() => void downloadFile(scopedClient, entry.path, entry.namespace)}
+                        aria-label="Download file"
                       >
                         <Download />
                       </Button>
@@ -576,7 +646,19 @@ export function LemmaFileBrowser({
                               {action.label}
                             </DropdownMenuItem>
                           ))}
-                          {!isDirectory && linkActions.some((action) => !action.hidden) && !hasSearch && (renameEnabled || moveEnabled || deleteEnabled) ? <DropdownMenuSeparator /> : null}
+                          {!isDirectory && linkActions.some((action) => !action.hidden) && !hasSearch && (renameEnabled || moveEnabled || deleteEnabled || canPublishToPod) ? <DropdownMenuSeparator /> : null}
+                          {canPublishToPod ? (
+                            <DropdownMenuItem
+                              disabled={publishingPath === entry.path}
+                              onClick={() => {
+                                if (entry.source !== "browse") return
+                                void handlePublishToPod(entry.raw)
+                              }}
+                            >
+                              {publishingPath === entry.path ? <Loader2 className="mr-2 size-4 animate-spin" /> : <Building2 className="mr-2 size-4" />}
+                              Publish to pod
+                            </DropdownMenuItem>
+                          ) : null}
                           {!hasSearch && renameEnabled ? (
                             <DropdownMenuItem
                               onClick={() => {
@@ -774,8 +856,8 @@ function FilePathBreadcrumb({
   )
 }
 
-async function downloadFile(client: LemmaClient, path: string) {
-  const blob = await client.files.download(path)
+async function downloadFile(client: LemmaClient, path: string, namespace: LemmaFileBrowserNamespace) {
+  const blob = await client.files.download(path, { namespace })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement("a")
   anchor.href = url
@@ -870,6 +952,10 @@ function fileIcon(extension: string) {
 
 function isDirectoryKind(kind: unknown) {
   return String(kind).toLowerCase() === "directory" || String(kind).toLowerCase() === "folder"
+}
+
+function namespaceLabel(namespace: LemmaFileBrowserNamespace) {
+  return namespace === "PRIVATE" ? "Private" : "Pod"
 }
 
 function formatFileSize(bytes: number) {

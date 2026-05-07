@@ -52,7 +52,7 @@ export class IntegrationsNamespace {
       app_names: appNames,
       goal,
     };
-    return this.client.request(() => AgentToolsService.toolIntegrationHelperAgent(body));
+    return this.client.request(() => AgentToolsService.agentToolIntegrationHelperAgent(body));
   }
 
   readonly triggers = {

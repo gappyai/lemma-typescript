@@ -2,15 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AvailableModels } from './AvailableModels.js';
-/**
- * Request to create a conversation.
- */
+import type { AgentModelName } from './AgentModelName.js';
 export type CreateConversationRequest = {
-    assistant_name?: (string | null);
-    model?: (AvailableModels | null);
-    organization_id?: (string | null);
-    pod_id?: (string | null);
+    agent_name?: (string | null);
+    model_name?: (AgentModelName | null);
+    parent_id?: (string | null);
     title?: (string | null);
 };
 

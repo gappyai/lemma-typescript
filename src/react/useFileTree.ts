@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LemmaClient } from "../client.js";
-import type { DirectoryTreeNode, DirectoryTreeResponse } from "../types.js";
+import type { DatastoreFileNamespace, DirectoryTreeNode, DirectoryTreeResponse } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseFileTreeOptions {
@@ -10,6 +10,7 @@ export interface UseFileTreeOptions {
   autoLoad?: boolean;
   rootPath?: string;
   filesPerDirectory?: number;
+  namespace?: DatastoreFileNamespace | null;
 }
 
 export interface UseFileTreeResult {
@@ -17,7 +18,11 @@ export interface UseFileTreeResult {
   response: DirectoryTreeResponse | null;
   isLoading: boolean;
   error: Error | null;
-  refresh: (overrides?: { rootPath?: string; filesPerDirectory?: number }) => Promise<DirectoryTreeResponse | null>;
+  refresh: (overrides?: {
+    rootPath?: string;
+    filesPerDirectory?: number;
+    namespace?: DatastoreFileNamespace | null;
+  }) => Promise<DirectoryTreeResponse | null>;
 }
 
 export function useFileTree({
@@ -27,13 +32,18 @@ export function useFileTree({
   autoLoad = true,
   rootPath = "/",
   filesPerDirectory = 3,
+  namespace,
 }: UseFileTreeOptions): UseFileTreeResult {
   const [response, setResponse] = useState<DirectoryTreeResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
   const refresh = useCallback(async (
-    overrides: { rootPath?: string; filesPerDirectory?: number } = {},
+    overrides: {
+      rootPath?: string;
+      filesPerDirectory?: number;
+      namespace?: DatastoreFileNamespace | null;
+    } = {},
     signal?: AbortSignal,
   ): Promise<DirectoryTreeResponse | null> => {
     if (!enabled) {
@@ -51,6 +61,7 @@ export function useFileTree({
       const nextResponse = await scopedClient.files.tree({
         rootPath: overrides.rootPath ?? rootPath,
         filesPerDirectory: overrides.filesPerDirectory ?? filesPerDirectory,
+        namespace: overrides.namespace ?? namespace,
       });
       if (signal?.aborted) return null;
       setResponse(nextResponse);
@@ -63,7 +74,7 @@ export function useFileTree({
     } finally {
       if (!signal?.aborted) setIsLoading(false);
     }
-  }, [client, enabled, filesPerDirectory, podId, rootPath]);
+  }, [client, enabled, filesPerDirectory, namespace, podId, rootPath]);
 
   useEffect(() => {
     if (!enabled) {

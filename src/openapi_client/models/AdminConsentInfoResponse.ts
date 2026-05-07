@@ -2,10 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AssistantSurfaceStatus } from './AssistantSurfaceStatus.js';
+import type { AgentSurfaceStatus } from './AgentSurfaceStatus.js';
 export type AdminConsentInfoResponse = {
     consent_url?: (string | null);
-    status: AssistantSurfaceStatus;
+    status: AgentSurfaceStatus;
     surface_id: string;
 };
 

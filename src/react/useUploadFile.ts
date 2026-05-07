@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
-import type { FileResponse } from "../types.js";
+import type { DatastoreFileNamespace, FileResponse } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UploadFileInput {
@@ -9,11 +9,13 @@ export interface UploadFileInput {
   parentId?: string;
   searchEnabled?: boolean;
   description?: string;
+  namespace?: DatastoreFileNamespace | null;
 }
 
 export interface UseUploadFileOptions {
   client: LemmaClient;
   podId?: string;
+  namespace?: DatastoreFileNamespace | null;
   enabled?: boolean;
   onSuccess?: (file: FileResponse) => void;
   onError?: (error: unknown) => void;
@@ -30,6 +32,7 @@ export interface UseUploadFileResult<TFile extends FileResponse = FileResponse> 
 export function useUploadFile<TFile extends FileResponse = FileResponse>({
   client,
   podId,
+  namespace,
   enabled = true,
   onSuccess,
   onError,
@@ -57,7 +60,10 @@ export function useUploadFile<TFile extends FileResponse = FileResponse>({
 
     try {
       const scopedClient = resolvePodClient(client, podId);
-      const nextFile = await scopedClient.files.upload(file, options) as TFile;
+      const nextFile = await scopedClient.files.upload(file, {
+        ...options,
+        namespace: options.namespace ?? namespace,
+      }) as TFile;
       setUploadedFile(nextFile);
       onSuccessRef.current?.(nextFile);
       return nextFile;
@@ -69,7 +75,7 @@ export function useUploadFile<TFile extends FileResponse = FileResponse>({
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, enabled, podId]);
+  }, [client, enabled, namespace, podId]);
 
   const reset = useCallback(() => {
     setUploadedFile(null);

@@ -11,10 +11,6 @@ export type ReportFeedbackResponse = {
      */
     agent_id?: (string | null);
     /**
-     * Delegated assistant associated with the report, if available.
-     */
-    assistant_id?: (string | null);
-    /**
      * Identifier of the created feedback report.
      */
     feedback_id?: (string | null);

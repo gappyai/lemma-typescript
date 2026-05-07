@@ -1,17 +1,14 @@
 import type {
+  AgentModelName,
   AgentResponse,
-  AssistantResponse,
-  AvailableModels,
   ColumnSchema,
-  ConversationMessageResponse,
-  ConversationResponse,
+  ConversationResponse as GeneratedConversationResponse,
   CreateAgentRequest,
-  CreateAssistantRequest,
-  CreateTaskRequest,
   DatastoreQueryResponse,
   DirectoryTreeNode,
   DirectoryTreeResponse,
   FileResponse,
+  FileNamespace,
   FileSearchResponse,
   FileSearchResultSchema,
   FlowRunEntity,
@@ -26,14 +23,19 @@ import type {
   PodMemberResponse,
   PodResponse,
   TableResponse,
-  TaskMessageResponse,
-  TaskResponse,
   UpdateAgentRequest,
-  UpdateAssistantRequest,
   UserResponse,
 } from "./openapi_client/index.js";
 
 /** Public ergonomic types. */
+
+export interface AvailableModelInfo {
+  id: ConversationModel;
+  name: string;
+  description?: string | null;
+}
+
+export type AvailableModels = AgentModelName;
 
 export interface PageResult<T> {
   items: T[];
@@ -85,13 +87,78 @@ export type Agent = AgentResponse;
 export type CreateAgentInput = CreateAgentRequest;
 export type UpdateAgentInput = UpdateAgentRequest;
 
-export type Assistant = AssistantResponse;
-export type CreateAssistantInput = CreateAssistantRequest;
-export type UpdateAssistantInput = UpdateAssistantRequest;
+export type ConversationModel = `${AgentModelName}` | (string & {});
+export type Conversation = GeneratedConversationResponse & {
+  model?: ConversationModel | null;
+  status?: string | null;
+};
 
-export type Conversation = ConversationResponse;
+export interface ConversationMessageResponse {
+  id: string;
+  role: string;
+  content: unknown;
+  created_at: string;
+  conversation_id?: string;
+  sequence?: number;
+  agent_run_id?: string | null;
+  metadata?: Record<string, unknown> | null;
+  tool_call_id?: string | null;
+  tool_name?: string | null;
+}
+
 export type ConversationMessage = ConversationMessageResponse;
-export type ConversationModel = `${AvailableModels}` | (string & {});
+
+export type TaskStatus =
+  | "PENDING"
+  | "RUNNING"
+  | "WAITING"
+  | "COMPLETED"
+  | "FAILED"
+  | "CANCELLED"
+  | "STOPPED"
+  | (string & {});
+
+export interface CreateTaskRequest {
+  agent_name: string;
+  input_data?: Record<string, unknown> | null;
+  title?: string | null;
+  conversation_id?: string | null;
+  content?: string | null;
+}
+
+export interface AddMessageRequest {
+  content: string;
+}
+
+export interface TaskResponse {
+  id: string;
+  agent_id?: string | null;
+  agent_name?: string | null;
+  pod_id: string;
+  user_id?: string;
+  input_data?: Record<string, unknown> | null;
+  output_data?: unknown;
+  error?: string | null;
+  status?: TaskStatus;
+  created_at?: string;
+  updated_at?: string;
+  conversation?: Conversation;
+}
+
+export interface TaskListResponse {
+  items: TaskResponse[];
+  limit: number;
+  next_page_token?: string | null;
+  total?: number;
+}
+
+export type TaskMessageResponse = ConversationMessageResponse;
+
+export interface TaskMessageListResponse {
+  items: TaskMessageResponse[];
+  limit: number;
+  next_page_token?: string | null;
+}
 
 export type Task = TaskResponse;
 export type TaskMessage = TaskMessageResponse;
@@ -108,6 +175,7 @@ export type DatastoreFileSearchResponse = FileSearchResponse;
 export type DatastoreFileSearchResult = FileSearchResultSchema;
 export type DatastoreDirectoryTree = DirectoryTreeResponse;
 export type DatastoreDirectoryTreeNode = DirectoryTreeNode;
+export type DatastoreFileNamespace = FileNamespace | "PRIVATE" | "PERSONAL" | "POD";
 
 export type Pod = PodResponse;
 export type PodConfig = PodConfigResponse;

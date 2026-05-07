@@ -3,9 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Execution state of a conversation.
+ * Runtime framework used to execute an agent.
  */
-export enum ConversationStatus {
-    WAITING = 'waiting',
-    RUNNING = 'running',
+export enum HarnessKind {
+    PYDANTIC_AI = 'pydantic_ai',
+    PYDANTIC_DEEP = 'pydantic_deep',
 }

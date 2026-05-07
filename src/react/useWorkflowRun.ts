@@ -73,7 +73,7 @@ export function useWorkflowRun({
     const normalizedStatus = normalizeRunStatus(session.status);
     const isFinished = isTerminalFlowStatus(normalizedStatus);
     const isWaitingForInput = normalizedStatus === "WAITING"
-      || !!session.run?.waiting_task_id
+      || !!session.run?.waiting_agent_conversation_id
       || !!session.run?.waiting_function_run_id
       || !!session.run?.waiting_trigger_id;
     const output = session.run?.execution_context ?? null;

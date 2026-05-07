@@ -97,7 +97,7 @@ export type {
 // Namespace types (for advanced usage)
 export type { AgentsNamespace } from "./namespaces/agents.js";
 export type { DatastoreNamespace } from "./namespaces/datastore.js";
-export type { AssistantsNamespace, ConversationsNamespace } from "./namespaces/assistants.js";
+export type { ConversationsNamespace } from "./namespaces/conversations.js";
 export type { DesksNamespace } from "./namespaces/desks.js";
 export type { FilesNamespace } from "./namespaces/files.js";
 export type { FunctionsNamespace } from "./namespaces/functions.js";

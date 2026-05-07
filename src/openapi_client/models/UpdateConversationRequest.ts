@@ -2,12 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AvailableModels } from './AvailableModels.js';
-/**
- * Request to update a conversation.
- */
+import type { AgentModelName } from './AgentModelName.js';
 export type UpdateConversationRequest = {
-    model?: (AvailableModels | null);
+    model_name?: (AgentModelName | null);
     title?: (string | null);
 };
 

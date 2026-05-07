@@ -1,4 +1,5 @@
-import type { FlowRunStatus, FunctionRunStatus, TaskStatus } from "./openapi_client/index.js";
+import type { FlowRunStatus, FunctionRunStatus } from "./openapi_client/index.js";
+import type { TaskStatus } from "./types.js";
 
 export type AnyRunStatus = TaskStatus | FunctionRunStatus | FlowRunStatus | (string & {});
 

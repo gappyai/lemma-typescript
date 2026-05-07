@@ -5,7 +5,7 @@
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
-export class AssistantSurfacesIngressService {
+export class AgentSurfacesIngressService {
     /**
      * Teams Admin Consent Callback
      * @param tenant
@@ -16,7 +16,7 @@ export class AssistantSurfacesIngressService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static assistantSurfaceTeamsAdminConsentCallback(
+    public static agentSurfaceTeamsAdminConsentCallback(
         tenant?: (string | null),
         adminConsent?: (string | null),
         state?: (string | null),

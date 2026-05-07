@@ -2,10 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-/**
- * Request to add a message.
- */
-export type CreateMessageRequest = {
-    content: string;
+export type ToolCallContent = {
+    tool_call_id: string;
+    tool_input?: any;
+    tool_name: string;
+    type?: string;
 };
 

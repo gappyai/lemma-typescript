@@ -1,0 +1,262 @@
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+import type { ConversationListResponse } from '../models/ConversationListResponse.js';
+import type { ConversationResponse } from '../models/ConversationResponse.js';
+import type { CreateConversationRequest } from '../models/CreateConversationRequest.js';
+import type { MessageListResponse } from '../models/MessageListResponse.js';
+import type { SendMessageRequest } from '../models/SendMessageRequest.js';
+import type { UpdateConversationRequest } from '../models/UpdateConversationRequest.js';
+import type { CancelablePromise } from '../core/CancelablePromise.js';
+import { OpenAPI } from '../core/OpenAPI.js';
+import { request as __request } from '../core/request.js';
+export class AgentConversationsService {
+    /**
+     * List Pod Agent Conversations
+     * List root conversations for the current user in a pod. Use agent_name to list conversations for a specific pod agent; omit it to list default pod assistant conversations. Child conversations are omitted from this root list.
+     * @param podId
+     * @param agentName
+     * @param pageToken
+     * @param limit
+     * @returns ConversationListResponse Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationList(
+        podId: string,
+        agentName?: (string | null),
+        pageToken?: (string | null),
+        limit: number = 20,
+    ): CancelablePromise<ConversationListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/conversations',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'agent_name': agentName,
+                'page_token': pageToken,
+                'limit': limit,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Pod Agent Conversation
+     * Create a new pod-scoped conversation. When agent_name is omitted, the conversation uses the default pod assistant. Workflow and sub-agent executions also use conversations as their external execution handle.
+     * @param podId
+     * @param requestBody
+     * @returns ConversationResponse Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationCreate(
+        podId: string,
+        requestBody: CreateConversationRequest,
+    ): CancelablePromise<ConversationResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/conversations',
+            path: {
+                'pod_id': podId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Send Pod Conversation Message
+     * Create or continue a pod-scoped assistant or agent conversation and stream runtime events over Server-Sent Events until the active run completes. Provide agent_name to target a pod agent; omit it for the default pod assistant.
+     * @param podId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationMessageSendOrCreate(
+        podId: string,
+        requestBody: SendMessageRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/conversations/messages',
+            path: {
+                'pod_id': podId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Pod Conversation
+     * Get a single pod-scoped assistant or agent conversation by id.
+     * @param podId
+     * @param conversationId
+     * @returns ConversationResponse Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationGet(
+        podId: string,
+        conversationId: string,
+    ): CancelablePromise<ConversationResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/conversations/{conversation_id}',
+            path: {
+                'pod_id': podId,
+                'conversation_id': conversationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update Pod Conversation
+     * Update mutable conversation settings for a pod-scoped conversation. The conversation model is used by future runs; message sends do not carry per-request model overrides.
+     * @param podId
+     * @param conversationId
+     * @param requestBody
+     * @returns ConversationResponse Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationUpdate(
+        podId: string,
+        conversationId: string,
+        requestBody: UpdateConversationRequest,
+    ): CancelablePromise<ConversationResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/pods/{pod_id}/conversations/{conversation_id}',
+            path: {
+                'pod_id': podId,
+                'conversation_id': conversationId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Pod Conversation Messages
+     * List persisted messages in a pod-scoped conversation in sequence order.
+     * @param podId
+     * @param conversationId
+     * @param afterSequence
+     * @param limit
+     * @returns MessageListResponse Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationMessageList(
+        podId: string,
+        conversationId: string,
+        afterSequence?: (number | null),
+        limit: number = 100,
+    ): CancelablePromise<MessageListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/conversations/{conversation_id}/messages',
+            path: {
+                'pod_id': podId,
+                'conversation_id': conversationId,
+            },
+            query: {
+                'after_sequence': afterSequence,
+                'limit': limit,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Send Pod Conversation Message
+     * Append a user message to a pod-scoped conversation and stream runtime events over Server-Sent Events until the active run completes. User messages can also be appended while a run is already active; the next harness step sees the new message in persisted history.
+     * @param podId
+     * @param conversationId
+     * @param requestBody
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationMessageSend(
+        podId: string,
+        conversationId: string,
+        requestBody: SendMessageRequest,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/conversations/{conversation_id}/messages',
+            path: {
+                'pod_id': podId,
+                'conversation_id': conversationId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Stop Pod Conversation
+     * Request cancellation of the active internal run for a conversation.
+     * @param podId
+     * @param conversationId
+     * @returns ConversationResponse Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationStop(
+        podId: string,
+        conversationId: string,
+    ): CancelablePromise<ConversationResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/conversations/{conversation_id}/stop',
+            path: {
+                'pod_id': podId,
+                'conversation_id': conversationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Stream Pod Conversation
+     * Subscribe to Server-Sent Events for an existing pod-scoped conversation. The stream closes immediately when the conversation has no active run. Optionally filter to a specific internal run id for reconnects.
+     * @param podId
+     * @param conversationId
+     * @param agentRunId
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationStream(
+        podId: string,
+        conversationId: string,
+        agentRunId?: (string | null),
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/conversations/{conversation_id}/stream',
+            path: {
+                'pod_id': podId,
+                'conversation_id': conversationId,
+            },
+            query: {
+                'agent_run_id': agentRunId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+}

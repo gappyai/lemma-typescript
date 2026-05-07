@@ -52,6 +52,17 @@ function patchKnownGeneratorIssues(source, filePath) {
     );
   }
 
+  if (filePath.endsWith("services/FilesService.ts")) {
+    patched = patched.replace(
+      "import type { FileNamespace } from '../models/FileNamespace.js';",
+      "import { FileNamespace } from '../models/FileNamespace.js';",
+    );
+    patched = patched.replaceAll(
+      "namespace: FileNamespace = 'PERSONAL'",
+      "namespace: FileNamespace = FileNamespace.PERSONAL",
+    );
+  }
+
   return patched;
 }
 

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
+import type { DatastoreFileNamespace } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface UseDeleteFileOptions {
   client: LemmaClient;
   podId?: string;
   path?: string | null;
+  namespace?: DatastoreFileNamespace | null;
   enabled?: boolean;
   onSuccess?: (path: string) => void;
   onError?: (error: unknown) => void;
@@ -15,7 +17,7 @@ export interface UseDeleteFileResult {
   deletedPath: string | null;
   isSubmitting: boolean;
   error: Error | null;
-  remove: (overrides?: { path?: string | null }) => Promise<boolean>;
+  remove: (overrides?: { path?: string | null; namespace?: DatastoreFileNamespace | null }) => Promise<boolean>;
   reset: () => void;
 }
 
@@ -23,6 +25,7 @@ export function useDeleteFile({
   client,
   podId,
   path = null,
+  namespace,
   enabled = true,
   onSuccess,
   onError,
@@ -41,7 +44,7 @@ export function useDeleteFile({
   const isEnabled = enabled && trimmedPath.length > 0;
 
   const remove = useCallback(async (
-    overrides: { path?: string | null } = {},
+    overrides: { path?: string | null; namespace?: DatastoreFileNamespace | null } = {},
   ): Promise<boolean> => {
     const nextPath = typeof overrides.path === "string"
       ? overrides.path.trim()
@@ -56,7 +59,7 @@ export function useDeleteFile({
 
     try {
       const scopedClient = resolvePodClient(client, podId);
-      await scopedClient.files.delete(nextPath);
+      await scopedClient.files.delete(nextPath, { namespace: overrides.namespace ?? namespace });
       setDeletedPath(nextPath);
       onSuccessRef.current?.(nextPath);
       return true;
@@ -68,7 +71,7 @@ export function useDeleteFile({
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, isEnabled, podId, trimmedPath]);
+  }, [client, isEnabled, namespace, podId, trimmedPath]);
 
   const reset = useCallback(() => {
     setDeletedPath(null);

@@ -2,15 +2,12 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FileVisibility } from './FileVisibility.js';
+import type { FileNamespace } from './FileNamespace.js';
 export type CreateFolderRequest = {
     description?: (string | null);
     name?: (string | null);
+    namespace?: (FileNamespace | null);
     parent_id?: (string | null);
     path?: (string | null);
-    /**
-     * Optional visibility override for the new folder.
-     */
-    visibility?: (FileVisibility | null);
 };
 

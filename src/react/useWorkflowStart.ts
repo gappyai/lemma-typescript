@@ -60,7 +60,7 @@ function isWaitingFlowRun(run: FlowRun | null | undefined): boolean {
   const normalizedStatus = normalizeRunStatus(run.status);
   return normalizedStatus === "WAITING"
     || !!run.waiting_function_run_id
-    || !!run.waiting_task_id
+    || !!run.waiting_agent_conversation_id
     || !!run.waiting_trigger_id;
 }
 

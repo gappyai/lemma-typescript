@@ -10,9 +10,13 @@ import { normalizeError } from "./utils.js";
 export interface UseConversationsOptions {
   client: LemmaClient;
   podId?: string;
+  agentName?: string;
+  /**
+   * @deprecated Use agentName instead.
+   */
   assistantName?: string;
   /**
-   * @deprecated Use assistantName instead.
+   * @deprecated Use agentName instead.
    */
   assistantId?: string;
   organizationId?: string;
@@ -63,6 +67,7 @@ function sortConversationsByUpdatedAt(conversations: Conversation[]): Conversati
 export function useConversations({
   client,
   podId,
+  agentName,
   assistantName,
   assistantId,
   organizationId,
@@ -82,10 +87,11 @@ export function useConversations({
 
   const scopeKey = useMemo(() => JSON.stringify({
     podId: podId ?? null,
-    assistantName: assistantName ?? assistantId ?? null,
+    agentName: agentName ?? assistantName ?? assistantId ?? null,
+    assistantName: assistantName ?? null,
     assistantId: assistantId ?? null,
     organizationId: organizationId ?? null,
-  }), [assistantId, assistantName, organizationId, podId]);
+  }), [agentName, assistantId, assistantName, organizationId, podId]);
 
   const {
     error,
@@ -94,6 +100,7 @@ export function useConversations({
   } = useAssistantSession({
     client,
     podId,
+    agentName: agentName ?? assistantName ?? assistantId,
     assistantName,
     assistantId,
     organizationId,
@@ -161,7 +168,7 @@ export function useConversations({
     const createdConversation = await sessionCreateConversation({
       ...input,
       podId: input.podId ?? podId ?? undefined,
-      assistantName: input.assistantName ?? assistantName ?? assistantId ?? undefined,
+      agentName: input.agentName ?? input.assistantName ?? agentName ?? assistantName ?? assistantId ?? undefined,
       organizationId: input.organizationId ?? organizationId ?? undefined,
       setActive: input.setActive ?? true,
     });
@@ -180,7 +187,7 @@ export function useConversations({
     }
 
     return createdConversation;
-  }, [assistantId, assistantName, organizationId, podId, sessionCreateConversation]);
+  }, [agentName, assistantId, assistantName, organizationId, podId, sessionCreateConversation]);
 
   const createAndSelectConversation = useCallback(async (
     input: Omit<CreateConversationInput, "setActive"> = {},

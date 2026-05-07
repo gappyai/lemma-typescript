@@ -2,7 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export enum AvailableModels {
+/**
+ * Models that can be selected for an agent run.
+ */
+export enum AgentModelName {
     GEMINI_PRO = 'GEMINI_PRO',
     GEMINI_FLASH = 'GEMINI_FLASH',
     GEMINI_FLASH_LITE = 'GEMINI_FLASH_LITE',

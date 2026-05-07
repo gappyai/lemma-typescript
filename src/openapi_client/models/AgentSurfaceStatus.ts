@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export enum AssistantSurfaceStatus {
+export enum AgentSurfaceStatus {
     ACTIVE = 'ACTIVE',
     PENDING_ADMIN_CONSENT = 'PENDING_ADMIN_CONSENT',
     INACTIVE = 'INACTIVE',

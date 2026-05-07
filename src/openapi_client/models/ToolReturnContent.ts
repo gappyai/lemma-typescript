@@ -2,10 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type ToolCallRequest = {
+export type ToolReturnContent = {
     tool_call_id: string;
-    tool_input?: any;
-    tool_name: string;
+    tool_name?: (string | null);
+    tool_output?: any;
     type?: string;
 };
 

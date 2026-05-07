@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { LemmaClient } from "../client.js";
-import type { FileResponse } from "../types.js";
+import type { DatastoreFileNamespace, FileResponse } from "../types.js";
 import { normalizeError, resolvePodClient } from "./utils.js";
 
 export interface CreateFolderInput {
   directoryPath?: string;
   parentId?: string;
   description?: string;
+  namespace?: DatastoreFileNamespace | null;
 }
 
 export interface UseCreateFolderOptions {
   client: LemmaClient;
   podId?: string;
+  namespace?: DatastoreFileNamespace | null;
   enabled?: boolean;
   onSuccess?: (folder: FileResponse) => void;
   onError?: (error: unknown) => void;
@@ -28,6 +30,7 @@ export interface UseCreateFolderResult<TFile extends FileResponse = FileResponse
 export function useCreateFolder<TFile extends FileResponse = FileResponse>({
   client,
   podId,
+  namespace,
   enabled = true,
   onSuccess,
   onError,
@@ -56,7 +59,10 @@ export function useCreateFolder<TFile extends FileResponse = FileResponse>({
 
     try {
       const scopedClient = resolvePodClient(client, podId);
-      const nextFolder = await scopedClient.files.folder.create(trimmedName, options) as TFile;
+      const nextFolder = await scopedClient.files.folder.create(trimmedName, {
+        ...options,
+        namespace: options.namespace ?? namespace,
+      }) as TFile;
       setCreatedFolder(nextFolder);
       onSuccessRef.current?.(nextFolder);
       return nextFolder;
@@ -68,7 +74,7 @@ export function useCreateFolder<TFile extends FileResponse = FileResponse>({
     } finally {
       setIsSubmitting(false);
     }
-  }, [client, enabled, podId]);
+  }, [client, enabled, namespace, podId]);
 
   const reset = useCallback(() => {
     setCreatedFolder(null);

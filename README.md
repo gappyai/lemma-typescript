@@ -2,7 +2,7 @@
 
 `lemma-sdk` is the headless TypeScript SDK for Lemma. Use `lemma-sdk` for the core client and shared helpers, and use `lemma-sdk/react` as the main app-building surface for hooks and auth primitives.
 
-`AuthGuard` intentionally stays in `lemma-sdk/react`. The product direction remains hooks-first and shell-agnostic, and the registry ships stock Lemma UI blocks when you want installable assistant, records, file, workflow, collaboration, or shell surfaces.
+`AuthGuard` intentionally stays in `lemma-sdk/react`. The product direction remains hooks-first and shell-agnostic, and the registry ships stock Lemma UI blocks when you want installable agent conversation, records, file, workflow, collaboration, or shell surfaces.
 
 ## Install
 
@@ -43,7 +43,7 @@ const tables = await client.tables.list();
 const records = await client.records.list("tickets");
 ```
 
-Pod-scoped namespaces include `tables`, `records`, `assistants`, `agents`, `tasks`, `workflows`, `functions`, `files`, `desks`, `integrations`, `resources`, and `datastore`.
+Pod-scoped namespaces include `tables`, `records`, `agents`, `conversations`, `workflows`, `functions`, `files`, `desks`, `integrations`, `resources`, and `datastore`. New runtime code should use agents plus conversations.
 
 Org and user surfaces include `users`, `organizations`, `pods`, `podMembers`, `podJoinRequests`, and `podSurfaces`.
 
@@ -77,9 +77,9 @@ import {
 | Tables | `useTables`, `useTable`, `useRecords`, `useRecord`, `useJoinedRecords`, `useRelatedRecords`, `useReverseRelatedRecords`, `useReferencingRecords`, `useDatastoreQuery`, `useRecordAggregates` | Stable | Build custom table browsers, details views, related-record views, raw SQL-backed reads, and chart/KPI queries. |
 | Record mutations | `useCreateRecord`, `useUpdateRecord`, `useDeleteRecord`, `useBulkRecords` | Stable | Create, update, delete, or bulk-delete rows from headless UI. Function-backed mutations via `createVia`/`updateVia` options. |
 | Record forms | `useRecordSchema`, `useRecordForm`, `useForeignKeyOptions`, `useSchemaForm` | Stable | Render schema-driven record forms, enum fields, and foreign-key selectors. `useRecordForm` is the canonical table-bound form hook; `useSchemaForm` remains available for raw JSON-schema flows. |
-| Files | `useFiles`, `useFile`, `useUploadFile`, `useUpdateFile`, `useDeleteFile`, `useCreateFolder`, `useFileSearch`, `useFileTree`, `useFilePreview`, `useGlobalSearch` | Stable | Browse datastore folders, mutate file state, search indexed files, load directory trees, preview content, and compose multi-source desk search. |
-| Assistant | `useConversations`, `useConversation`, `useConversationMessages`, `useAssistantRun`, `useAssistantSession`, `useAssistantRuntime`, `useAssistantController` | Stable except controller/runtime | Build custom chat, conversation lists, streaming output, and final-output views. |
-| Agents | `useAgentRun`, `useAgentRuns`, `useAgentInputSchema`, `useTaskSession` | Stable except raw session | Start agent tasks, submit follow-up input, read task history, and inspect input/output schemas. |
+| Files | `useFiles`, `useFile`, `useUploadFile`, `useUpdateFile`, `useDeleteFile`, `useCreateFolder`, `useFileSearch`, `useFileTree`, `useFilePreview`, `useGlobalSearch` | Stable | Browse private or pod folders, mutate file state, search indexed files, load directory trees, preview content, and compose multi-source desk search. |
+| Conversations | `useConversations`, `useConversation`, `useConversationMessages`, `useAssistantRun`, `useAssistantSession`, `useAssistantRuntime`, `useAssistantController` | Stable except controller/runtime | Build custom agent chat, conversation lists, streaming output, and final-answer views. Older assistant-named hooks target the agent conversation API internally. |
+| Agents | `useAgentRun`, `useAgentRuns`, `useAgentInputSchema`, `useTaskSession` | Stable except raw session | Start one-turn agent conversations, submit follow-up input, read conversation history, and inspect input/output schemas. |
 | Workflows | `useWorkflowStart`, `useWorkflowRun`, `useWorkflowRuns`, `useWorkflowResume` | Stable | Start, poll, resume, cancel, retry, and inspect workflow runs. |
 | Workflow compatibility | `useFlowSession`, `useFlowRunHistory` | Deprecated naming | Kept for existing callers; prefer workflow-named hooks for new code. |
 | Functions | `useFunctionRun`, `useFunctionRuns`, `useFunctionSession` | Stable except raw session | Run functions, poll function runs, and list function history. |
@@ -147,7 +147,7 @@ function TicketList() {
 }
 ```
 
-Assistant final output:
+Agent conversation final output:
 
 ```tsx
 import { useConversationMessages, useConversations } from "lemma-sdk/react";
@@ -155,7 +155,7 @@ import { useConversationMessages, useConversations } from "lemma-sdk/react";
 function SupportThread({ client }: { client: LemmaClient }) {
   const conversations = useConversations({
     client,
-    assistantName: "support_assistant",
+    agentName: "support_agent",
   });
 
   const messages = useConversationMessages({
@@ -233,14 +233,14 @@ npx shadcn@latest add @lemma/lemma-comments
 npx shadcn@latest add @lemma/lemma-assistant-experience
 ```
 
-The registry currently ships 19 canonical blocks:
+The registry currently ships 19 canonical blocks plus the shared `lemma-ui` primitive bundle:
 
 | Area | Items |
 | --- | --- |
 | Core operator blocks | `lemma-records-view`, `lemma-detail-panel`, `lemma-record-form`, `lemma-status-flow` |
 | Search, files, and pages | `lemma-global-search`, `lemma-breadcrumbs`, `lemma-file-browser`, `lemma-markdown-editor`, `lemma-page-tree`, `lemma-document-workspace` |
 | Collaboration and analytics | `lemma-comments`, `lemma-activity-feed`, `lemma-insights`, `lemma-action-surface`, `lemma-workflow-runner` |
-| Assistant and shell | `lemma-assistant-experience`, `lemma-members`, `lemma-notification-bell`, `lemma-user-menu` |
+| Agent and shell | `lemma-assistant-experience`, `lemma-members`, `lemma-notification-bell`, `lemma-user-menu` |
 
 Registry blocks now install against a shared `lemma-ui` primitive layer that ships with this registry. Consumers no longer need a pre-existing app-local `@/components/ui/*` shadcn tree just to use Lemma blocks.
 
@@ -267,7 +267,7 @@ Core registry blocks:
 - `lemma-file-browser` and `lemma-document-workspace` for file browsing, editing, preview, and document-native workflows
 - `lemma-comments`, `lemma-activity-feed`, and `lemma-insights` for collaboration and reporting
 - `lemma-action-surface` and `lemma-workflow-runner` for long-running actions and workflow history
-- `lemma-assistant-experience`, `lemma-members`, `lemma-notification-bell`, and `lemma-user-menu` for assistant and shell surfaces
+- `lemma-assistant-experience`, `lemma-members`, `lemma-notification-bell`, and `lemma-user-menu` for agent conversation and shell surfaces
 
 ### Block Defaults
 
@@ -302,11 +302,11 @@ For records workspaces, the split is:
 - optional file search with `searchMethod`, `href`, `onSelect`, and `openMode`
 - progressive table/file result groups, smooth loading/error source states, hidden empty sources, keyboard navigation, and built-in `cmd/ctrl+k` handling
 - `minQueryLength`, `debounceMs`, `appearance`, `density`, trigger label, and placeholder customization
-- assistant handoff by `assistantName`, with optional query/results message shaping and conversation routing
+- agent handoff by `agentName`, with optional query/results message shaping and conversation routing
 
 Document blocks support:
 
-- Notion/Coda-style block documents through `lemma-document-workspace`, with ProseKit JSON content, page/modal modes, title and summary chrome, file/reference/assistant blocks, save state, metadata, backlinks, and assistant-context rails
+- Notion/Coda-style block documents through `lemma-document-workspace`, with ProseKit JSON content, page/modal modes, title and summary chrome, file/reference/agent blocks, save state, metadata, backlinks, and agent-context rails
 - pod-file-native creation, reading, editing, and preview through one workspace, with folder targeting, title/summary setup, pod-file metadata, and `mode="page" | "modal"`
 - non-document file previews through the same workspace, including image, PDF, text, markdown, converted HTML, and download fallback behavior
 - records and attachments should pass pod file paths into `lemma-document-workspace`; records should not own document bodies directly
@@ -329,7 +329,7 @@ Navigation and file blocks support:
 
 - route, record, and file-path breadcrumb builders through `lemma-breadcrumbs`
 - native pod-file hierarchy navigation through `lemma-page-tree`
-- datastore folder navigation, upload, rename, move, folder creation, picker mode, and delete handling through `lemma-file-browser`
+- private/pod datastore navigation, upload, rename, move, folder creation, picker mode, publish-to-pod, and delete handling through `lemma-file-browser`
 - write, preview, and split modes through `lemma-markdown-editor`
 
 Collaboration and analytics blocks support:
@@ -338,12 +338,12 @@ Collaboration and analytics blocks support:
 - unified audit and history timelines through `lemma-activity-feed`
 - dashboard-style stat cards and charts through `lemma-insights`
 
-Assistant blocks support:
+Agent conversation blocks support:
 
-- assistant-name-first configuration through `assistantName`
-- shared `appearance` and `density` controls on the assistant experience surface
+- agent-name-first configuration through `agentName` today; omit it to target the default pod agent conversation
+- shared `appearance` and `density` controls on the conversation experience surface
 - `chromeStyle`, `statusPlacement`, `radius`, model picker, conversation list, and render overrides for deeper customization
-- bounded default heights for `page` and `side-panel` modes so the message viewport scrolls instead of stretching with content; pass `className="h-full min-h-0"` inside an explicit-height parent when you want a fill-layout assistant like inbox CRM
+- bounded default heights for `page` and `side-panel` modes so the message viewport scrolls instead of stretching with content; pass `className="h-full min-h-0"` inside an explicit-height parent when you want a fill-layout agent conversation like inbox CRM
 
 ```tsx
 import { LemmaRecordsView } from "@/components/lemma/lemma-records-view";
@@ -393,8 +393,8 @@ import { LemmaGlobalSearch } from "@/components/lemma/lemma-global-search";
     },
   ]}
   files={{ enabled: true, openMode: "new-tab" }}
-  assistant={{
-    assistantName: "sales-copilot",
+  agent={{
+    agentName: "sales-copilot",
     label: "Ask CRM",
     resultLimit: 8,
   }}
@@ -412,7 +412,7 @@ import { LemmaGlobalSearch } from "@/components/lemma/lemma-global-search";
 
 <LemmaAssistantExperience
   client={client}
-  assistantName="sales-copilot"
+  agentName="sales-copilot"
 />;
 ```
 
@@ -439,9 +439,15 @@ From `0.2.30` onward:
 - `lemma-sdk/react` should be treated as hooks plus auth primitives.
 - `AuthGuard` remains in `lemma-sdk/react`.
 - Stock UI should be installed from the shadcn registry.
-- Assistant UI source and CSS are no longer part of the React SDK internals.
-- `react-markdown` and `remark-gfm` are registry-block dependencies for assistant UI, not core SDK dependencies.
+- Conversation UI source and CSS are no longer part of the React SDK internals.
+- `react-markdown` and `remark-gfm` are registry-block dependencies for conversation UI, not core SDK dependencies.
 - New workflow code should prefer `useWorkflowRun`, `useWorkflowRuns`, and `useWorkflowResume` over the older `flow`-named hooks.
+
+From `0.2.37` onward:
+
+- Agent APIs are the runtime abstraction. `client.assistants` is removed; use `client.agents` for definitions and `client.conversations` for turns/messages.
+- Conversations are pod-scoped under the agent conversation API; message sends stream one internal agent run until final output.
+- File APIs are namespace-aware. Shared pod files are the default for backwards-compatible file workspaces; pass `namespace: "PRIVATE"` for personal file input/upload flows and `namespace: "POD"` when you want to be explicit. The live OpenAPI currently names the private namespace `PERSONAL`; the SDK accepts `PRIVATE` as the product-facing alias.
 
 ## Local Development
 

@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AdminConsentInfoResponse } from '../models/AdminConsentInfoResponse.js';
-import type { AssistantSurfaceListResponse } from '../models/AssistantSurfaceListResponse.js';
+import type { AgentSurfaceListResponse } from '../models/AgentSurfaceListResponse.js';
 import type { CreateSurfaceRequest } from '../models/CreateSurfaceRequest.js';
 import type { SurfacePlatformSetupGuideResponse } from '../models/SurfacePlatformSetupGuideResponse.js';
 import type { ToggleSurfaceRequest } from '../models/ToggleSurfaceRequest.js';
@@ -11,20 +11,20 @@ import type { UpdateSurfaceRequest } from '../models/UpdateSurfaceRequest.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
-export class AssistantSurfacesService {
+export class AgentSurfacesService {
     /**
      * List Surfaces
      * @param podId
      * @param limit
      * @param pageToken
-     * @returns AssistantSurfaceListResponse Successful Response
+     * @returns AgentSurfaceListResponse Successful Response
      * @throws ApiError
      */
-    public static assistantSurfaceList(
+    public static agentSurfaceList(
         podId: string,
         limit: number = 100,
         pageToken?: (string | null),
-    ): CancelablePromise<AssistantSurfaceListResponse> {
+    ): CancelablePromise<AgentSurfaceListResponse> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/surfaces',
@@ -47,7 +47,7 @@ export class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static assistantSurfaceCreate(
+    public static agentSurfaceCreate(
         podId: string,
         requestBody: CreateSurfaceRequest,
     ): CancelablePromise<any> {
@@ -71,7 +71,7 @@ export class AssistantSurfacesService {
      * @returns SurfacePlatformSetupGuideResponse Successful Response
      * @throws ApiError
      */
-    public static assistantSurfacePlatformChecklist(
+    public static agentSurfacePlatformChecklist(
         podId: string,
         platform: string,
     ): CancelablePromise<SurfacePlatformSetupGuideResponse> {
@@ -94,7 +94,7 @@ export class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static assistantSurfaceGet(
+    public static agentSurfaceGet(
         podId: string,
         surfaceId: string,
     ): CancelablePromise<any> {
@@ -118,7 +118,7 @@ export class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static assistantSurfaceUpdate(
+    public static agentSurfaceUpdate(
         podId: string,
         surfaceId: string,
         requestBody: UpdateSurfaceRequest,
@@ -144,7 +144,7 @@ export class AssistantSurfacesService {
      * @returns AdminConsentInfoResponse Successful Response
      * @throws ApiError
      */
-    public static assistantSurfaceAdminConsentInfo(
+    public static agentSurfaceAdminConsentInfo(
         podId: string,
         surfaceId: string,
     ): CancelablePromise<AdminConsentInfoResponse> {
@@ -168,7 +168,7 @@ export class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static assistantSurfaceToggle(
+    public static agentSurfaceToggle(
         podId: string,
         surfaceId: string,
         requestBody: ToggleSurfaceRequest,
@@ -194,7 +194,7 @@ export class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static assistantSurfaceWebhookUrl(
+    public static agentSurfaceWebhookUrl(
         podId: string,
         surfaceId: string,
     ): CancelablePromise<any> {

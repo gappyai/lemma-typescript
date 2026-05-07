@@ -38,7 +38,7 @@ Object.defineProperty(exports, "AuthManager", { enumerable: true, get: function 
 const generated_js_1 = require("./generated.js");
 const http_js_1 = require("./http.js");
 const agents_js_1 = require("./namespaces/agents.js");
-const assistants_js_1 = require("./namespaces/assistants.js");
+const conversations_js_1 = require("./namespaces/conversations.js");
 const desks_js_1 = require("./namespaces/desks.js");
 const files_js_1 = require("./namespaces/files.js");
 const functions_js_1 = require("./namespaces/functions.js");
@@ -76,8 +76,7 @@ class LemmaClient {
         this.functions = new functions_js_1.FunctionsNamespace(this._generated, podIdFn);
         this.agents = new agents_js_1.AgentsNamespace(this._generated, podIdFn);
         this.tasks = new tasks_js_1.TasksNamespace(this._http, podIdFn);
-        this.assistants = new assistants_js_1.AssistantsNamespace(this._http, podIdFn);
-        this.conversations = new assistants_js_1.ConversationsNamespace(this._http, podIdFn);
+        this.conversations = new conversations_js_1.ConversationsNamespace(this._http, podIdFn);
         this.workflows = new workflows_js_1.WorkflowsNamespace(this._generated, this._http, podIdFn);
         this.desks = new desks_js_1.DesksNamespace(this._generated, this._http, podIdFn);
         this.integrations = new integrations_js_1.IntegrationsNamespace(this._generated);
@@ -1010,7 +1009,7 @@ class AgentsNamespace {
         this.podId = podId;
     }
     list(options = {}) {
-        return this.client.request(() => AgentsService_js_1.AgentsService.agentList(this.podId(), options.limit ?? 100, options.pageToken));
+        return this.client.request(() => AgentsService_js_1.AgentsService.agentList(this.podId(), options.pageToken, options.limit ?? 100));
     }
     create(payload) {
         return this.client.request(() => AgentsService_js_1.AgentsService.agentCreate(this.podId(), payload));
@@ -1037,14 +1036,14 @@ const request_js_1 = require("./openapi_client/core/request.js");
 class AgentsService {
     /**
      * List Agents
-     * List all agents in a pod
+     * List pod-owned agent definitions visible to the current user.
      * @param podId
-     * @param limit
      * @param pageToken
+     * @param limit
      * @returns AgentListResponse Successful Response
      * @throws ApiError
      */
-    static agentList(podId, limit = 100, pageToken) {
+    static agentList(podId, pageToken, limit = 100) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/agents',
@@ -1052,8 +1051,8 @@ class AgentsService {
                 'pod_id': podId,
             },
             query: {
-                'limit': limit,
                 'page_token': pageToken,
+                'limit': limit,
             },
             errors: {
                 422: `Validation Error`,
@@ -1062,7 +1061,7 @@ class AgentsService {
     }
     /**
      * Create Agent
-     * Create a new agent in a pod
+     * Create a pod-owned agent definition with model, harness, toolsets, resource access grants, callable functions, and callable child agents.
      * @param podId
      * @param requestBody
      * @returns AgentResponse Successful Response
@@ -1084,7 +1083,7 @@ class AgentsService {
     }
     /**
      * Delete Agent
-     * Delete an agent
+     * Delete a pod-owned agent definition by name.
      * @param podId
      * @param agentName
      * @returns AgentMessageResponse Successful Response
@@ -1105,7 +1104,7 @@ class AgentsService {
     }
     /**
      * Get Agent
-     * Get an agent by name
+     * Get one pod-owned agent definition by its stable name.
      * @param podId
      * @param agentName
      * @returns AgentResponse Successful Response
@@ -1126,7 +1125,7 @@ class AgentsService {
     }
     /**
      * Update Agent
-     * Update an agent
+     * Update an agent definition, including prompt instruction, model, toolsets, schemas, and resource/tool grants.
      * @param podId
      * @param agentName
      * @param requestBody
@@ -1568,57 +1567,63 @@ class CancelablePromise {
 exports.CancelablePromise = CancelablePromise;
 
 },
-"./namespaces/assistants.js": function (module, exports, require) {
+"./namespaces/conversations.js": function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConversationsNamespace = exports.AssistantsNamespace = void 0;
-class AssistantsNamespace {
-    constructor(http, podId) {
-        this.http = http;
-        this.podId = podId;
-    }
-    list(options = {}) {
-        return this.http.request("GET", `/pods/${this.podId()}/assistants`, {
-            params: {
-                limit: options.limit ?? 100,
-                page_token: options.page_token,
-            },
-        });
-    }
-    create(payload) {
-        return this.http.request("POST", `/pods/${this.podId()}/assistants`, { body: payload });
-    }
-    get(assistantName) {
-        return this.http.request("GET", `/pods/${this.podId()}/assistants/${assistantName}`);
-    }
-    update(assistantName, payload) {
-        return this.http.request("PATCH", `/pods/${this.podId()}/assistants/${assistantName}`, {
-            body: payload,
-        });
-    }
-    delete(assistantName) {
-        return this.http.request("DELETE", `/pods/${this.podId()}/assistants/${assistantName}`);
-    }
+exports.ConversationsNamespace = void 0;
+const AgentModelName_js_1 = require("./openapi_client/models/AgentModelName.js");
+function normalizeConversation(conversation) {
+    if (!conversation)
+        return conversation;
+    const record = conversation;
+    return {
+        ...record,
+        model: record.model ?? record.model_name ?? null,
+        status: record.status ?? "waiting",
+    };
 }
-exports.AssistantsNamespace = AssistantsNamespace;
+function normalizeConversationList(response) {
+    const items = (response.items ?? []).map((conversation) => normalizeConversation(conversation));
+    return {
+        ...response,
+        items,
+    };
+}
+function normalizeMessage(message) {
+    return message;
+}
+function buildModelList() {
+    return Object.values(AgentModelName_js_1.AgentModelName).map((model) => ({
+        id: model,
+        name: model,
+    }));
+}
 class ConversationsNamespace {
     constructor(http, podId) {
         this.http = http;
         this.podId = podId;
         this.messages = {
-            list: (conversationId, options = {}) => this.http.request("GET", `/conversations/${conversationId}/messages`, {
-                params: {
-                    pod_id: this.resolvePodId(options.pod_id),
-                    limit: options.limit ?? 20,
-                    page_token: options.page_token,
-                },
-            }),
-            send: (conversationId, payload, options = {}) => this.http.request("POST", `/conversations/${conversationId}/messages`, {
-                params: {
-                    pod_id: this.resolvePodId(options.pod_id),
-                },
-                body: payload,
-            }),
+            list: (conversationId, options = {}) => {
+                const podId = this.requirePodId(options.pod_id);
+                const parsedPageToken = typeof options.page_token === "string" && options.page_token.trim().length > 0
+                    ? Number(options.page_token)
+                    : null;
+                return this.http.request("GET", `/pods/${podId}/conversations/${conversationId}/messages`, {
+                    params: {
+                        after_sequence: options.after_sequence ?? (Number.isFinite(parsedPageToken) ? parsedPageToken : undefined),
+                        limit: options.limit ?? 100,
+                    },
+                }).then((response) => ({
+                    ...response,
+                    items: (response.items ?? []).map(normalizeMessage),
+                }));
+            },
+            send: (conversationId, payload, options = {}) => {
+                const podId = this.requirePodId(options.pod_id);
+                return this.http.request("POST", `/pods/${podId}/conversations/${conversationId}/messages`, {
+                    body: payload,
+                });
+            },
         };
     }
     resolvePodId(explicitPodId) {
@@ -1640,67 +1645,77 @@ class ConversationsNamespace {
         return podId;
     }
     list(options = {}) {
-        return this.http.request("GET", "/conversations", {
+        const podId = this.requirePodId(options.pod_id);
+        return this.http.request("GET", `/pods/${podId}/conversations`, {
             params: {
-                assistant_name: options.assistant_name ?? options.assistant_id,
-                pod_id: this.resolvePodId(options.pod_id),
-                organization_id: options.organization_id,
-                global_only: options.global_only ?? false,
+                agent_name: options.agent_name,
                 limit: options.limit ?? 20,
                 page_token: options.page_token,
             },
-        });
+        }).then(normalizeConversationList);
     }
-    listByAssistant(assistantName, options = {}) {
-        return this.list({ ...options, assistant_name: assistantName });
+    listByAgent(agentName, options = {}) {
+        return this.list({ ...options, agent_name: agentName });
     }
-    listByAssistantName(assistantName, options = {}) {
-        return this.listByAssistant(assistantName, options);
+    async listModels() {
+        const items = buildModelList();
+        return {
+            items,
+            limit: items.length,
+            next_page_token: null,
+        };
     }
-    listModels() {
-        return this.http.request("GET", "/models");
+    create(payload = {}) {
+        const podId = this.requirePodId(payload.pod_id);
+        const { agent_name, model, model_name, pod_id, ...requestBody } = payload;
+        const body = {
+            ...requestBody,
+            agent_name: agent_name ?? undefined,
+            model_name: model_name ?? model,
+        };
+        void pod_id;
+        return this.http.request("POST", `/pods/${podId}/conversations`, {
+            body,
+        }).then(normalizeConversation);
     }
-    create(payload) {
-        const { assistant_id, ...requestBody } = payload;
-        return this.http.request("POST", "/conversations", {
-            body: {
-                ...requestBody,
-                pod_id: this.resolvePodId(requestBody.pod_id),
-                assistant_name: requestBody.assistant_name ?? assistant_id,
-            },
-        });
-    }
-    createForAssistant(assistantName, payload = {}) {
+    createForAgent(agentName, payload = {}) {
         return this.create({
             ...payload,
-            assistant_name: assistantName,
+            agent_name: agentName,
         });
     }
     get(conversationId, options = {}) {
-        return this.http.request("GET", `/conversations/${conversationId}`, {
-            params: {
-                pod_id: this.resolvePodId(options.pod_id),
-            },
-        });
+        const podId = this.requirePodId(options.pod_id);
+        return this.http.request("GET", `/pods/${podId}/conversations/${conversationId}`)
+            .then(normalizeConversation);
     }
     update(conversationId, payload, options = {}) {
-        return this.http.request("PATCH", `/conversations/${conversationId}`, {
-            params: {
-                pod_id: this.resolvePodId(options.pod_id),
-            },
-            body: payload,
-        });
-    }
-    delete(conversationId, options = {}) {
-        const scopedPodId = this.requirePodId(options.pod_id);
-        return this.http.request("DELETE", `/pods/${scopedPodId}/conversations/${conversationId}`);
+        const podId = this.requirePodId(options.pod_id);
+        const { model, model_name, ...requestBody } = payload;
+        const body = {
+            ...requestBody,
+            model_name: model_name ?? model,
+        };
+        return this.http.request("PATCH", `/pods/${podId}/conversations/${conversationId}`, {
+            body,
+        }).then(normalizeConversation);
     }
     sendMessageStream(conversationId, payload, options = {}) {
-        return this.http.stream(`/conversations/${conversationId}/messages`, {
+        const podId = this.requirePodId(options.pod_id);
+        return this.http.stream(`/pods/${podId}/conversations/${conversationId}/messages`, {
             method: "POST",
-            params: {
-                pod_id: this.resolvePodId(options.pod_id),
+            body: payload,
+            signal: options.signal,
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "text/event-stream",
             },
+        });
+    }
+    sendOrCreateMessageStream(payload, options = {}) {
+        const podId = this.requirePodId(options.pod_id);
+        return this.http.stream(`/pods/${podId}/conversations/messages`, {
+            method: "POST",
             body: payload,
             signal: options.signal,
             headers: {
@@ -1710,9 +1725,10 @@ class ConversationsNamespace {
         });
     }
     resumeStream(conversationId, options = {}) {
-        return this.http.stream(`/conversations/${conversationId}/stream`, {
+        const podId = this.requirePodId(options.pod_id);
+        return this.http.stream(`/pods/${podId}/conversations/${conversationId}/stream`, {
             params: {
-                pod_id: this.resolvePodId(options.pod_id),
+                agent_run_id: options.agent_run_id,
             },
             signal: options.signal,
             headers: {
@@ -1721,15 +1737,37 @@ class ConversationsNamespace {
         });
     }
     stopRun(conversationId, options = {}) {
-        return this.http.request("PATCH", `/conversations/${conversationId}/stop`, {
-            params: {
-                pod_id: this.resolvePodId(options.pod_id),
-            },
+        const podId = this.requirePodId(options.pod_id);
+        return this.http.request("POST", `/pods/${podId}/conversations/${conversationId}/stop`, {
             body: {},
-        });
+        }).then(normalizeConversation);
     }
 }
 exports.ConversationsNamespace = ConversationsNamespace;
+
+},
+"./openapi_client/models/AgentModelName.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AgentModelName = void 0;
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+/**
+ * Models that can be selected for an agent run.
+ */
+var AgentModelName;
+(function (AgentModelName) {
+    AgentModelName["GEMINI_PRO"] = "GEMINI_PRO";
+    AgentModelName["GEMINI_FLASH"] = "GEMINI_FLASH";
+    AgentModelName["GEMINI_FLASH_LITE"] = "GEMINI_FLASH_LITE";
+    AgentModelName["KIMI_K2"] = "KIMI_K2";
+    AgentModelName["GPT_OSS"] = "GPT_OSS";
+    AgentModelName["DEEPSEEK_V32"] = "DEEPSEEK_V32";
+    AgentModelName["GLM_5"] = "GLM_5";
+    AgentModelName["QWEN3_6"] = "QWEN3_6";
+})(AgentModelName || (exports.AgentModelName = AgentModelName = {}));
 
 },
 "./namespaces/desks.js": function (module, exports, require) {
@@ -1960,6 +1998,7 @@ exports.DesksService = DesksService;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilesNamespace = void 0;
+const FileNamespace_js_1 = require("./openapi_client/models/FileNamespace.js");
 const SearchMethod_js_1 = require("./openapi_client/models/SearchMethod.js");
 const FilesService_js_1 = require("./openapi_client/services/FilesService.js");
 function joinDatastorePath(basePath, leaf) {
@@ -1991,6 +2030,13 @@ function getBaseName(path) {
     }
     return normalized.slice(index + 1);
 }
+function normalizeFileNamespace(namespace) {
+    const normalized = String(namespace ?? "").trim().toUpperCase();
+    if (normalized === FileNamespace_js_1.FileNamespace.PERSONAL || normalized === "PRIVATE") {
+        return FileNamespace_js_1.FileNamespace.PERSONAL;
+    }
+    return FileNamespace_js_1.FileNamespace.POD;
+}
 class FilesNamespace {
     constructor(client, http, podId) {
         this.client = client;
@@ -2001,29 +2047,31 @@ class FilesNamespace {
                 const payload = {
                     path: joinDatastorePath(options.directoryPath ?? options.parentId, name),
                     description: options.description,
+                    namespace: normalizeFileNamespace(options.namespace),
                 };
                 return this.client.request(() => FilesService_js_1.FilesService.fileFolderCreate(this.podId(), payload));
             },
         };
         this.converted = {
-            get: (path) => this.client.request(() => FilesService_js_1.FilesService.fileConvertedGet(this.podId(), path)),
-            render: (path) => this.client.request(() => FilesService_js_1.FilesService.fileConvertedRender(this.podId(), path)),
-            download: (path, artifact = "document.md") => {
+            get: (path, options = {}) => this.client.request(() => FilesService_js_1.FilesService.fileConvertedGet(this.podId(), path, normalizeFileNamespace(options.namespace))),
+            render: (path, options = {}) => this.client.request(() => FilesService_js_1.FilesService.fileConvertedRender(this.podId(), path, normalizeFileNamespace(options.namespace))),
+            download: (path, artifact = "document.md", options = {}) => {
                 const encodedPath = encodeURIComponent(path);
                 const encodedArtifact = encodeURIComponent(artifact);
-                return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/converted/download?path=${encodedPath}&artifact=${encodedArtifact}`);
+                const encodedNamespace = encodeURIComponent(normalizeFileNamespace(options.namespace));
+                return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/converted/download?path=${encodedPath}&artifact=${encodedArtifact}&namespace=${encodedNamespace}`);
             },
         };
     }
     list(options = {}) {
         const directoryPath = options.directoryPath ?? options.parentId ?? "/";
-        return this.client.request(() => FilesService_js_1.FilesService.fileList(this.podId(), directoryPath, options.limit ?? 100, options.pageToken));
+        return this.client.request(() => FilesService_js_1.FilesService.fileList(this.podId(), directoryPath, normalizeFileNamespace(options.namespace), options.limit ?? 100, options.pageToken));
     }
-    get(path) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileGet(this.podId(), path));
+    get(path, options = {}) {
+        return this.client.request(() => FilesService_js_1.FilesService.fileGet(this.podId(), path, normalizeFileNamespace(options.namespace)));
     }
-    delete(path) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileDelete(this.podId(), path));
+    delete(path, options = {}) {
+        return this.client.request(() => FilesService_js_1.FilesService.fileDelete(this.podId(), path, normalizeFileNamespace(options.namespace)));
     }
     search(query, options = {}) {
         return this.client.request(() => FilesService_js_1.FilesService.fileSearch(this.podId(), {
@@ -2032,12 +2080,13 @@ class FilesNamespace {
             search_method: options.searchMethod ?? SearchMethod_js_1.SearchMethod.HYBRID,
         }));
     }
-    download(path) {
+    download(path, options = {}) {
         const encodedPath = encodeURIComponent(path);
-        return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/download?path=${encodedPath}`);
+        const encodedNamespace = encodeURIComponent(normalizeFileNamespace(options.namespace));
+        return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/download?path=${encodedPath}&namespace=${encodedNamespace}`);
     }
     tree(options = {}) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileTree(this.podId(), options.rootPath ?? "/", options.filesPerDirectory ?? 3));
+        return this.client.request(() => FilesService_js_1.FilesService.fileTree(this.podId(), options.rootPath ?? "/", normalizeFileNamespace(options.namespace), options.filesPerDirectory ?? 3));
     }
     upload(file, options = {}) {
         const payload = {
@@ -2046,6 +2095,7 @@ class FilesNamespace {
             description: options.description,
             directory_path: options.directoryPath ?? options.parentId ?? "/",
             search_enabled: options.searchEnabled ?? true,
+            namespace: normalizeFileNamespace(options.namespace),
         };
         return this.client.request(() => FilesService_js_1.FilesService.fileUpload(this.podId(), payload));
     }
@@ -2064,11 +2114,27 @@ class FilesNamespace {
             description: options.description,
             new_path: resolvedNewPath,
             search_enabled: options.searchEnabled,
+            namespace: normalizeFileNamespace(options.namespace),
         };
         return this.client.request(() => FilesService_js_1.FilesService.fileUpdate(this.podId(), payload));
     }
 }
 exports.FilesNamespace = FilesNamespace;
+
+},
+"./openapi_client/models/FileNamespace.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FileNamespace = void 0;
+/* generated using openapi-typescript-codegen -- do not edit */
+/* istanbul ignore file */
+/* tslint:disable */
+/* eslint-disable */
+var FileNamespace;
+(function (FileNamespace) {
+    FileNamespace["PERSONAL"] = "PERSONAL";
+    FileNamespace["POD"] = "POD";
+})(FileNamespace || (exports.FileNamespace = FileNamespace = {}));
 
 },
 "./openapi_client/models/SearchMethod.js": function (module, exports, require) {
@@ -2091,6 +2157,7 @@ var SearchMethod;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilesService = void 0;
+const FileNamespace_js_1 = require("./openapi_client/models/FileNamespace.js");
 const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class FilesService {
@@ -2098,12 +2165,13 @@ class FilesService {
      * List Files
      * @param podId
      * @param directoryPath
+     * @param namespace
      * @param limit
      * @param pageToken
      * @returns FileListResponse Successful Response
      * @throws ApiError
      */
-    static fileList(podId, directoryPath = '/', limit = 100, pageToken) {
+    static fileList(podId, directoryPath = '/', namespace = FileNamespace_js_1.FileNamespace.PERSONAL, limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files',
@@ -2112,6 +2180,7 @@ class FilesService {
             },
             query: {
                 'directory_path': directoryPath,
+                'namespace': namespace,
                 'limit': limit,
                 'page_token': pageToken,
             },
@@ -2145,10 +2214,11 @@ class FilesService {
      * Delete File Or Folder
      * @param podId
      * @param path
+     * @param namespace
      * @returns DatastoreMessageResponse Successful Response
      * @throws ApiError
      */
-    static fileDelete(podId, path) {
+    static fileDelete(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'DELETE',
             url: '/pods/{pod_id}/datastore/files/by-path',
@@ -2157,6 +2227,7 @@ class FilesService {
             },
             query: {
                 'path': path,
+                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2167,10 +2238,11 @@ class FilesService {
      * Get File
      * @param podId
      * @param path
+     * @param namespace
      * @returns FileResponse Successful Response
      * @throws ApiError
      */
-    static fileGet(podId, path) {
+    static fileGet(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/by-path',
@@ -2179,6 +2251,7 @@ class FilesService {
             },
             query: {
                 'path': path,
+                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2210,10 +2283,11 @@ class FilesService {
      * Get Converted File Metadata
      * @param podId
      * @param path
+     * @param namespace
      * @returns ConvertedFileResponse Successful Response
      * @throws ApiError
      */
-    static fileConvertedGet(podId, path) {
+    static fileConvertedGet(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/by-path',
@@ -2222,6 +2296,7 @@ class FilesService {
             },
             query: {
                 'path': path,
+                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2233,10 +2308,11 @@ class FilesService {
      * @param podId
      * @param path
      * @param artifact
+     * @param namespace
      * @returns any Successful Response
      * @throws ApiError
      */
-    static fileConvertedDownload(podId, path, artifact = 'document.md') {
+    static fileConvertedDownload(podId, path, artifact = 'document.md', namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/download',
@@ -2246,6 +2322,7 @@ class FilesService {
             query: {
                 'path': path,
                 'artifact': artifact,
+                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2256,10 +2333,11 @@ class FilesService {
      * Render Converted File As HTML
      * @param podId
      * @param path
+     * @param namespace
      * @returns any Successful Response
      * @throws ApiError
      */
-    static fileConvertedRender(podId, path) {
+    static fileConvertedRender(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/render',
@@ -2268,6 +2346,7 @@ class FilesService {
             },
             query: {
                 'path': path,
+                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2278,10 +2357,11 @@ class FilesService {
      * Download File
      * @param podId
      * @param path
+     * @param namespace
      * @returns any Successful Response
      * @throws ApiError
      */
-    static fileDownload(podId, path) {
+    static fileDownload(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/download',
@@ -2290,6 +2370,7 @@ class FilesService {
             },
             query: {
                 'path': path,
+                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2342,11 +2423,12 @@ class FilesService {
      * Get Directory Tree
      * @param podId
      * @param rootPath
+     * @param namespace
      * @param filesPerDirectory
      * @returns DirectoryTreeResponse Successful Response
      * @throws ApiError
      */
-    static fileTree(podId, rootPath = '/', filesPerDirectory = 3) {
+    static fileTree(podId, rootPath = '/', namespace = FileNamespace_js_1.FileNamespace.PERSONAL, filesPerDirectory = 3) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/tree',
@@ -2355,6 +2437,7 @@ class FilesService {
             },
             query: {
                 'root_path': rootPath,
+                'namespace': namespace,
                 'files_per_directory': filesPerDirectory,
             },
             errors: {
@@ -2719,7 +2802,7 @@ class IntegrationsNamespace {
             app_names: appNames,
             goal,
         };
-        return this.client.request(() => AgentToolsService_js_1.AgentToolsService.toolIntegrationHelperAgent(body));
+        return this.client.request(() => AgentToolsService_js_1.AgentToolsService.agentToolIntegrationHelperAgent(body));
     }
     createConnectRequest(applicationId) {
         const payload = { application_id: applicationId };
@@ -2737,13 +2820,13 @@ const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class AgentToolsService {
     /**
-     * Integration Helper Agent
+     * Agent Integration Helper Agent
      * Plan how to use one or more integration applications for a goal and return recommended operations.
      * @param requestBody
      * @returns IntegrationHelperAgentResponse Successful Response
      * @throws ApiError
      */
-    static toolIntegrationHelperAgent(requestBody) {
+    static agentToolIntegrationHelperAgent(requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
             url: '/tools/integration-helper-agent',
@@ -2755,13 +2838,13 @@ class AgentToolsService {
         });
     }
     /**
-     * Report Feedback
+     * Agent Report Feedback
      * Record a maintainer-facing feedback report about system issues, skill issues, incorrect knowledge, or other unexpected behavior.
      * @param requestBody
      * @returns ReportFeedbackResponse Successful Response
      * @throws ApiError
      */
-    static toolReportFeedback(requestBody) {
+    static agentToolReportFeedback(requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
             url: '/tools/report-feedback',
@@ -2773,13 +2856,13 @@ class AgentToolsService {
         });
     }
     /**
-     * Web Search
+     * Agent Web Search
      * Run a raw web search and return structured results.
      * @param requestBody
      * @returns WebSearchResponse Successful Response
      * @throws ApiError
      */
-    static toolWebSearch(requestBody) {
+    static agentToolWebSearch(requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
             url: '/tools/web-search',
@@ -2791,13 +2874,13 @@ class AgentToolsService {
         });
     }
     /**
-     * Web Search Agent
+     * Agent Web Search Agent
      * Run the multi-step web search agent and return a synthesized answer.
      * @param requestBody
      * @returns WebSearchAgentResponse Successful Response
      * @throws ApiError
      */
-    static toolWebSearchAgent(requestBody) {
+    static agentToolWebSearchAgent(requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
             url: '/tools/web-search-agent',
@@ -4014,46 +4097,46 @@ exports.PodsService = PodsService;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.PodSurfacesNamespace = void 0;
-const AssistantSurfacesService_js_1 = require("./openapi_client/services/AssistantSurfacesService.js");
+const AgentSurfacesService_js_1 = require("./openapi_client/services/AgentSurfacesService.js");
 class PodSurfacesNamespace {
     constructor(client) {
         this.client = client;
     }
     list(podId, options = {}) {
-        return this.client.request(() => AssistantSurfacesService_js_1.AssistantSurfacesService.assistantSurfaceList(podId, options.limit ?? 100, options.pageToken ?? options.cursor));
+        return this.client.request(() => AgentSurfacesService_js_1.AgentSurfacesService.agentSurfaceList(podId, options.limit ?? 100, options.pageToken ?? options.cursor));
     }
     create(podId, payload) {
-        return this.client.request(() => AssistantSurfacesService_js_1.AssistantSurfacesService.assistantSurfaceCreate(podId, payload));
+        return this.client.request(() => AgentSurfacesService_js_1.AgentSurfacesService.agentSurfaceCreate(podId, payload));
     }
     get(podId, surfaceId) {
-        return this.client.request(() => AssistantSurfacesService_js_1.AssistantSurfacesService.assistantSurfaceGet(podId, surfaceId));
+        return this.client.request(() => AgentSurfacesService_js_1.AgentSurfacesService.agentSurfaceGet(podId, surfaceId));
     }
     updateConfig(podId, surfaceId, payload) {
-        return this.client.request(() => AssistantSurfacesService_js_1.AssistantSurfacesService.assistantSurfaceUpdate(podId, surfaceId, payload));
+        return this.client.request(() => AgentSurfacesService_js_1.AgentSurfacesService.agentSurfaceUpdate(podId, surfaceId, payload));
     }
     toggle(podId, surfaceId, isActive) {
-        return this.client.request(() => AssistantSurfacesService_js_1.AssistantSurfacesService.assistantSurfaceToggle(podId, surfaceId, { is_active: isActive }));
+        return this.client.request(() => AgentSurfacesService_js_1.AgentSurfacesService.agentSurfaceToggle(podId, surfaceId, { is_active: isActive }));
     }
 }
 exports.PodSurfacesNamespace = PodSurfacesNamespace;
 
 },
-"./openapi_client/services/AssistantSurfacesService.js": function (module, exports, require) {
+"./openapi_client/services/AgentSurfacesService.js": function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AssistantSurfacesService = void 0;
+exports.AgentSurfacesService = void 0;
 const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
-class AssistantSurfacesService {
+class AgentSurfacesService {
     /**
      * List Surfaces
      * @param podId
      * @param limit
      * @param pageToken
-     * @returns AssistantSurfaceListResponse Successful Response
+     * @returns AgentSurfaceListResponse Successful Response
      * @throws ApiError
      */
-    static assistantSurfaceList(podId, limit = 100, pageToken) {
+    static agentSurfaceList(podId, limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/surfaces',
@@ -4076,7 +4159,7 @@ class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    static assistantSurfaceCreate(podId, requestBody) {
+    static agentSurfaceCreate(podId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'POST',
             url: '/pods/{pod_id}/surfaces',
@@ -4097,7 +4180,7 @@ class AssistantSurfacesService {
      * @returns SurfacePlatformSetupGuideResponse Successful Response
      * @throws ApiError
      */
-    static assistantSurfacePlatformChecklist(podId, platform) {
+    static agentSurfacePlatformChecklist(podId, platform) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/surfaces/platforms/{platform}/checklist',
@@ -4117,7 +4200,7 @@ class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    static assistantSurfaceGet(podId, surfaceId) {
+    static agentSurfaceGet(podId, surfaceId) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/surfaces/{surface_id}',
@@ -4138,7 +4221,7 @@ class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    static assistantSurfaceUpdate(podId, surfaceId, requestBody) {
+    static agentSurfaceUpdate(podId, surfaceId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'PATCH',
             url: '/pods/{pod_id}/surfaces/{surface_id}',
@@ -4160,7 +4243,7 @@ class AssistantSurfacesService {
      * @returns AdminConsentInfoResponse Successful Response
      * @throws ApiError
      */
-    static assistantSurfaceAdminConsentInfo(podId, surfaceId) {
+    static agentSurfaceAdminConsentInfo(podId, surfaceId) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/surfaces/{surface_id}/admin-consent',
@@ -4181,7 +4264,7 @@ class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    static assistantSurfaceToggle(podId, surfaceId, requestBody) {
+    static agentSurfaceToggle(podId, surfaceId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'PATCH',
             url: '/pods/{pod_id}/surfaces/{surface_id}/toggle',
@@ -4203,7 +4286,7 @@ class AssistantSurfacesService {
      * @returns any Successful Response
      * @throws ApiError
      */
-    static assistantSurfaceWebhookUrl(podId, surfaceId) {
+    static agentSurfaceWebhookUrl(podId, surfaceId) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/surfaces/{surface_id}/webhook-url',
@@ -4217,7 +4300,7 @@ class AssistantSurfacesService {
         });
     }
 }
-exports.AssistantSurfacesService = AssistantSurfacesService;
+exports.AgentSurfacesService = AgentSurfacesService;
 
 },
 "./namespaces/records.js": function (module, exports, require) {
@@ -4783,46 +4866,88 @@ exports.TablesService = TablesService;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TasksNamespace = void 0;
+function toTask(conversation, inputData) {
+    return {
+        id: conversation.id,
+        agent_id: conversation.agent_id,
+        pod_id: conversation.pod_id,
+        user_id: conversation.user_id,
+        input_data: inputData ?? null,
+        output_data: null,
+        error: null,
+        status: conversation.status?.toUpperCase() ?? "WAITING",
+        created_at: conversation.created_at,
+        updated_at: conversation.updated_at,
+        conversation,
+    };
+}
+function normalizeConversation(conversation) {
+    return {
+        ...conversation,
+        model: conversation.model ?? conversation.model_name ?? null,
+        status: conversation.status ?? "waiting",
+    };
+}
+function normalizeMessages(messages) {
+    return messages;
+}
 class TasksNamespace {
     constructor(http, podId) {
         this.http = http;
         this.podId = podId;
         this.messages = {
-            list: (taskId, options = {}) => this.http.request("GET", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
+            list: (taskId, options = {}) => this.http.request("GET", `/pods/${this.podId()}/conversations/${taskId}/messages`, {
                 params: {
                     limit: options.limit ?? 100,
-                    page_token: options.page_token,
+                    after_sequence: options.page_token,
                 },
-            }),
+            }).then((response) => ({
+                ...response,
+                items: normalizeMessages(response.items ?? []),
+            })),
             add: (taskId, payload) => {
-                return this.http.request("POST", `/pods/${this.podId()}/tasks/${taskId}/messages`, {
+                return this.http.request("POST", `/pods/${this.podId()}/conversations/${taskId}/messages`, {
                     body: payload,
-                });
+                }).then(() => this.get(taskId));
             },
         };
     }
     list(options = {}) {
-        return this.http.request("GET", `/pods/${this.podId()}/tasks`, {
+        return this.http.request("GET", `/pods/${this.podId()}/conversations`, {
             params: {
                 agent_name: options.agent_name,
                 limit: options.limit ?? 100,
                 page_token: options.page_token,
             },
+        }).then((response) => {
+            const conversations = (response.items ?? []).map(normalizeConversation);
+            return {
+                items: conversations.map((conversation) => toTask(conversation)),
+                limit: response.limit ?? options.limit ?? 100,
+                next_page_token: response.next_page_token ?? null,
+                total: response.total,
+            };
         });
     }
     create(payload) {
-        return this.http.request("POST", `/pods/${this.podId()}/tasks`, {
-            body: payload,
-        });
+        return this.http.request("POST", `/pods/${this.podId()}/conversations`, {
+            body: {
+                agent_name: payload.agent_name,
+                title: payload.title ?? payload.content ?? payload.agent_name,
+            },
+        }).then((conversation) => toTask(normalizeConversation(conversation), payload.input_data));
     }
     get(taskId) {
-        return this.http.request("GET", `/pods/${this.podId()}/tasks/${taskId}`);
+        return this.http.request("GET", `/pods/${this.podId()}/conversations/${taskId}`)
+            .then((conversation) => toTask(normalizeConversation(conversation)));
     }
     stop(taskId) {
-        return this.http.request("PATCH", `/pods/${this.podId()}/tasks/${taskId}/stop`);
+        return this.http.request("POST", `/pods/${this.podId()}/conversations/${taskId}/stop`, {
+            body: {},
+        }).then((conversation) => toTask(normalizeConversation(conversation)));
     }
     stream(taskId, options = {}) {
-        return this.http.stream(`/pods/${this.podId()}/tasks/${taskId}/stream`, {
+        return this.http.stream(`/pods/${this.podId()}/conversations/${taskId}/stream`, {
             signal: options.signal,
             headers: {
                 Accept: "text/event-stream",
@@ -5234,7 +5359,7 @@ class WorkflowsService {
     }
     /**
      * List Workflow Installs
-     * List the current user's installations for a workflow.
+     * List workflow installations visible to the current user. `GLOBAL` workflows return the pod-level install; `USER` workflows return the current user's install.
      * @param podId
      * @param workflowName
      * @returns WorkflowInstallListResponse Successful Response
