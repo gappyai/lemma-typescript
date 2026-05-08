@@ -70,8 +70,6 @@ export interface CreateConversationInput {
 
 export interface SendAssistantMessageOptions {
   conversationId?: string | null;
-  createIfMissing?: boolean;
-  createConversation?: CreateConversationInput;
   syncOnTurnEnd?: boolean;
 }
 
@@ -540,7 +538,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       }
     } catch (streamError) {
       if (!(streamError instanceof Error && streamError.name === "AbortError")) {
-        const normalized = normalizeError(streamError, "Failed to stream agent run.");
+        const normalized = normalizeError(streamError, "Failed to stream conversation.");
         setError(normalized);
         onErrorRef.current?.(streamError);
       }
@@ -562,7 +560,6 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
 
   const ensureConversation = useCallback(async (
     overrideConversationId?: string | null,
-    options?: SendAssistantMessageOptions,
   ): Promise<Conversation> => {
     const existingId = overrideConversationId ?? conversationId;
     if (existingId) {
@@ -576,15 +573,8 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       throw new Error("Failed to resolve existing conversation.");
     }
 
-    if (options?.createIfMissing !== true) {
-      throw new Error("conversationId is required.");
-    }
-
-    return createConversation({
-      ...(options.createConversation ?? {}),
-      setActive: true,
-    });
-  }, [conversation, conversationId, createConversation, refreshConversation]);
+    throw new Error("conversationId is required. Create a conversation before sending a message.");
+  }, [conversation, conversationId, refreshConversation]);
 
   const sendMessage = useCallback(async (
     content: string,
@@ -592,14 +582,14 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
   ): Promise<Conversation> => {
     setError(null);
     try {
-      const resolvedConversation = await ensureConversation(input.conversationId, input);
+      const resolvedConversation = await ensureConversation(input.conversationId);
       const resolvedConversationId = requireConversationId(resolvedConversation.id);
 
       cancel();
       const controller = new AbortController();
       abortRef.current = controller;
 
-      const scope = normalizeScope(client, defaultScope, input.createConversation);
+      const scope = normalizeScope(client, defaultScope);
       const scopedClient = applyPodScope(client, scope.podId);
 
       const stream = await scopedClient.conversations.sendMessageStream(
@@ -657,7 +647,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
         syncAfterStream: resumeInput.syncOnTurnEnd,
       });
     } catch (resumeError) {
-      const normalized = normalizeError(resumeError, "Failed to resume agent run.");
+      const normalized = normalizeError(resumeError, "Failed to resume conversation.");
       setError(normalized);
       onErrorRef.current?.(resumeError);
       throw normalized;
@@ -713,7 +703,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
       setConversationStatus("WAITING");
       clearStreamingText();
     } catch (stopError) {
-      const normalized = normalizeError(stopError, "Failed to stop agent run.");
+      const normalized = normalizeError(stopError, "Failed to stop conversation.");
       setError(normalized);
       onErrorRef.current?.(stopError);
       throw normalized;

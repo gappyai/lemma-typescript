@@ -8,7 +8,6 @@ import type { ThinkingContent } from './ThinkingContent.js';
 import type { ToolCallContent } from './ToolCallContent.js';
 import type { ToolReturnContent } from './ToolReturnContent.js';
 export type MessageResponse = {
-    agent_run_id?: (string | null);
     content: (NotificationContent | TextContent | ThinkingContent | ToolCallContent | ToolReturnContent);
     conversation_id: string;
     created_at: string;
@@ -19,4 +18,3 @@ export type MessageResponse = {
     tool_call_id?: (string | null);
     tool_name?: (string | null);
 };
-

@@ -1336,7 +1336,6 @@ export function useAssistantController({
       touchConversation(finalConversationId, { status: "running" as Conversation["status"] });
       await sessionSendMessage(messageContent, {
         conversationId: finalConversationId,
-        createIfMissing: false,
       });
       touchConversation(finalConversationId, { updated_at: new Date().toISOString() });
     } catch (err) {
@@ -1386,7 +1385,6 @@ export function useAssistantController({
       setIsStreaming(true);
       await sessionSendMessage(fileMessage, {
         conversationId: activeId,
-        createIfMissing: false,
       });
       await loadConversationMessages(activeId);
       touchConversation(activeId, { updated_at: new Date().toISOString() });

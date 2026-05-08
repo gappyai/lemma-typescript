@@ -2,8 +2,6 @@ export { AuthGuard } from "./AuthGuard.js";
 export type { AuthGuardProps } from "./AuthGuard.js";
 export { useAuth } from "./useAuth.js";
 export type { UseAuthResult } from "./useAuth.js";
-export { useAssistantRun } from "./useAssistantRun.js";
-export type { UseAssistantRunOptions, UseAssistantRunResult } from "./useAssistantRun.js";
 export { useConversations } from "./useConversations.js";
 export type { UseConversationsOptions, UseConversationsResult } from "./useConversations.js";
 export { useConversation } from "./useConversation.js";
@@ -13,10 +11,6 @@ export type {
   UseConversationMessagesOptions,
   UseConversationMessagesResult,
 } from "./useConversationMessages.js";
-export { useAgentRun } from "./useAgentRun.js";
-export type { UseAgentRunOptions, UseAgentRunResult } from "./useAgentRun.js";
-export { useAgentRuns } from "./useAgentRuns.js";
-export type { UseAgentRunsOptions, UseAgentRunsResult } from "./useAgentRuns.js";
 export { useAgentInputSchema } from "./useAgentInputSchema.js";
 export type {
   UseAgentInputSchemaOptions,
@@ -183,12 +177,6 @@ export type {
   UseAssistantControllerOptions,
   UseAssistantControllerResult,
 } from "./useAssistantController.js";
-export { useTaskSession } from "./useTaskSession.js";
-export type {
-  CreateTaskInput,
-  UseTaskSessionOptions,
-  UseTaskSessionResult,
-} from "./useTaskSession.js";
 export { useFunctionSession } from "./useFunctionSession.js";
 export type {
   UseFunctionSessionOptions,

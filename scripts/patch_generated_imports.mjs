@@ -63,6 +63,44 @@ function patchKnownGeneratorIssues(source, filePath) {
     );
   }
 
+  if (filePath.endsWith("services/AgentConversationsService.ts")) {
+    patched = patched
+      .replaceAll(
+        "Create or continue a pod-scoped assistant or agent conversation and stream runtime events over Server-Sent Events until the active run completes. Provide agent_name to target a pod agent; omit it for the default pod assistant.",
+        "Create or continue a pod-scoped assistant or agent conversation and stream runtime events over Server-Sent Events until the active turn completes. Provide agent_name to target a pod agent; omit it for the default pod assistant.",
+      )
+      .replaceAll(
+        "Append a user message to a pod-scoped conversation and stream runtime events over Server-Sent Events until the active run completes. User messages can also be appended while a run is already active; the next harness step sees the new message in persisted history.",
+        "Append a user message to a pod-scoped conversation and stream runtime events over Server-Sent Events until the active turn completes. User messages can also be appended while work is already active; the next harness step sees the new message in persisted history.",
+      )
+      .replaceAll(
+        "Request cancellation of the active internal run for a conversation.",
+        "Request cancellation of the active conversation work.",
+      )
+      .replace(
+        /\n    \/\*\*\n     \* Send Pod Conversation Message\n     \* Create or continue a pod-scoped assistant or agent conversation and stream runtime events over Server-Sent Events until the active turn completes\. Provide agent_name to target a pod agent; omit it for the default pod assistant\.\n     \* @param podId\n     \* @param requestBody\n     \* @returns any Successful Response\n     \* @throws ApiError\n     \*\/\n    public static agentConversationMessageSendOrCreate\(\n        podId: string,\n        requestBody: SendMessageRequest,\n    \): CancelablePromise<any> \{\n        return __request\(OpenAPI, \{\n            method: 'POST',\n            url: '\/pods\/\{pod_id\}\/conversations\/messages',\n            path: \{\n                'pod_id': podId,\n            \},\n            body: requestBody,\n            mediaType: 'application\/json',\n            errors: \{\n                422: `Validation Error`,\n            \},\n        \}\);\n    \}\n/g,
+        "",
+      )
+      .replaceAll(
+        "Subscribe to Server-Sent Events for an existing pod-scoped conversation. The stream closes immediately when the conversation has no active run. Optionally filter to a specific internal run id for reconnects.",
+        "Subscribe to Server-Sent Events for an existing pod-scoped conversation. The stream closes immediately when the conversation has no active work.",
+      )
+      .replace(/\s+\* @param agentRunId/g, "")
+      .replace(/,\n\s+agentRunId\?: \(string \| null\),/g, "")
+      .replace(/\n\s+query: \{\n\s+'agent_run_id': agentRunId,\n\s+\},/g, "");
+  }
+
+  if (filePath.endsWith("models/MessageResponse.ts")) {
+    patched = patched.replace(/\n\s+agent_run_id\?: \(string \| null\);/g, "");
+  }
+
+  if (filePath.endsWith("models/AgentModelName.ts")) {
+    patched = patched.replace(
+      "Models that can be selected for an agent run.",
+      "Models that can be selected for an agent conversation.",
+    );
+  }
+
   return patched;
 }
 

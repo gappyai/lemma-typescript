@@ -26,15 +26,12 @@ export { readSSE, parseSSEJson } from "./streams.js";
 export type { SseRawEvent } from "./streams.js";
 export {
   normalizeRunStatus,
-  isTerminalTaskStatus,
   isTerminalFunctionStatus,
   isTerminalFlowStatus,
   sleep,
   nextBackoffDelay,
 } from "./run-utils.js";
 export type { AnyRunStatus } from "./run-utils.js";
-export { parseTaskStreamEvent, upsertTaskMessage } from "./task-events.js";
-export type { ParsedTaskStreamEvent } from "./task-events.js";
 export { parseAssistantStreamEvent, upsertConversationMessage } from "./assistant-events.js";
 export type { ParsedAssistantStreamEvent } from "./assistant-events.js";
 export {
@@ -111,6 +108,5 @@ export type { PodSurfacesNamespace } from "./namespaces/pod-surfaces.js";
 export type { RecordsNamespace } from "./namespaces/records.js";
 export type { ResourceType, ResourcesNamespace } from "./namespaces/resources.js";
 export type { TablesNamespace } from "./namespaces/tables.js";
-export type { TasksNamespace } from "./namespaces/tasks.js";
 export type { UsersNamespace } from "./namespaces/users.js";
 export type { WorkflowsNamespace } from "./namespaces/workflows.js";

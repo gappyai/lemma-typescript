@@ -17,7 +17,6 @@ import { PodSurfacesNamespace } from "./namespaces/pod-surfaces.js";
 import { RecordsNamespace } from "./namespaces/records.js";
 import { ResourcesNamespace } from "./namespaces/resources.js";
 import { TablesNamespace } from "./namespaces/tables.js";
-import { TasksNamespace } from "./namespaces/tasks.js";
 import { UsersNamespace } from "./namespaces/users.js";
 import { WorkflowsNamespace } from "./namespaces/workflows.js";
 import { DatastoreNamespace } from "./namespaces/datastore.js";
@@ -47,7 +46,6 @@ export class LemmaClient {
   readonly files: FilesNamespace;
   readonly functions: FunctionsNamespace;
   readonly agents: AgentsNamespace;
-  readonly tasks: TasksNamespace;
   readonly conversations: ConversationsNamespace;
   readonly workflows: WorkflowsNamespace;
   readonly desks: DesksNamespace;
@@ -89,7 +87,6 @@ export class LemmaClient {
     this.files = new FilesNamespace(this._generated, this._http, podIdFn);
     this.functions = new FunctionsNamespace(this._generated, podIdFn);
     this.agents = new AgentsNamespace(this._generated, podIdFn);
-    this.tasks = new TasksNamespace(this._http, podIdFn);
     this.conversations = new ConversationsNamespace(this._http, podIdFn);
     this.workflows = new WorkflowsNamespace(this._generated, this._http, podIdFn);
     this.desks = new DesksNamespace(this._generated, this._http, podIdFn);

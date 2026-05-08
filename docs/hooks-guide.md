@@ -34,7 +34,7 @@ Business-facing guide for building Lemma desks. Each recipe shows the hooks to u
 | Discover what references a record | `useReverseRelatedRecords` | Auto-discovers reverse FK relationships |
 | Run a workflow with its input schema | `useWorkflowStart` | Start, poll, resume, and inspect the workflow definition's input schema |
 | Start or poll a known workflow run | `useWorkflowRun` | Lighter-weight run surface when you already know the workflow name |
-| Run an agent turn | `useAgentRun` | Starts an agent conversation turn, streams tool calls and final output |
+| Message an agent | `useConversationMessages` | Starts or continues an agent conversation, streams tool calls and final output |
 | Gate the app with auth | `AuthGuard` + `useAuth` | Cookie/session auth, pod membership, access requests |
 
 ### When to use function-aware hooks
@@ -457,33 +457,40 @@ function DeskSearch({ client, query }: { client: LemmaClient; query: string }) {
 }
 ```
 
-### 8. Agent Turn
+### 8. Agent Conversation
 
-Use `useAgentRun` when one user action should produce a single agent turn with tool-call progress and final output.
+Use `useConversationMessages` when one user action should create or continue an agent conversation with tool-call progress and final output.
 
 ```tsx
-import { useAgentRun } from "lemma-sdk/react";
+import { useConversationMessages } from "lemma-sdk/react";
 
 function AgentTriageButton({ client, issueId }: { client: LemmaClient; issueId: string }) {
-  const agent = useAgentRun({
+  const conversation = useConversationMessages({
     client,
     agentName: "issue-triage-agent",
+    autoResume: true,
   });
 
   return (
     <div>
       <button
-        disabled={agent.isStreaming}
+        disabled={conversation.isStreaming}
         onClick={() => {
-          void agent.start({
-            issue_id: issueId,
-            prompt: "Triage this issue and return the next best action.",
-          });
+          void (async () => {
+            const thread = await conversation.createConversation({
+              title: `Triage issue ${issueId}`,
+              setActive: true,
+            });
+            await conversation.sendMessage(JSON.stringify({
+              issue_id: issueId,
+              prompt: "Triage this issue and return the next best action.",
+            }), { conversationId: thread.id });
+          })();
         }}
       >
-        {agent.isStreaming ? "Running..." : "Run triage agent"}
+        {conversation.isStreaming ? "Running..." : "Message triage agent"}
       </button>
-      {agent.finalOutputText ? <pre>{agent.finalOutputText}</pre> : null}
+      {conversation.finalOutputText ? <pre>{conversation.finalOutputText}</pre> : null}
     </div>
   );
 }

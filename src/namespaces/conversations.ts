@@ -179,31 +179,12 @@ export class ConversationsNamespace {
     });
   }
 
-  sendOrCreateMessageStream(
-    payload: SendMessageRequest,
+  resumeStream(
+    conversationId: string,
     options: { pod_id?: string | null; signal?: AbortSignal } = {},
   ) {
     const podId = this.requirePodId(options.pod_id);
-    return this.http.stream(`/pods/${podId}/conversations/messages`, {
-      method: "POST",
-      body: payload,
-      signal: options.signal,
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-      },
-    });
-  }
-
-  resumeStream(
-    conversationId: string,
-    options: { pod_id?: string | null; agent_run_id?: string | null; signal?: AbortSignal } = {},
-  ) {
-    const podId = this.requirePodId(options.pod_id);
     return this.http.stream(`/pods/${podId}/conversations/${conversationId}/stream`, {
-      params: {
-        agent_run_id: options.agent_run_id,
-      },
       signal: options.signal,
       headers: {
         Accept: "text/event-stream",

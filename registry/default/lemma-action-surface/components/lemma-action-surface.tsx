@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { LemmaClient, type FlowRun, type FunctionRun, type Task, type TaskMessage } from "lemma-sdk";
-import { useAgentRun, useFunctionRun, useWorkflowStart } from "lemma-sdk/react";
+import { LemmaClient, type Conversation, type ConversationMessage, type FlowRun, type FunctionRun } from "lemma-sdk";
+import { useConversationMessages, useFunctionRun, useWorkflowStart } from "lemma-sdk/react";
 import { AlertCircle, Bot, CheckCircle2, ChevronRight, Loader2, Play, Sparkles, Workflow, XCircle } from "lucide-react";
 import { cn } from "@/components/lemma/lib/utils";
 import { Badge } from "@/components/lemma/ui/badge";
@@ -82,8 +82,9 @@ export interface LemmaActionExecution {
   isRunning: boolean;
   isWaiting: boolean;
   isFinished: boolean;
-  messages: TaskMessage[];
+  messages: ConversationMessage[];
   steps: FlowRun["step_history"];
+  conversation?: Conversation | null;
 }
 
 export interface LemmaActionSurfaceProps {
@@ -215,6 +216,15 @@ function stringifyValue(value: unknown): string {
   }
 }
 
+function stringifyAgentInput(input: Record<string, unknown>): string {
+  if (Object.keys(input).length === 0) return "";
+  const prompt = input.prompt ?? input.message ?? input.content;
+  if (typeof prompt === "string" && prompt.trim().length > 0 && Object.keys(input).length === 1) {
+    return prompt.trim();
+  }
+  return stringifyValue(input);
+}
+
 function plainLabel(value: ReactNode): string {
   if (value == null || typeof value === "boolean") return "";
   if (typeof value === "string" || typeof value === "number") return String(value);
@@ -247,13 +257,13 @@ function parseJsonRecord(value: unknown): Record<string, unknown> | undefined {
   }
 }
 
-function getTaskMessageContentRecord(message: TaskMessage): Record<string, unknown> | null {
+function getConversationMessageContentRecord(message: ConversationMessage): Record<string, unknown> | null {
   return isRecord(message.content) ? message.content : null;
 }
 
-function getTaskMessageMetadata(message: TaskMessage): AgentToolMessageMetadata | undefined {
+function getConversationMessageMetadata(message: ConversationMessage): AgentToolMessageMetadata | undefined {
   const metadata = isRecord(message.metadata) ? message.metadata : null;
-  const content = getTaskMessageContentRecord(message);
+  const content = getConversationMessageContentRecord(message);
 
   const toolName = typeof metadata?.tool_name === "string"
     ? metadata.tool_name
@@ -288,7 +298,7 @@ function getTaskMessageMetadata(message: TaskMessage): AgentToolMessageMetadata 
   };
 }
 
-function extractTaskMessageText(message: TaskMessage): string {
+function extractConversationMessageText(message: ConversationMessage): string {
   const content = message.content as Record<string, unknown> | null;
   if (content && typeof content.content === "string" && content.content.trim().length > 0) {
     return content.content;
@@ -305,16 +315,16 @@ function isToolLikeRole(role: string): boolean {
   return role.trim().toLowerCase() === "tool";
 }
 
-function isToolCallMessage(message: TaskMessage): boolean {
-  const metadata = getTaskMessageMetadata(message);
-  const content = getTaskMessageContentRecord(message);
+function isToolCallMessage(message: ConversationMessage): boolean {
+  const metadata = getConversationMessageMetadata(message);
+  const content = getConversationMessageContentRecord(message);
   return metadata?.messageType === "tool_call"
     || (isAssistantLikeRole(message.role) && typeof content?.tool_name === "string");
 }
 
-function isToolReturnMessage(message: TaskMessage): boolean {
-  const metadata = getTaskMessageMetadata(message);
-  const content = getTaskMessageContentRecord(message);
+function isToolReturnMessage(message: ConversationMessage): boolean {
+  const metadata = getConversationMessageMetadata(message);
+  const content = getConversationMessageContentRecord(message);
   return metadata?.messageType === "tool_return"
     || isToolLikeRole(message.role)
     || typeof content?.tool_output !== "undefined";
@@ -363,7 +373,7 @@ function summarizeToolActivity(entry: Extract<AgentTimelineEntry, { type: "tool"
   return summarizeRecord(entry.result, ["message", "stdout", "result", "resourceId", "resource_id"]) || "Completed";
 }
 
-function mergeAgentMessages(messages: TaskMessage[]): AgentTimelineEntry[] {
+function mergeAgentMessages(messages: ConversationMessage[]): AgentTimelineEntry[] {
   const entries: AgentTimelineEntry[] = [];
   const processedIds = new Set<string>();
 
@@ -372,20 +382,20 @@ function mergeAgentMessages(messages: TaskMessage[]): AgentTimelineEntry[] {
     if (processedIds.has(message.id)) continue;
 
     if (isToolCallMessage(message)) {
-      const metadata = getTaskMessageMetadata(message);
-      const content = getTaskMessageContentRecord(message);
+      const metadata = getConversationMessageMetadata(message);
+      const content = getConversationMessageContentRecord(message);
       const toolCallId = metadata?.toolCallId || (typeof content?.tool_call_id === "string" ? content.tool_call_id : undefined);
       const resultMessage = messages.slice(index + 1).find((candidate) => {
         if (processedIds.has(candidate.id) || !isToolReturnMessage(candidate)) return false;
-        const candidateMetadata = getTaskMessageMetadata(candidate);
-        const candidateContent = getTaskMessageContentRecord(candidate);
+        const candidateMetadata = getConversationMessageMetadata(candidate);
+        const candidateContent = getConversationMessageContentRecord(candidate);
         const candidateToolCallId = candidateMetadata?.toolCallId
           || (typeof candidateContent?.tool_call_id === "string" ? candidateContent.tool_call_id : undefined);
         if (!toolCallId || !candidateToolCallId) return false;
         return candidateToolCallId === toolCallId;
       });
-      const resultMetadata = resultMessage ? getTaskMessageMetadata(resultMessage) : undefined;
-      const resultContent = resultMessage ? getTaskMessageContentRecord(resultMessage) : null;
+      const resultMetadata = resultMessage ? getConversationMessageMetadata(resultMessage) : undefined;
+      const resultContent = resultMessage ? getConversationMessageContentRecord(resultMessage) : null;
       const result = resultMetadata?.result || parseJsonRecord(resultContent?.tool_output);
       const error = typeof result?.error === "string"
         ? result.error
@@ -414,8 +424,8 @@ function mergeAgentMessages(messages: TaskMessage[]): AgentTimelineEntry[] {
     }
 
     if (isToolReturnMessage(message)) {
-      const metadata = getTaskMessageMetadata(message);
-      const content = getTaskMessageContentRecord(message);
+      const metadata = getConversationMessageMetadata(message);
+      const content = getConversationMessageContentRecord(message);
       const result = metadata?.result || parseJsonRecord(content?.tool_output);
       entries.push({
         type: "tool",
@@ -437,7 +447,7 @@ function mergeAgentMessages(messages: TaskMessage[]): AgentTimelineEntry[] {
       id: message.id,
       role: message.role,
       createdAt: message.created_at,
-      text: extractTaskMessageText(message),
+      text: extractConversationMessageText(message),
     });
     processedIds.add(message.id);
   }
@@ -546,12 +556,14 @@ export function LemmaActionSurface({
     functionName: functionAction?.functionName,
     autoPoll: true,
   });
-  const agentRun = useAgentRun({
+  const agentConversation = useConversationMessages({
     client,
     podId,
     agentName: agentAction?.agentName,
-    autoConnect: true,
-    autoConnectOnStart: true,
+    conversationId: action.kind === "agent" ? executionId : null,
+    autoLoad: enabled && action.kind === "agent",
+    autoResume: true,
+    syncOnTurnEnd: true,
   });
 
   useEffect(() => {
@@ -562,9 +574,6 @@ export function LemmaActionSurface({
       if (functionRun.runId !== null) {
         functionRun.setRunId(null);
       }
-      if (agentRun.taskId !== null) {
-        agentRun.setTaskId(null);
-      }
       return;
     }
     if (action.kind === "function") {
@@ -574,15 +583,9 @@ export function LemmaActionSurface({
       if (workflowRun.runId !== null) {
         workflowRun.setRunId(null);
       }
-      if (agentRun.taskId !== null) {
-        agentRun.setTaskId(null);
-      }
       return;
     }
     if (action.kind === "agent") {
-      if (agentRun.taskId !== executionId) {
-        agentRun.setTaskId(executionId);
-      }
       if (workflowRun.runId !== null) {
         workflowRun.setRunId(null);
       }
@@ -597,13 +600,8 @@ export function LemmaActionSurface({
     if (functionRun.runId !== null) {
       functionRun.setRunId(null);
     }
-    if (agentRun.taskId !== null) {
-      agentRun.setTaskId(null);
-    }
   }, [
     action.kind,
-    agentRun.taskId,
-    agentRun.setTaskId,
     executionId,
     functionRun.runId,
     functionRun.setRunId,
@@ -662,24 +660,28 @@ export function LemmaActionSurface({
       };
     }
     if (action.kind === "agent") {
-      const status = normalizeStatus(agentRun.status);
-      const task = agentRun.task;
-      if (!task && !agentRun.taskId) return null;
+      const rawStatus = normalizeStatus(agentConversation.status);
+      const conversation = agentConversation.conversation;
+      const conversationId = agentConversation.conversationId;
+      if (!conversation && !conversationId) return null;
+      const isFinished = !agentConversation.isRunning && !!agentConversation.latestAssistantMessage;
+      const status = isFinished && rawStatus === "WAITING" ? "COMPLETED" : rawStatus;
       return {
         kind: "agent",
-        id: agentRun.taskId,
+        id: conversationId,
         status,
-        error: task?.error ?? agentRun.error?.message ?? null,
-        startedAt: task?.created_at ?? null,
-        updatedAt: task?.updated_at ?? null,
-        completedAt: agentRun.isFinished ? task?.updated_at ?? null : null,
-        input: (task?.input_data as Record<string, unknown> | null) ?? resolvedInput,
-        output: task?.output_data ?? null,
-        isRunning: !agentRun.isFinished && !agentRun.isWaitingForInput && status !== "IDLE",
-        isWaiting: agentRun.isWaitingForInput,
-        isFinished: agentRun.isFinished,
-        messages: agentRun.messages,
+        error: agentConversation.error?.message ?? null,
+        startedAt: conversation?.created_at ?? null,
+        updatedAt: conversation?.updated_at ?? null,
+        completedAt: isFinished ? conversation?.updated_at ?? null : null,
+        input: resolvedInput,
+        output: agentConversation.finalOutput ?? agentConversation.output ?? null,
+        isRunning: agentConversation.isRunning,
+        isWaiting: status === "WAITING" && !isFinished,
+        isFinished,
+        messages: agentConversation.messages,
         steps: [],
+        conversation,
       };
     }
     if (!directExecution) return null;
@@ -702,13 +704,15 @@ export function LemmaActionSurface({
     };
   }, [
     action.kind,
-    agentRun.error?.message,
-    agentRun.isFinished,
-    agentRun.isWaitingForInput,
-    agentRun.messages,
-    agentRun.status,
-    agentRun.task,
-    agentRun.taskId,
+    agentConversation.conversation,
+    agentConversation.conversationId,
+    agentConversation.error?.message,
+    agentConversation.finalOutput,
+    agentConversation.isRunning,
+    agentConversation.latestAssistantMessage,
+    agentConversation.messages,
+    agentConversation.output,
+    agentConversation.status,
     directExecution,
     executionId,
     functionRun.error?.message,
@@ -771,8 +775,23 @@ export function LemmaActionSurface({
         const run = await functionRun.start(resolvedInput);
         if (run.id) setExecutionId(run.id);
       } else if (action.kind === "agent") {
-        const task = await agentRun.start(resolvedInput);
-        if (task.id) setExecutionId(task.id);
+        const content = stringifyAgentInput(resolvedInput);
+        const conversation = await agentConversation.createConversation({
+          agentName: action.agentName,
+          title: content ? content.slice(0, 120) : action.agentName,
+          setActive: true,
+        });
+        if (conversation.id) {
+          setExecutionId(conversation.id);
+        }
+        if (content) {
+          await agentConversation.sendMessage(content, {
+            conversationId: conversation.id,
+            syncOnTurnEnd: true,
+          });
+        } else {
+          await agentConversation.resume(conversation.id);
+        }
       } else {
         const startedAt = new Date().toISOString();
         setDirectExecution({
@@ -824,7 +843,7 @@ export function LemmaActionSurface({
     }
   }, [
     action,
-    agentRun,
+    agentConversation,
     context,
     disabled,
     enabled,
@@ -859,14 +878,17 @@ export function LemmaActionSurface({
     if (action.kind !== "agent" || agentReply.trim().length === 0) return;
     setLocalError(null);
     try {
-      await agentRun.submitInput(agentReply.trim());
+      await agentConversation.sendMessage(agentReply.trim(), {
+        conversationId: execution?.id,
+        syncOnTurnEnd: true,
+      });
       setAgentReply("");
     } catch (error) {
       const nextMessage = error instanceof Error ? error.message : "Failed to submit input.";
       setLocalError(nextMessage);
       onError?.(error, execution);
     }
-  }, [action.kind, agentReply, agentRun, execution, onError]);
+  }, [action.kind, agentConversation, agentReply, execution, onError]);
 
   const currentStatus = execution?.status ?? "IDLE";
   const statusText = execution?.isRunning

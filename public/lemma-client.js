@@ -52,7 +52,6 @@ const pod_surfaces_js_1 = require("./namespaces/pod-surfaces.js");
 const records_js_1 = require("./namespaces/records.js");
 const resources_js_1 = require("./namespaces/resources.js");
 const tables_js_1 = require("./namespaces/tables.js");
-const tasks_js_1 = require("./namespaces/tasks.js");
 const users_js_1 = require("./namespaces/users.js");
 const workflows_js_1 = require("./namespaces/workflows.js");
 const datastore_js_1 = require("./namespaces/datastore.js");
@@ -75,7 +74,6 @@ class LemmaClient {
         this.files = new files_js_1.FilesNamespace(this._generated, this._http, podIdFn);
         this.functions = new functions_js_1.FunctionsNamespace(this._generated, podIdFn);
         this.agents = new agents_js_1.AgentsNamespace(this._generated, podIdFn);
-        this.tasks = new tasks_js_1.TasksNamespace(this._http, podIdFn);
         this.conversations = new conversations_js_1.ConversationsNamespace(this._http, podIdFn);
         this.workflows = new workflows_js_1.WorkflowsNamespace(this._generated, this._http, podIdFn);
         this.desks = new desks_js_1.DesksNamespace(this._generated, this._http, podIdFn);
@@ -1712,24 +1710,9 @@ class ConversationsNamespace {
             },
         });
     }
-    sendOrCreateMessageStream(payload, options = {}) {
-        const podId = this.requirePodId(options.pod_id);
-        return this.http.stream(`/pods/${podId}/conversations/messages`, {
-            method: "POST",
-            body: payload,
-            signal: options.signal,
-            headers: {
-                "Content-Type": "application/json",
-                Accept: "text/event-stream",
-            },
-        });
-    }
     resumeStream(conversationId, options = {}) {
         const podId = this.requirePodId(options.pod_id);
         return this.http.stream(`/pods/${podId}/conversations/${conversationId}/stream`, {
-            params: {
-                agent_run_id: options.agent_run_id,
-            },
             signal: options.signal,
             headers: {
                 Accept: "text/event-stream",
@@ -1755,7 +1738,7 @@ exports.AgentModelName = void 0;
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Models that can be selected for an agent run.
+ * Models that can be selected for an agent conversation.
  */
 var AgentModelName;
 (function (AgentModelName) {
@@ -4860,102 +4843,6 @@ class TablesService {
     }
 }
 exports.TablesService = TablesService;
-
-},
-"./namespaces/tasks.js": function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TasksNamespace = void 0;
-function toTask(conversation, inputData) {
-    return {
-        id: conversation.id,
-        agent_id: conversation.agent_id,
-        pod_id: conversation.pod_id,
-        user_id: conversation.user_id,
-        input_data: inputData ?? null,
-        output_data: null,
-        error: null,
-        status: conversation.status?.toUpperCase() ?? "WAITING",
-        created_at: conversation.created_at,
-        updated_at: conversation.updated_at,
-        conversation,
-    };
-}
-function normalizeConversation(conversation) {
-    return {
-        ...conversation,
-        model: conversation.model ?? conversation.model_name ?? null,
-        status: conversation.status ?? "waiting",
-    };
-}
-function normalizeMessages(messages) {
-    return messages;
-}
-class TasksNamespace {
-    constructor(http, podId) {
-        this.http = http;
-        this.podId = podId;
-        this.messages = {
-            list: (taskId, options = {}) => this.http.request("GET", `/pods/${this.podId()}/conversations/${taskId}/messages`, {
-                params: {
-                    limit: options.limit ?? 100,
-                    after_sequence: options.page_token,
-                },
-            }).then((response) => ({
-                ...response,
-                items: normalizeMessages(response.items ?? []),
-            })),
-            add: (taskId, payload) => {
-                return this.http.request("POST", `/pods/${this.podId()}/conversations/${taskId}/messages`, {
-                    body: payload,
-                }).then(() => this.get(taskId));
-            },
-        };
-    }
-    list(options = {}) {
-        return this.http.request("GET", `/pods/${this.podId()}/conversations`, {
-            params: {
-                agent_name: options.agent_name,
-                limit: options.limit ?? 100,
-                page_token: options.page_token,
-            },
-        }).then((response) => {
-            const conversations = (response.items ?? []).map(normalizeConversation);
-            return {
-                items: conversations.map((conversation) => toTask(conversation)),
-                limit: response.limit ?? options.limit ?? 100,
-                next_page_token: response.next_page_token ?? null,
-                total: response.total,
-            };
-        });
-    }
-    create(payload) {
-        return this.http.request("POST", `/pods/${this.podId()}/conversations`, {
-            body: {
-                agent_name: payload.agent_name,
-                title: payload.title ?? payload.content ?? payload.agent_name,
-            },
-        }).then((conversation) => toTask(normalizeConversation(conversation), payload.input_data));
-    }
-    get(taskId) {
-        return this.http.request("GET", `/pods/${this.podId()}/conversations/${taskId}`)
-            .then((conversation) => toTask(normalizeConversation(conversation)));
-    }
-    stop(taskId) {
-        return this.http.request("POST", `/pods/${this.podId()}/conversations/${taskId}/stop`, {
-            body: {},
-        }).then((conversation) => toTask(normalizeConversation(conversation)));
-    }
-    stream(taskId, options = {}) {
-        return this.http.stream(`/pods/${this.podId()}/conversations/${taskId}/stream`, {
-            signal: options.signal,
-            headers: {
-                Accept: "text/event-stream",
-            },
-        });
-    }
-}
-exports.TasksNamespace = TasksNamespace;
 
 },
 "./namespaces/users.js": function (module, exports, require) {

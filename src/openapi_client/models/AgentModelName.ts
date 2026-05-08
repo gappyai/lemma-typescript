@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Models that can be selected for an agent run.
+ * Models that can be selected for an agent conversation.
  */
 export enum AgentModelName {
     GEMINI_PRO = 'GEMINI_PRO',

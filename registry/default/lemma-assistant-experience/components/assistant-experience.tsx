@@ -1052,7 +1052,7 @@ export function PlanSummaryStrip({ plan, onHide }: { plan: PlanSummaryState; onH
     <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/70 p-3.5 shadow-none">
       <div className="flex items-center justify-between gap-2 border-b border-border/50 pb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-widest text-foreground/80">Task plan</span>
+          <span className="text-xs font-semibold uppercase tracking-widest text-foreground/80">Plan</span>
           <span className="text-xs text-muted-foreground">
             {plan.completedCount}/{plan.steps.length} complete
           </span>

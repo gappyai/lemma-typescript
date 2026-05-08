@@ -71,9 +71,6 @@ export interface RunFunctionOptions {
   input?: Record<string, unknown>;
 }
 
-/** Alias kept for backward compatibility; shape follows generated OpenAPI schema exactly. */
-export type CreateTaskOptions = CreateTaskRequest;
-
 export interface WorkflowRunInputs {
   [key: string]: unknown;
 }
@@ -100,7 +97,6 @@ export interface ConversationMessageResponse {
   created_at: string;
   conversation_id?: string;
   sequence?: number;
-  agent_run_id?: string | null;
   metadata?: Record<string, unknown> | null;
   tool_call_id?: string | null;
   tool_name?: string | null;
@@ -108,60 +104,6 @@ export interface ConversationMessageResponse {
 
 export type ConversationMessage = ConversationMessageResponse;
 
-export type TaskStatus =
-  | "PENDING"
-  | "RUNNING"
-  | "WAITING"
-  | "COMPLETED"
-  | "FAILED"
-  | "CANCELLED"
-  | "STOPPED"
-  | (string & {});
-
-export interface CreateTaskRequest {
-  agent_name: string;
-  input_data?: Record<string, unknown> | null;
-  title?: string | null;
-  conversation_id?: string | null;
-  content?: string | null;
-}
-
-export interface AddMessageRequest {
-  content: string;
-}
-
-export interface TaskResponse {
-  id: string;
-  agent_id?: string | null;
-  agent_name?: string | null;
-  pod_id: string;
-  user_id?: string;
-  input_data?: Record<string, unknown> | null;
-  output_data?: unknown;
-  error?: string | null;
-  status?: TaskStatus;
-  created_at?: string;
-  updated_at?: string;
-  conversation?: Conversation;
-}
-
-export interface TaskListResponse {
-  items: TaskResponse[];
-  limit: number;
-  next_page_token?: string | null;
-  total?: number;
-}
-
-export type TaskMessageResponse = ConversationMessageResponse;
-
-export interface TaskMessageListResponse {
-  items: TaskMessageResponse[];
-  limit: number;
-  next_page_token?: string | null;
-}
-
-export type Task = TaskResponse;
-export type TaskMessage = TaskMessageResponse;
 export type FunctionRun = FunctionRunResponse;
 export type FlowRun = FlowRunEntity;
 export type Workflow = FlowResponse;

@@ -60,7 +60,6 @@ npm install react react-dom
 ```tsx
 import {
   AuthGuard,
-  useAgentRun,
   useConversationMessages,
   useConversations,
   useRecordForm,
@@ -78,8 +77,8 @@ import {
 | Record mutations | `useCreateRecord`, `useUpdateRecord`, `useDeleteRecord`, `useBulkRecords` | Stable | Create, update, delete, or bulk-delete rows from headless UI. Function-backed mutations via `createVia`/`updateVia` options. |
 | Record forms | `useRecordSchema`, `useRecordForm`, `useForeignKeyOptions`, `useSchemaForm` | Stable | Render schema-driven record forms, enum fields, and foreign-key selectors. `useRecordForm` is the canonical table-bound form hook; `useSchemaForm` remains available for raw JSON-schema flows. |
 | Files | `useFiles`, `useFile`, `useUploadFile`, `useUpdateFile`, `useDeleteFile`, `useCreateFolder`, `useFileSearch`, `useFileTree`, `useFilePreview`, `useGlobalSearch` | Stable | Browse private or pod folders, mutate file state, search indexed files, load directory trees, preview content, and compose multi-source desk search. |
-| Conversations | `useConversations`, `useConversation`, `useConversationMessages`, `useAssistantRun`, `useAssistantSession`, `useAssistantRuntime`, `useAssistantController` | Stable except controller/runtime | Build custom agent chat, conversation lists, streaming output, and final-answer views. Older assistant-named hooks target the agent conversation API internally. |
-| Agents | `useAgentRun`, `useAgentRuns`, `useAgentInputSchema`, `useTaskSession` | Stable except raw session | Start one-turn agent conversations, submit follow-up input, read conversation history, and inspect input/output schemas. |
+| Conversations | `useConversations`, `useConversation`, `useConversationMessages`, `useAssistantSession`, `useAssistantRuntime`, `useAssistantController` | Stable except controller/runtime | Build custom chat, conversation lists, streaming output, and final-answer views for default assistant conversations or named agents. |
+| Agents | `useAgentInputSchema` | Stable | Inspect structured input/output schemas for named agents. Agent execution goes through conversations. |
 | Workflows | `useWorkflowStart`, `useWorkflowRun`, `useWorkflowRuns`, `useWorkflowResume` | Stable | Start, poll, resume, cancel, retry, and inspect workflow runs. |
 | Workflow compatibility | `useFlowSession`, `useFlowRunHistory` | Deprecated naming | Kept for existing callers; prefer workflow-named hooks for new code. |
 | Functions | `useFunctionRun`, `useFunctionRuns`, `useFunctionSession` | Stable except raw session | Run functions, poll function runs, and list function history. |
@@ -107,7 +106,7 @@ List hooks generally expose:
 
 Run hooks generally expose:
 
-- `run` or `task`
+- `run`
 - `status`
 - `isPolling`, `isStreaming`, or `isRunning`
 - `output`
@@ -168,25 +167,35 @@ function SupportThread({ client }: { client: LemmaClient }) {
 }
 ```
 
-Agent run:
+Start an agent conversation:
 
 ```tsx
-import { useAgentRun } from "lemma-sdk/react";
+import { useConversationMessages } from "lemma-sdk/react";
 
 function AgentButton({ client }: { client: LemmaClient }) {
-  const agent = useAgentRun({
+  const conversation = useConversationMessages({
     client,
     agentName: "triage_agent",
+    autoResume: true,
   });
 
   return (
     <button
-      disabled={agent.isStreaming}
+      disabled={conversation.isStreaming}
       onClick={() => {
-        void agent.start({ ticket_id: "ticket_123" });
+        void (async () => {
+          const thread = await conversation.createConversation({
+            title: "Triage ticket ticket_123",
+            setActive: true,
+          });
+          await conversation.sendMessage(JSON.stringify({
+            ticket_id: "ticket_123",
+            prompt: "Triage this ticket.",
+          }), { conversationId: thread.id });
+        })();
       }}
     >
-      {agent.status ?? "Run agent"}
+      {conversation.status ?? "Message agent"}
     </button>
   );
 }
@@ -446,7 +455,7 @@ From `0.2.30` onward:
 From `0.2.37` onward:
 
 - Agent APIs are the runtime abstraction. `client.assistants` is removed; use `client.agents` for definitions and `client.conversations` for turns/messages.
-- Conversations are pod-scoped under the agent conversation API; message sends stream one internal agent run until final output.
+- Conversations are pod-scoped under the agent conversation API; message sends stream conversation events until final output.
 - File APIs are namespace-aware. Shared pod files are the default for backwards-compatible file workspaces; pass `namespace: "PRIVATE"` for personal file input/upload flows and `namespace: "POD"` when you want to be explicit. The live OpenAPI currently names the private namespace `PERSONAL`; the SDK accepts `PRIVATE` as the product-facing alias.
 
 ## Local Development

@@ -1,7 +1,6 @@
 import type { FlowRunStatus, FunctionRunStatus } from "./openapi_client/index.js";
-import type { TaskStatus } from "./types.js";
 
-export type AnyRunStatus = TaskStatus | FunctionRunStatus | FlowRunStatus | (string & {});
+export type AnyRunStatus = FunctionRunStatus | FlowRunStatus | (string & {});
 
 interface BackoffOptions {
   baseMs?: number;
@@ -9,7 +8,6 @@ interface BackoffOptions {
   factor?: number;
 }
 
-const TASK_TERMINAL = new Set<string>(["COMPLETED", "FAILED", "CANCELLED", "STOPPED"]);
 const FUNCTION_TERMINAL = new Set<string>(["COMPLETED", "FAILED", "CANCELLED"]);
 const FLOW_TERMINAL = new Set<string>(["COMPLETED", "FAILED", "CANCELLED"]);
 
@@ -20,17 +18,6 @@ export function normalizeRunStatus(status: unknown): string | undefined {
 
   const normalized = status.trim().toUpperCase();
   return normalized.length > 0 ? normalized : undefined;
-}
-
-export function isTerminalTaskStatus(status: unknown, options: { treatWaitingAsTerminal?: boolean } = {}): boolean {
-  const normalized = normalizeRunStatus(status);
-  if (!normalized) return false;
-
-  if (normalized === "WAITING") {
-    return options.treatWaitingAsTerminal === true;
-  }
-
-  return TASK_TERMINAL.has(normalized);
 }
 
 export function isTerminalFunctionStatus(status: unknown): boolean {
