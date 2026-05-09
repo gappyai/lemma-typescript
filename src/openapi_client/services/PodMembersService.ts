@@ -66,20 +66,46 @@ export class PodMembersService {
         });
     }
     /**
-     * Remove Pod Member
-     * Remove a member from a pod
+     * Lookup Pod Member By Email
+     * Resolve a pod member by email
      * @param podId
-     * @param userId
-     * @returns void
+     * @param email
+     * @returns PodMemberDetailResponse Successful Response
      * @throws ApiError
      */
-    public static podMemberRemove(
+    public static podMemberLookupByEmail(
+        podId: string,
+        email: string,
+    ): CancelablePromise<PodMemberDetailResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/members/lookup/by-email',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'email': email,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Lookup Pod Member By User ID
+     * Resolve a pod member by user id
+     * @param podId
+     * @param userId
+     * @returns PodMemberDetailResponse Successful Response
+     * @throws ApiError
+     */
+    public static podMemberLookupByUserId(
         podId: string,
         userId: string,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<PodMemberDetailResponse> {
         return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/members/{user_id}',
+            method: 'GET',
+            url: '/pods/{pod_id}/members/lookup/by-user-id/{user_id}',
             path: {
                 'pod_id': podId,
                 'user_id': userId,
@@ -90,23 +116,47 @@ export class PodMembersService {
         });
     }
     /**
-     * Get Pod Member
-     * Get a pod member by user id
+     * Remove Pod Member
+     * Remove a member from a pod
      * @param podId
-     * @param userId
+     * @param podMemberId
+     * @returns void
+     * @throws ApiError
+     */
+    public static podMemberRemove(
+        podId: string,
+        podMemberId: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}/members/{pod_member_id}',
+            path: {
+                'pod_id': podId,
+                'pod_member_id': podMemberId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Pod Member
+     * Get a pod member by pod member id
+     * @param podId
+     * @param podMemberId
      * @returns PodMemberDetailResponse Successful Response
      * @throws ApiError
      */
     public static podMemberGet(
         podId: string,
-        userId: string,
+        podMemberId: string,
     ): CancelablePromise<PodMemberDetailResponse> {
         return __request(OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/members/{user_id}',
+            url: '/pods/{pod_id}/members/{pod_member_id}',
             path: {
                 'pod_id': podId,
-                'user_id': userId,
+                'pod_member_id': podMemberId,
             },
             errors: {
                 422: `Validation Error`,
@@ -117,22 +167,22 @@ export class PodMembersService {
      * Update Member Role
      * Update a pod member's role
      * @param podId
-     * @param userId
+     * @param podMemberId
      * @param requestBody
      * @returns PodMemberResponse Successful Response
      * @throws ApiError
      */
     public static podMemberUpdateRole(
         podId: string,
-        userId: string,
+        podMemberId: string,
         requestBody: PodMemberUpdateRoleRequest,
     ): CancelablePromise<PodMemberResponse> {
         return __request(OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/members/{user_id}/role',
+            url: '/pods/{pod_id}/members/{pod_member_id}/role',
             path: {
                 'pod_id': podId,
-                'user_id': userId,
+                'pod_member_id': podMemberId,
             },
             body: requestBody,
             mediaType: 'application/json',

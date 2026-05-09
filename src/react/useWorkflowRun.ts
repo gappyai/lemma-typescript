@@ -75,7 +75,7 @@ export function useWorkflowRun({
     const isWaitingForInput = normalizedStatus === "WAITING"
       || !!session.run?.waiting_agent_conversation_id
       || !!session.run?.waiting_function_run_id
-      || !!session.run?.waiting_trigger_id;
+      || !!session.run?.waiting_timer_id;
     const output = session.run?.execution_context ?? null;
     const finalOutput = isFinished ? output : null;
 

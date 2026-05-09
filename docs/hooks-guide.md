@@ -26,6 +26,8 @@ Business-facing guide for building Lemma desks. Each recipe shows the hooks to u
 | Add an org member into a pod | `useAddPodMember` | Canonical pod membership add flow for stock members/admin UI |
 | Change a pod member's role | `useUpdatePodMemberRole` | One-shot role transition with loading/error state |
 | Remove a pod member | `useRemovePodMember` | Canonical pod membership removal flow |
+| Schedule a workflow or agent | `useCreateSchedule` | One-shot schedule creation for time and event starts |
+| List pod schedules | `useSchedules` | Filter by schedule type, active state, workflow, or agent |
 | Create/update through a function | `useRecordForm({ submitVia: "function" })` | Routes payload through business logic |
 | Run a function on click | `useFunctionRun` | Tracks loading, output, polling |
 | Show all comments for an issue | `useReferencingRecords` | "Give me rows in table X where FK = Y" |
@@ -34,6 +36,7 @@ Business-facing guide for building Lemma desks. Each recipe shows the hooks to u
 | Discover what references a record | `useReverseRelatedRecords` | Auto-discovers reverse FK relationships |
 | Run a workflow with its input schema | `useWorkflowStart` | Start, poll, resume, and inspect the workflow definition's input schema |
 | Start or poll a known workflow run | `useWorkflowRun` | Lighter-weight run surface when you already know the workflow name |
+| Show workflow runs waiting for me | `useWorkflowRunWaitAssignments` | Lists human form waits assigned to the signed-in pod member |
 | Message an agent | `useConversationMessages` | Starts or continues an agent conversation, streams tool calls and final output |
 | Gate the app with auth | `AuthGuard` + `useAuth` | Cookie/session auth, pod membership, access requests |
 
@@ -706,7 +709,7 @@ function PodMembersAdmin({
             value={member.role}
             onChange={(e) =>
               void updateRole.updateRole(e.target.value as PodRole, {
-                memberId: member.user_id,
+                memberId: member.pod_member_id,
               })
             }
           >
@@ -716,7 +719,7 @@ function PodMembersAdmin({
               </option>
             ))}
           </select>
-          <button onClick={() => void removeMember.remove({ memberId: member.user_id })}>
+          <button onClick={() => void removeMember.remove({ memberId: member.pod_member_id })}>
             Remove
           </button>
         </div>
@@ -828,7 +831,7 @@ Pod membership mutations follow the same shape:
 - `useUpdatePodMemberRole().updateRole(role, { memberId })`
 - `useRemovePodMember().remove({ memberId })`
 
-The current generated client supports adding an existing organization member into a pod. Direct email-to-pod invite is not yet exposed in this checked-in SDK surface.
+For role changes and removals, `memberId` is the `pod_member_id`, not `user_id`. Use `client.podMembers.lookupByUserId(...)` or `lookupByEmail(...)` when the UI starts from a user identity. The current generated client supports adding an existing organization member into a pod. Direct email-to-pod invite is not yet exposed in this checked-in SDK surface.
 
 ### Function-aware options
 

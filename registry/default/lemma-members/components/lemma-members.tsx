@@ -191,11 +191,11 @@ export function LemmaMembers({
 
   const handleRoleChange = React.useCallback(async (member: PodMember, nextRole: PodRole) => {
     if (!resolvedPodId || member.role === nextRole) return
-    setActionKey(`role:${member.user_id}`)
+    setActionKey(`role:${member.pod_member_id}`)
     setActionError(null)
     try {
       const updated = await updatePodMemberRole.updateRole(nextRole, {
-        memberId: member.user_id,
+        memberId: member.pod_member_id,
       })
       if (updated) {
         await membersState.refresh()
@@ -207,10 +207,10 @@ export function LemmaMembers({
 
   const handleRemove = React.useCallback(async (member: PodMember) => {
     if (!resolvedPodId) return
-    setActionKey(`remove:${member.user_id}`)
+    setActionKey(`remove:${member.pod_member_id}`)
     setActionError(null)
     try {
-      const removed = await removePodMember.remove({ memberId: member.user_id })
+      const removed = await removePodMember.remove({ memberId: member.pod_member_id })
       if (removed) {
         await refreshAll()
       }
@@ -335,14 +335,14 @@ export function LemmaMembers({
                 />
               ) : (
                 filteredMembers.map((member) => {
-                  const roleActionKey = `role:${member.user_id}`
-                  const removeActionKey = `remove:${member.user_id}`
+                  const roleActionKey = `role:${member.pod_member_id}`
+                  const removeActionKey = `remove:${member.pod_member_id}`
                   const isRoleLoading = actionKey === roleActionKey
                   const isRemoveLoading = actionKey === removeActionKey
                   const canRemove = allowRemove && member.user_id !== currentUserId
 
                   return (
-                    <div key={member.user_id} className={cn("flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between", density === "compact" ? "md:py-2.5" : null)}>
+                    <div key={member.pod_member_id} className={cn("flex flex-col gap-3 px-4 py-3 md:flex-row md:items-center md:justify-between", density === "compact" ? "md:py-2.5" : null)}>
                       <div className="min-w-0">
                         <LemmaMemberChip member={member} appearance="minimal" radius={radius} size="lg" />
                       </div>

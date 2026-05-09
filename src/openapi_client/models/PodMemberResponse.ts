@@ -8,6 +8,8 @@ import type { PodRole } from './PodRole.js';
  */
 export type PodMemberResponse = {
     created_at: string;
+    email: string;
+    pod_member_id: string;
     role: PodRole;
     updated_at: string;
     user_email: string;

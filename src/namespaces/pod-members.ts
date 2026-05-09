@@ -19,17 +19,25 @@ export class PodMembersNamespace {
     return this.client.request(() => PodMembersService.podMemberAdd(podId, payload));
   }
 
-  get(podId: string, userId: string) {
-    return this.client.request(() => PodMembersService.podMemberGet(podId, userId));
+  get(podId: string, podMemberId: string) {
+    return this.client.request(() => PodMembersService.podMemberGet(podId, podMemberId));
   }
 
-  updateRole(podId: string, memberId: string, role: PodRole) {
+  lookupByEmail(podId: string, email: string) {
+    return this.client.request(() => PodMembersService.podMemberLookupByEmail(podId, email));
+  }
+
+  lookupByUserId(podId: string, userId: string) {
+    return this.client.request(() => PodMembersService.podMemberLookupByUserId(podId, userId));
+  }
+
+  updateRole(podId: string, podMemberId: string, role: PodRole) {
     return this.client.request(() =>
-      PodMembersService.podMemberUpdateRole(podId, memberId, { role }),
+      PodMembersService.podMemberUpdateRole(podId, podMemberId, { role }),
     );
   }
 
-  remove(podId: string, memberId: string) {
-    return this.client.request(() => PodMembersService.podMemberRemove(podId, memberId));
+  remove(podId: string, podMemberId: string) {
+    return this.client.request(() => PodMembersService.podMemberRemove(podId, podMemberId));
   }
 }

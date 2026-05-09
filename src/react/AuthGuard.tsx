@@ -183,7 +183,7 @@ export function AuthGuard({
 
     try {
       const currentUser = await client.users.current();
-      await client.podMembers.get(client.podId, currentUser.id);
+      await client.podMembers.lookupByUserId(client.podId, currentUser.id);
       setMembershipState("member");
       setJoinRequest(null);
       return;

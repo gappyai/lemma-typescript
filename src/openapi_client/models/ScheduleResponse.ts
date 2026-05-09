@@ -2,12 +2,14 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { TriggerType } from './TriggerType.js';
+import type { ScheduleType } from './ScheduleType.js';
 /**
- * Trigger response.
+ * Schedule response.
  */
-export type TriggerResponse = {
+export type ScheduleResponse = {
     account_id: (string | null);
+    agent_id: (string | null);
+    agent_name?: (string | null);
     application_trigger_id: (string | null);
     config: Record<string, any>;
     created_at: string;
@@ -17,8 +19,10 @@ export type TriggerResponse = {
     is_active: boolean;
     is_internal: boolean;
     pod_id: (string | null);
-    trigger_type: TriggerType;
+    schedule_type: ScheduleType;
     updated_at: string;
     user_id: string;
+    workflow_id: (string | null);
+    workflow_name?: (string | null);
 };
 

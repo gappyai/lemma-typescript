@@ -22,9 +22,11 @@ import type {
   PodJoinRequestCreateResponse,
   PodMemberResponse,
   PodResponse,
+  ScheduleResponse,
   TableResponse,
   UpdateAgentRequest,
   UserResponse,
+  WorkflowRunWaitAssignment,
 } from "./openapi_client/index.js";
 
 /** Public ergonomic types. */
@@ -109,6 +111,8 @@ export type FlowRun = FlowRunEntity;
 export type Workflow = FlowResponse;
 export type WorkflowStart = Workflow["start"];
 export type WorkflowStartType = NonNullable<WorkflowStart>["type"];
+export type Schedule = ScheduleResponse;
+export type WorkflowRunWait = WorkflowRunWaitAssignment;
 export type Table = TableResponse;
 export type TableColumn = ColumnSchema;
 export type DatastoreQueryResult = DatastoreQueryResponse;

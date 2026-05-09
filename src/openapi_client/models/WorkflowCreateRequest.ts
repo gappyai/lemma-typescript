@@ -6,7 +6,7 @@ import type { DataStoreWorkflowStartInput } from './DataStoreWorkflowStartInput.
 import type { EventWorkflowStartInput } from './EventWorkflowStartInput.js';
 import type { ManualWorkflowStartInput } from './ManualWorkflowStartInput.js';
 import type { ScheduledWorkflowStartInput } from './ScheduledWorkflowStartInput.js';
-import type { WorkflowInstallMode } from './WorkflowInstallMode.js';
+import type { WorkflowMode } from './WorkflowMode.js';
 export type WorkflowCreateRequest = {
     /**
      * Optional workflow description.
@@ -17,9 +17,9 @@ export type WorkflowCreateRequest = {
      */
     icon_url?: (string | null);
     /**
-     * Workflow installation scope for non-manual starts. `GLOBAL` means one pod-level installation, `USER` means each user installs their own.
+     * Workflow schedule ownership mode. `GLOBAL` means one pod-level workflow schedule is allowed; `USER` is reserved for per-user schedule ownership.
      */
-    mode?: WorkflowInstallMode;
+    mode?: WorkflowMode;
     /**
      * Workflow name.
      */

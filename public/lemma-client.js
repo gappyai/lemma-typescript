@@ -51,6 +51,7 @@ const pods_js_1 = require("./namespaces/pods.js");
 const pod_surfaces_js_1 = require("./namespaces/pod-surfaces.js");
 const records_js_1 = require("./namespaces/records.js");
 const resources_js_1 = require("./namespaces/resources.js");
+const schedules_js_1 = require("./namespaces/schedules.js");
 const tables_js_1 = require("./namespaces/tables.js");
 const users_js_1 = require("./namespaces/users.js");
 const workflows_js_1 = require("./namespaces/workflows.js");
@@ -79,6 +80,7 @@ class LemmaClient {
         this.desks = new desks_js_1.DesksNamespace(this._generated, this._http, podIdFn);
         this.integrations = new integrations_js_1.IntegrationsNamespace(this._generated);
         this.resources = new resources_js_1.ResourcesNamespace(this._http);
+        this.schedules = new schedules_js_1.SchedulesNamespace(this._generated, podIdFn);
         this.datastore = new datastore_js_1.DatastoreNamespace(this._generated, podIdFn);
         this.users = new users_js_1.UsersNamespace(this._generated);
         this.icons = new icons_js_1.IconsNamespace(this._generated);
@@ -3591,14 +3593,20 @@ class PodMembersNamespace {
     add(podId, payload) {
         return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberAdd(podId, payload));
     }
-    get(podId, userId) {
-        return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberGet(podId, userId));
+    get(podId, podMemberId) {
+        return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberGet(podId, podMemberId));
     }
-    updateRole(podId, memberId, role) {
-        return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberUpdateRole(podId, memberId, { role }));
+    lookupByEmail(podId, email) {
+        return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberLookupByEmail(podId, email));
     }
-    remove(podId, memberId) {
-        return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberRemove(podId, memberId));
+    lookupByUserId(podId, userId) {
+        return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberLookupByUserId(podId, userId));
+    }
+    updateRole(podId, podMemberId, role) {
+        return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberUpdateRole(podId, podMemberId, { role }));
+    }
+    remove(podId, podMemberId) {
+        return this.client.request(() => PodMembersService_js_1.PodMembersService.podMemberRemove(podId, podMemberId));
     }
 }
 exports.PodMembersNamespace = PodMembersNamespace;
@@ -3659,17 +3667,40 @@ class PodMembersService {
         });
     }
     /**
-     * Remove Pod Member
-     * Remove a member from a pod
+     * Lookup Pod Member By Email
+     * Resolve a pod member by email
      * @param podId
-     * @param userId
-     * @returns void
+     * @param email
+     * @returns PodMemberDetailResponse Successful Response
      * @throws ApiError
      */
-    static podMemberRemove(podId, userId) {
+    static podMemberLookupByEmail(podId, email) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/members/{user_id}',
+            method: 'GET',
+            url: '/pods/{pod_id}/members/lookup/by-email',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'email': email,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Lookup Pod Member By User ID
+     * Resolve a pod member by user id
+     * @param podId
+     * @param userId
+     * @returns PodMemberDetailResponse Successful Response
+     * @throws ApiError
+     */
+    static podMemberLookupByUserId(podId, userId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/members/lookup/by-user-id/{user_id}',
             path: {
                 'pod_id': podId,
                 'user_id': userId,
@@ -3680,20 +3711,41 @@ class PodMembersService {
         });
     }
     /**
-     * Get Pod Member
-     * Get a pod member by user id
+     * Remove Pod Member
+     * Remove a member from a pod
      * @param podId
-     * @param userId
+     * @param podMemberId
+     * @returns void
+     * @throws ApiError
+     */
+    static podMemberRemove(podId, podMemberId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}/members/{pod_member_id}',
+            path: {
+                'pod_id': podId,
+                'pod_member_id': podMemberId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Pod Member
+     * Get a pod member by pod member id
+     * @param podId
+     * @param podMemberId
      * @returns PodMemberDetailResponse Successful Response
      * @throws ApiError
      */
-    static podMemberGet(podId, userId) {
+    static podMemberGet(podId, podMemberId) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
-            url: '/pods/{pod_id}/members/{user_id}',
+            url: '/pods/{pod_id}/members/{pod_member_id}',
             path: {
                 'pod_id': podId,
-                'user_id': userId,
+                'pod_member_id': podMemberId,
             },
             errors: {
                 422: `Validation Error`,
@@ -3704,18 +3756,18 @@ class PodMembersService {
      * Update Member Role
      * Update a pod member's role
      * @param podId
-     * @param userId
+     * @param podMemberId
      * @param requestBody
      * @returns PodMemberResponse Successful Response
      * @throws ApiError
      */
-    static podMemberUpdateRole(podId, userId, requestBody) {
+    static podMemberUpdateRole(podId, podMemberId, requestBody) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'PATCH',
-            url: '/pods/{pod_id}/members/{user_id}/role',
+            url: '/pods/{pod_id}/members/{pod_member_id}/role',
             path: {
                 'pod_id': podId,
-                'user_id': userId,
+                'pod_member_id': podMemberId,
             },
             body: requestBody,
             mediaType: 'application/json',
@@ -4628,6 +4680,167 @@ class ResourcesNamespace {
 exports.ResourcesNamespace = ResourcesNamespace;
 
 },
+"./namespaces/schedules.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SchedulesNamespace = void 0;
+const SchedulesService_js_1 = require("./openapi_client/services/SchedulesService.js");
+class SchedulesNamespace {
+    constructor(client, podId) {
+        this.client = client;
+        this.podId = podId;
+    }
+    list(options = {}) {
+        return this.client.request(() => SchedulesService_js_1.SchedulesService.scheduleList(this.podId(), options.scheduleType, options.isActive, options.agentName, options.workflowName, options.limit ?? 100, options.pageToken));
+    }
+    create(payload) {
+        return this.client.request(() => SchedulesService_js_1.SchedulesService.scheduleCreate(this.podId(), payload));
+    }
+    get(scheduleId) {
+        return this.client.request(() => SchedulesService_js_1.SchedulesService.scheduleGet(this.podId(), scheduleId));
+    }
+    update(scheduleId, payload) {
+        return this.client.request(() => SchedulesService_js_1.SchedulesService.scheduleUpdate(this.podId(), scheduleId, payload));
+    }
+    delete(scheduleId) {
+        return this.client.request(() => SchedulesService_js_1.SchedulesService.scheduleDelete(this.podId(), scheduleId));
+    }
+}
+exports.SchedulesNamespace = SchedulesNamespace;
+
+},
+"./openapi_client/services/SchedulesService.js": function (module, exports, require) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.SchedulesService = void 0;
+const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
+const request_js_1 = require("./openapi_client/core/request.js");
+class SchedulesService {
+    /**
+     * List Schedules
+     * List pod schedules.
+     * @param podId
+     * @param scheduleType
+     * @param isActive
+     * @param agentName
+     * @param workflowName
+     * @param limit
+     * @param pageToken
+     * @returns ScheduleListResponse Successful Response
+     * @throws ApiError
+     */
+    static scheduleList(podId, scheduleType, isActive, agentName, workflowName, limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/schedules',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'schedule_type': scheduleType,
+                'is_active': isActive,
+                'agent_name': agentName,
+                'workflow_name': workflowName,
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Create Schedule
+     * Create a new pod schedule.
+     * @param podId
+     * @param requestBody
+     * @returns ScheduleResponse Successful Response
+     * @throws ApiError
+     */
+    static scheduleCreate(podId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/schedules',
+            path: {
+                'pod_id': podId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Delete Schedule
+     * Delete a schedule.
+     * @param podId
+     * @param scheduleId
+     * @returns void
+     * @throws ApiError
+     */
+    static scheduleDelete(podId, scheduleId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'DELETE',
+            url: '/pods/{pod_id}/schedules/{schedule_id}',
+            path: {
+                'pod_id': podId,
+                'schedule_id': scheduleId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Schedule
+     * Get a schedule by ID.
+     * @param podId
+     * @param scheduleId
+     * @returns ScheduleResponse Successful Response
+     * @throws ApiError
+     */
+    static scheduleGet(podId, scheduleId) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/schedules/{schedule_id}',
+            path: {
+                'pod_id': podId,
+                'schedule_id': scheduleId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update Schedule
+     * Update a schedule.
+     * @param podId
+     * @param scheduleId
+     * @param requestBody
+     * @returns ScheduleResponse Successful Response
+     * @throws ApiError
+     */
+    static scheduleUpdate(podId, scheduleId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'PATCH',
+            url: '/pods/{pod_id}/schedules/{schedule_id}',
+            path: {
+                'pod_id': podId,
+                'schedule_id': scheduleId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+}
+exports.SchedulesService = SchedulesService;
+
+},
 "./namespaces/tables.js": function (module, exports, require) {
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -4934,13 +5147,10 @@ class WorkflowsNamespace {
         this.graph = {
             update: (workflowName, graph) => this.client.request(() => WorkflowsService_js_1.WorkflowsService.workflowGraphUpdate(this.podId(), workflowName, graph)),
         };
-        this.installs = {
-            create: (workflowName, payload = {}) => this.client.request(() => WorkflowsService_js_1.WorkflowsService.workflowInstallCreate(this.podId(), workflowName, payload)),
-            delete: (workflowName, installId) => this.client.request(() => WorkflowsService_js_1.WorkflowsService.workflowInstallDelete(this.podId(), workflowName, installId)),
-        };
         this.runs = {
             start: (workflowName, inputs = {}) => this.client.request(() => WorkflowsService_js_1.WorkflowsService.workflowStart(this.podId(), workflowName, inputs)),
             list: (workflowName, options = {}) => this.client.request(() => WorkflowsService_js_1.WorkflowsService.workflowRunList(this.podId(), workflowName, options.limit ?? 100, options.pageToken)),
+            waitingAssignedToMe: (options = {}) => this.client.request(() => WorkflowsService_js_1.WorkflowsService.workflowRunWaitingAssignedToMe(this.podId(), options.limit ?? 100, options.pageToken)),
             get: (runId, podId = this.podId()) => this.client.request(() => WorkflowsService_js_1.WorkflowsService.workflowRunGet(podId, runId)),
             resume: (runId, inputs = {}, podId = this.podId()) => this.client.request(() => WorkflowsService_js_1.WorkflowsService.workflowRunResume(podId, runId, inputs)),
             visualize: (runId, podId = this.podId()) => this.client.request(() => WorkflowsService_js_1.WorkflowsService.workflowRunVisualize(podId, runId)),
@@ -4990,6 +5200,31 @@ exports.WorkflowsService = void 0;
 const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class WorkflowsService {
+    /**
+     * List Workflow Runs Waiting For Current User
+     * List active human form waits assigned to the current pod member.
+     * @param podId
+     * @param limit
+     * @param pageToken
+     * @returns WorkflowRunWaitAssignmentListResponse Successful Response
+     * @throws ApiError
+     */
+    static workflowRunWaitingAssignedToMe(podId, limit = 100, pageToken) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/workflow-runs/waiting/assigned-to-me',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * Get Workflow Run
      * Get current state, context, and step history of a workflow run.
@@ -5174,7 +5409,7 @@ class WorkflowsService {
     }
     /**
      * Update Workflow Metadata
-     * Update workflow-level metadata such as description/install mode. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
+     * Update workflow-level metadata such as description and schedule mode. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
      * @param podId
      * @param workflowName
      * @param requestBody
@@ -5215,74 +5450,6 @@ class WorkflowsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Install Workflow
-     * Install a workflow for runtime execution. Provide `account_id` when the workflow needs an integration account binding, and provide `schedule` when installing a scheduled workflow.
-     * @param podId
-     * @param workflowName
-     * @param requestBody
-     * @returns FlowInstallResponse Successful Response
-     * @throws ApiError
-     */
-    static workflowInstallCreate(podId, workflowName, requestBody) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/workflows/{workflow_name}/install',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Workflow Installs
-     * List workflow installations visible to the current user. `GLOBAL` workflows return the pod-level install; `USER` workflows return the current user's install.
-     * @param podId
-     * @param workflowName
-     * @returns WorkflowInstallListResponse Successful Response
-     * @throws ApiError
-     */
-    static workflowInstallList(podId, workflowName) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/workflows/{workflow_name}/installs',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Uninstall Workflow
-     * Remove a previously created workflow installation binding.
-     * @param podId
-     * @param workflowName
-     * @param installId
-     * @returns void
-     * @throws ApiError
-     */
-    static workflowInstallDelete(podId, workflowName, installId) {
-        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/workflows/{workflow_name}/installs/{install_id}',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-                'install_id': installId,
-            },
             errors: {
                 422: `Validation Error`,
             },

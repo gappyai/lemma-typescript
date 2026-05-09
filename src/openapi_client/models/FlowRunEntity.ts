@@ -17,11 +17,12 @@ export type FlowRunEntity = {
     flow_id: string;
     id?: string;
     pod_id: string;
+    schedule_event_id?: (string | null);
+    start_payload?: Record<string, any>;
+    start_type?: string;
     started_at?: (string | null);
     status?: FlowRunStatus;
     step_history?: Array<StepExecution>;
-    trigger_event_id?: (string | null);
-    trigger_type?: string;
     updated_at?: string;
     user_id: string;
     /**
@@ -33,8 +34,8 @@ export type FlowRunEntity = {
      */
     waiting_function_run_id?: (string | null);
     /**
-     * Trigger id when the workflow is waiting for an external trigger.
+     * Scheduler wake job id when the workflow is waiting for time.
      */
-    waiting_trigger_id?: (string | null);
+    waiting_timer_id?: (string | null);
 };
 

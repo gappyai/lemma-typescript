@@ -14,7 +14,7 @@ import type { ManualWorkflowStartOutput } from './ManualWorkflowStartOutput.js';
 import type { ScheduledWorkflowStartOutput } from './ScheduledWorkflowStartOutput.js';
 import type { WaitUntilNodeResponse } from './WaitUntilNodeResponse.js';
 import type { WorkflowEdge } from './WorkflowEdge.js';
-import type { WorkflowInstallMode } from './WorkflowInstallMode.js';
+import type { WorkflowMode } from './WorkflowMode.js';
 export type FlowResponse = {
     created_at?: (string | null);
     description?: (string | null);
@@ -22,7 +22,7 @@ export type FlowResponse = {
     icon_url?: (string | null);
     id: string;
     is_active?: boolean;
-    mode?: WorkflowInstallMode;
+    mode?: WorkflowMode;
     name: string;
     nodes?: Array<(FormNodeResponse | AgentNodeResponse | FunctionNodeResponse | DecisionNodeResponse | LoopNodeResponse | WaitUntilNodeResponse | EndNodeResponse)>;
     pod_id: string;

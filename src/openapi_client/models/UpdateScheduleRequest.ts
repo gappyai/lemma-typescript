@@ -3,12 +3,14 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Request to update a trigger.
+ * Request to update a schedule.
  */
-export type UpdateTriggerRequest = {
+export type UpdateScheduleRequest = {
+    agent_name?: (string | null);
     config?: (Record<string, any> | null);
     filter_instruction?: (string | null);
     filter_output_schema?: (Record<string, any> | null);
     is_active?: (boolean | null);
+    workflow_name?: (string | null);
 };
 

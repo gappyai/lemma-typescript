@@ -3,9 +3,10 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Workflow install scope for non-manual starts.
+ * Type of schedule source.
  */
-export enum WorkflowInstallMode {
-    GLOBAL = 'GLOBAL',
-    USER = 'USER',
+export enum ScheduleType {
+    TIME = 'TIME',
+    WEBHOOK = 'WEBHOOK',
+    DATASTORE = 'DATASTORE',
 }

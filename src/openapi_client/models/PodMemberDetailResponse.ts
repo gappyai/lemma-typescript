@@ -9,6 +9,8 @@ import type { UserResponse } from './UserResponse.js';
  */
 export type PodMemberDetailResponse = {
     created_at: string;
+    email: string;
+    pod_member_id: string;
     role: PodRole;
     updated_at: string;
     user?: (UserResponse | null);

@@ -7,20 +7,20 @@ import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class WebhooksService {
     /**
-     * Handle Specific Trigger Webhook
-     * Receive webhook for a specific trigger ID
-     * @param triggerId
+     * Handle Specific Schedule Webhook
+     * Receive webhook for a specific schedule ID
+     * @param scheduleId
      * @returns any Successful Response
      * @throws ApiError
      */
-    public static webhookTriggerHandle(
-        triggerId: string,
+    public static webhookScheduleHandle(
+        scheduleId: string,
     ): CancelablePromise<Record<string, any>> {
         return __request(OpenAPI, {
             method: 'POST',
-            url: '/webhooks/trigger/{trigger_id}',
+            url: '/webhooks/schedules/{schedule_id}',
             path: {
-                'trigger_id': triggerId,
+                'schedule_id': scheduleId,
             },
             errors: {
                 422: `Validation Error`,

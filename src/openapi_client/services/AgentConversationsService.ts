@@ -215,7 +215,7 @@ export class AgentConversationsService {
      */
     public static agentConversationStream(
         podId: string,
-        conversationId: string,
+        conversationId: string
     ): CancelablePromise<any> {
         return __request(OpenAPI, {
             method: 'GET',

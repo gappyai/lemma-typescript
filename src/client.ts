@@ -16,6 +16,7 @@ import { PodsNamespace } from "./namespaces/pods.js";
 import { PodSurfacesNamespace } from "./namespaces/pod-surfaces.js";
 import { RecordsNamespace } from "./namespaces/records.js";
 import { ResourcesNamespace } from "./namespaces/resources.js";
+import { SchedulesNamespace } from "./namespaces/schedules.js";
 import { TablesNamespace } from "./namespaces/tables.js";
 import { UsersNamespace } from "./namespaces/users.js";
 import { WorkflowsNamespace } from "./namespaces/workflows.js";
@@ -51,6 +52,7 @@ export class LemmaClient {
   readonly desks: DesksNamespace;
   readonly integrations: IntegrationsNamespace;
   readonly resources: ResourcesNamespace;
+  readonly schedules: SchedulesNamespace;
   readonly datastore: DatastoreNamespace;
 
   readonly users: UsersNamespace;
@@ -92,6 +94,7 @@ export class LemmaClient {
     this.desks = new DesksNamespace(this._generated, this._http, podIdFn);
     this.integrations = new IntegrationsNamespace(this._generated);
     this.resources = new ResourcesNamespace(this._http);
+    this.schedules = new SchedulesNamespace(this._generated, podIdFn);
     this.datastore = new DatastoreNamespace(this._generated, podIdFn);
 
     this.users = new UsersNamespace(this._generated);

@@ -7,6 +7,14 @@
  */
 export type FormNodeConfig = {
     /**
+     * Pod member assigned to submit this form.
+     */
+    assignee_pod_member_id?: (string | null);
+    /**
+     * Optional JMESPath expression resolving to a pod member id. Takes precedence over assignee_pod_member_id.
+     */
+    assignee_pod_member_id_expression?: (string | null);
+    /**
      * JSON Schema for user input
      */
     input_schema: Record<string, any>;

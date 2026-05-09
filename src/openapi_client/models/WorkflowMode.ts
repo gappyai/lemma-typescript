@@ -3,10 +3,9 @@
 /* tslint:disable */
 /* eslint-disable */
 /**
- * Type of trigger.
+ * Workflow schedule ownership mode.
  */
-export enum TriggerType {
-    TIME = 'TIME',
-    WEBHOOK = 'WEBHOOK',
-    DATASTORE = 'DATASTORE',
+export enum WorkflowMode {
+    GLOBAL = 'GLOBAL',
+    USER = 'USER',
 }

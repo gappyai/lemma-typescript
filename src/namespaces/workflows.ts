@@ -2,7 +2,6 @@ import type { GeneratedClientAdapter } from "../generated.js";
 import { ApiError, type HttpClient } from "../http.js";
 import type { WorkflowCreateRequest } from "../openapi_client/models/WorkflowCreateRequest.js";
 import type { WorkflowGraphUpdateRequest } from "../openapi_client/models/WorkflowGraphUpdateRequest.js";
-import type { WorkflowInstallRequest } from "../openapi_client/models/WorkflowInstallRequest.js";
 import type { WorkflowUpdateRequest } from "../openapi_client/models/WorkflowUpdateRequest.js";
 import { WorkflowsService } from "../openapi_client/services/WorkflowsService.js";
 import type { WorkflowRunInputs } from "../types.js";
@@ -43,14 +42,6 @@ export class WorkflowsNamespace {
       this.client.request(() => WorkflowsService.workflowGraphUpdate(this.podId(), workflowName, graph)),
   };
 
-  readonly installs = {
-    create: (workflowName: string, payload: WorkflowInstallRequest = {}) =>
-      this.client.request(() => WorkflowsService.workflowInstallCreate(this.podId(), workflowName, payload)),
-
-    delete: (workflowName: string, installId: string) =>
-      this.client.request(() => WorkflowsService.workflowInstallDelete(this.podId(), workflowName, installId)),
-  };
-
   private async postRunAction(
     runId: string,
     action: "cancel" | "retry",
@@ -85,6 +76,11 @@ export class WorkflowsNamespace {
     list: (workflowName: string, options: { limit?: number; pageToken?: string } = {}) =>
       this.client.request(() =>
         WorkflowsService.workflowRunList(this.podId(), workflowName, options.limit ?? 100, options.pageToken),
+      ),
+
+    waitingAssignedToMe: (options: { limit?: number; pageToken?: string } = {}) =>
+      this.client.request(() =>
+        WorkflowsService.workflowRunWaitingAssignedToMe(this.podId(), options.limit ?? 100, options.pageToken),
       ),
 
     get: (runId: string, podId = this.podId()) =>

@@ -3,8 +3,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type SendMessageRequest = {
-    agent_name?: (string | null);
     content: string;
-    conversation_id?: (string | null);
 };
 

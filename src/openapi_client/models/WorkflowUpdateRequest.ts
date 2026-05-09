@@ -6,7 +6,7 @@ import type { DataStoreWorkflowStartInput } from './DataStoreWorkflowStartInput.
 import type { EventWorkflowStartInput } from './EventWorkflowStartInput.js';
 import type { ManualWorkflowStartInput } from './ManualWorkflowStartInput.js';
 import type { ScheduledWorkflowStartInput } from './ScheduledWorkflowStartInput.js';
-import type { WorkflowInstallMode } from './WorkflowInstallMode.js';
+import type { WorkflowMode } from './WorkflowMode.js';
 export type WorkflowUpdateRequest = {
     /**
      * Updated workflow description.
@@ -17,9 +17,9 @@ export type WorkflowUpdateRequest = {
      */
     icon_url?: (string | null);
     /**
-     * Updated workflow installation scope.
+     * Updated workflow schedule ownership mode.
      */
-    mode?: (WorkflowInstallMode | null);
+    mode?: (WorkflowMode | null);
     /**
      * Updated start trigger configuration.
      */

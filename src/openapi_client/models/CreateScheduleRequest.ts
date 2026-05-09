@@ -2,17 +2,18 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { TriggerType } from './TriggerType.js';
+import type { ScheduleType } from './ScheduleType.js';
 /**
- * Request to create a trigger.
+ * Request to create a pod schedule.
  */
-export type CreateTriggerRequest = {
+export type CreateScheduleRequest = {
     account_id?: (string | null);
+    agent_name?: (string | null);
     application_trigger_id?: (string | null);
     config?: Record<string, any>;
     filter_instruction?: (string | null);
     filter_output_schema?: (Record<string, any> | null);
-    pod_id?: (string | null);
-    trigger_type: TriggerType;
+    schedule_type: ScheduleType;
+    workflow_name?: (string | null);
 };
 

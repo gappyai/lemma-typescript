@@ -2,12 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { TriggerResponse } from './TriggerResponse.js';
-/**
- * Trigger list response.
- */
-export type TriggerListResponse = {
-    items: Array<TriggerResponse>;
+import type { WorkflowRunWaitAssignment } from './WorkflowRunWaitAssignment.js';
+export type WorkflowRunWaitAssignmentListResponse = {
+    items: Array<WorkflowRunWaitAssignment>;
     limit: number;
     next_page_token?: (string | null);
 };

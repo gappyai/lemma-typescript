@@ -65,7 +65,7 @@ export function usePodAccess({
       setUser(currentUser);
 
       try {
-        const nextMember = await client.podMembers.get(resolvedPodId, currentUser.id);
+        const nextMember = await client.podMembers.lookupByUserId(resolvedPodId, currentUser.id);
         setMember(nextMember);
         setJoinRequest(null);
         setStatus("member");

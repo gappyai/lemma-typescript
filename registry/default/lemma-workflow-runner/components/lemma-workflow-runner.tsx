@@ -12,8 +12,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/lemma/ui/button"
 import { Skeleton } from "@/components/lemma/ui/skeleton"
-import { useWorkflowRuns } from "lemma-sdk/react"
-import type { FlowRun, LemmaClient } from "lemma-sdk"
+import { useWorkflowRuns, useWorkflowRunWaitAssignments } from "lemma-sdk/react"
+import type { FlowRun, LemmaClient, WorkflowRunWait } from "lemma-sdk"
 import { cn } from "@/components/lemma/lib/utils"
 import {
   runStatusClasses,
@@ -66,6 +66,7 @@ export interface LemmaWorkflowRunnerProps {
 
   onRunClick?: (run: FlowRun) => void
   onManualStart?: () => void
+  showAssignedToMe?: boolean
   title?: React.ReactNode
   headerActions?: React.ReactNode
   className?: string
@@ -88,6 +89,7 @@ export function LemmaWorkflowRunner({
   radius = "lg",
   onRunClick,
   onManualStart,
+  showAssignedToMe = true,
   title,
   headerActions,
   className,
@@ -111,6 +113,11 @@ export function LemmaWorkflowRunner({
     workflowName: trimmedWorkflowName,
     enabled: enabled && trimmedWorkflowName.length > 0,
     initialRunId: initialRunId ?? null,
+  })
+  const waitingState = useWorkflowRunWaitAssignments({
+    client,
+    podId,
+    enabled: enabled && showAssignedToMe,
   })
 
   React.useEffect(() => {
@@ -238,6 +245,9 @@ export function LemmaWorkflowRunner({
     trimmedWorkflowName.length > 0 ? runsState.error : standaloneError
 
   const handleRefresh = React.useCallback(() => {
+    if (showAssignedToMe) {
+      void waitingState.refresh()
+    }
     if (trimmedWorkflowName.length > 0) {
       void runsState.refresh()
       if (
@@ -254,7 +264,9 @@ export function LemmaWorkflowRunner({
     refreshStandaloneRun,
     runsState,
     selectedRunId,
+    showAssignedToMe,
     trimmedWorkflowName.length,
+    waitingState,
   ])
 
   return (
@@ -290,6 +302,9 @@ export function LemmaWorkflowRunner({
               </h1>
               <p className="text-xs text-muted-foreground">
                 {runs.length} run{runs.length !== 1 ? "s" : ""}
+                {showAssignedToMe && waitingState.assignments.length > 0
+                  ? ` · ${waitingState.assignments.length} waiting`
+                  : ""}
               </p>
             </div>
           </div>
@@ -331,7 +346,7 @@ export function LemmaWorkflowRunner({
               </div>
             ))}
           </div>
-        ) : runs.length === 0 ? (
+        ) : runs.length === 0 && waitingState.assignments.length === 0 ? (
           <div className="flex min-h-48 flex-1 flex-col items-center justify-center gap-3 text-center">
             <div
               className={cn(
@@ -372,6 +387,65 @@ export function LemmaWorkflowRunner({
                       : "py-2",
                 )}
               >
+                {showAssignedToMe && waitingState.assignments.length > 0 ? (
+                  <div className={density === "compact" ? "px-2 pb-1" : "px-3 pb-2"}>
+                    <p className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      Waiting for me
+                    </p>
+                    <div className="space-y-1">
+                      {waitingState.assignments.map((assignment) => {
+                        const run = assignment.run
+                        const runIdentifier = run.id ? String(run.id) : assignment.wait.id ?? assignment.wait.node_id
+                        const isActive = run.id === effectiveSelectedRunId
+
+                        return (
+                          <button
+                            key={`wait:${runIdentifier}`}
+                            type="button"
+                            onClick={() => {
+                              setSelectedRunId(run.id ?? null)
+                              onRunClick?.(run)
+                            }}
+                            className={cn(
+                              "flex w-full items-center gap-3 text-left transition-colors",
+                              isActive ? "bg-amber-500/10" : "hover:bg-amber-500/5",
+                              density === "compact"
+                                ? "px-2 py-1.5"
+                                : density === "spacious"
+                                  ? "px-4 py-3"
+                                  : "px-3 py-2",
+                              workflowRadiusClassName(radius, "control"),
+                            )}
+                          >
+                            <span className="flex size-7 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                              <Clock className="size-3.5" />
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {labelForWait(assignment, trimmedWorkflowName)}
+                              </p>
+                              <div className="mt-0.5 flex items-center gap-2">
+                                <span className={stepStatusClasses("waiting")}>waiting</span>
+                                {assignment.wait.created_at ? (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {formatTimestamp(assignment.wait.created_at)}
+                                  </span>
+                                ) : null}
+                              </div>
+                            </div>
+                            <ChevronRight
+                              className={cn(
+                                "size-3.5 shrink-0 text-muted-foreground",
+                                isActive && "text-foreground",
+                              )}
+                            />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+
                 {runs.map((run) => {
                   const status = toRunStatus(run.status)
                   const runIdentifier = run.id ? String(run.id) : "current"
@@ -618,6 +692,15 @@ function labelForRun(run: FlowRun, workflowName?: string): string {
     return `${workflowName || "Run"} ${suffix}`
   }
   return workflowName || "Workflow run"
+}
+
+function labelForWait(assignment: WorkflowRunWait, workflowName?: string): string {
+  const node = assignment.wait.node_id
+  const runId = assignment.run.id
+  const suffix = runId ? (runId.length > 8 ? runId.slice(0, 8) : runId) : null
+  if (node && suffix) return `${workflowName || "Workflow"} ${suffix} · ${node}`
+  if (node) return `${workflowName || "Workflow"} · ${node}`
+  return workflowName || "Waiting workflow run"
 }
 
 function runStatusIcon(status: WorkflowRunStatus): React.ReactNode {

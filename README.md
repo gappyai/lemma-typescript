@@ -43,7 +43,7 @@ const tables = await client.tables.list();
 const records = await client.records.list("tickets");
 ```
 
-Pod-scoped namespaces include `tables`, `records`, `agents`, `conversations`, `workflows`, `functions`, `files`, `desks`, `integrations`, `resources`, and `datastore`. New runtime code should use agents plus conversations.
+Pod-scoped namespaces include `tables`, `records`, `agents`, `conversations`, `workflows`, `schedules`, `functions`, `files`, `desks`, `integrations`, `resources`, and `datastore`. New runtime code should use agents plus conversations.
 
 Org and user surfaces include `users`, `organizations`, `pods`, `podMembers`, `podJoinRequests`, and `podSurfaces`.
 
@@ -79,10 +79,11 @@ import {
 | Files | `useFiles`, `useFile`, `useUploadFile`, `useUpdateFile`, `useDeleteFile`, `useCreateFolder`, `useFileSearch`, `useFileTree`, `useFilePreview`, `useGlobalSearch` | Stable | Browse private or pod folders, mutate file state, search indexed files, load directory trees, preview content, and compose multi-source desk search. |
 | Conversations | `useConversations`, `useConversation`, `useConversationMessages`, `useAssistantSession`, `useAssistantRuntime`, `useAssistantController` | Stable except controller/runtime | Build custom chat, conversation lists, streaming output, and final-answer views for default assistant conversations or named agents. |
 | Agents | `useAgentInputSchema` | Stable | Inspect structured input/output schemas for named agents. Agent execution goes through conversations. |
-| Workflows | `useWorkflowStart`, `useWorkflowRun`, `useWorkflowRuns`, `useWorkflowResume` | Stable | Start, poll, resume, cancel, retry, and inspect workflow runs. |
+| Workflows | `useWorkflowStart`, `useWorkflowRun`, `useWorkflowRuns`, `useWorkflowRunWaitAssignments`, `useWorkflowResume` | Stable | Start, poll, resume, cancel, retry, inspect workflow runs, and show human form waits assigned to the current pod member. |
+| Schedules | `useSchedules`, `useCreateSchedule`, `useUpdateSchedule`, `useDeleteSchedule` | Stable | Schedule workflows or agents on time, webhook, datastore, or application-trigger events. |
 | Workflow compatibility | `useFlowSession`, `useFlowRunHistory` | Deprecated naming | Kept for existing callers; prefer workflow-named hooks for new code. |
 | Functions | `useFunctionRun`, `useFunctionRuns`, `useFunctionSession` | Stable except raw session | Run functions, poll function runs, and list function history. |
-| Members and org | `useMembers`, `useAddPodMember`, `useUpdatePodMemberRole`, `useRemovePodMember`, `useOrganizationMembers` | Stable | Read pod and organization members, add existing org members into a pod, update pod roles, and remove pod access. The current checked-in client does not yet expose direct email-to-pod invites. |
+| Members and org | `useMembers`, `useAddPodMember`, `useUpdatePodMemberRole`, `useRemovePodMember`, `useOrganizationMembers` | Stable | Read pod and organization members, add existing org members into a pod, look up pod members by user id or email, update pod-member roles, and remove pod access. The current checked-in client does not yet expose direct email-to-pod invites. |
 
 ### Headless Helpers
 
@@ -457,6 +458,12 @@ From `0.2.37` onward:
 - Agent APIs are the runtime abstraction. `client.assistants` is removed; use `client.agents` for definitions and `client.conversations` for turns/messages.
 - Conversations are pod-scoped under the agent conversation API; message sends stream conversation events until final output.
 - File APIs are namespace-aware. Shared pod files are the default for backwards-compatible file workspaces; pass `namespace: "PRIVATE"` for personal file input/upload flows and `namespace: "POD"` when you want to be explicit. The live OpenAPI currently names the private namespace `PERSONAL`; the SDK accepts `PRIVATE` as the product-facing alias.
+
+From `0.2.39` onward:
+
+- Workflow install/trigger APIs moved to `client.schedules`; create schedules with `workflow_name` or `agent_name` plus `schedule_type`.
+- Human form nodes can assign waits to a pod member id. Use `useWorkflowRunWaitAssignments` or `client.workflows.runs.waitingAssignedToMe()` to show work waiting for the signed-in member.
+- Pod member role updates, lookup, and removal use `pod_member_id`. Use `client.podMembers.lookupByUserId(...)` or `lookupByEmail(...)` when starting from user identity.
 
 ## Local Development
 

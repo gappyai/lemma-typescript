@@ -2,20 +2,47 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FlowInstallResponse } from '../models/FlowInstallResponse.js';
 import type { FlowResponse } from '../models/FlowResponse.js';
 import type { FlowRunEntity } from '../models/FlowRunEntity.js';
 import type { WorkflowCreateRequest } from '../models/WorkflowCreateRequest.js';
 import type { WorkflowGraphUpdateRequest } from '../models/WorkflowGraphUpdateRequest.js';
-import type { WorkflowInstallListResponse } from '../models/WorkflowInstallListResponse.js';
-import type { WorkflowInstallRequest } from '../models/WorkflowInstallRequest.js';
 import type { WorkflowListResponse } from '../models/WorkflowListResponse.js';
 import type { WorkflowRunListResponse } from '../models/WorkflowRunListResponse.js';
+import type { WorkflowRunWaitAssignmentListResponse } from '../models/WorkflowRunWaitAssignmentListResponse.js';
 import type { WorkflowUpdateRequest } from '../models/WorkflowUpdateRequest.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
 export class WorkflowsService {
+    /**
+     * List Workflow Runs Waiting For Current User
+     * List active human form waits assigned to the current pod member.
+     * @param podId
+     * @param limit
+     * @param pageToken
+     * @returns WorkflowRunWaitAssignmentListResponse Successful Response
+     * @throws ApiError
+     */
+    public static workflowRunWaitingAssignedToMe(
+        podId: string,
+        limit: number = 100,
+        pageToken?: (string | null),
+    ): CancelablePromise<WorkflowRunWaitAssignmentListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/workflow-runs/waiting/assigned-to-me',
+            path: {
+                'pod_id': podId,
+            },
+            query: {
+                'limit': limit,
+                'page_token': pageToken,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
     /**
      * Get Workflow Run
      * Get current state, context, and step history of a workflow run.
@@ -228,7 +255,7 @@ export class WorkflowsService {
     }
     /**
      * Update Workflow Metadata
-     * Update workflow-level metadata such as description/install mode. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
+     * Update workflow-level metadata such as description and schedule mode. Workflow names are immutable after creation. Use `workflow.graph.update` for nodes and edges.
      * @param podId
      * @param workflowName
      * @param requestBody
@@ -277,85 +304,6 @@ export class WorkflowsService {
             },
             body: requestBody,
             mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Install Workflow
-     * Install a workflow for runtime execution. Provide `account_id` when the workflow needs an integration account binding, and provide `schedule` when installing a scheduled workflow.
-     * @param podId
-     * @param workflowName
-     * @param requestBody
-     * @returns FlowInstallResponse Successful Response
-     * @throws ApiError
-     */
-    public static workflowInstallCreate(
-        podId: string,
-        workflowName: string,
-        requestBody: WorkflowInstallRequest,
-    ): CancelablePromise<FlowInstallResponse> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/pods/{pod_id}/workflows/{workflow_name}/install',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * List Workflow Installs
-     * List workflow installations visible to the current user. `GLOBAL` workflows return the pod-level install; `USER` workflows return the current user's install.
-     * @param podId
-     * @param workflowName
-     * @returns WorkflowInstallListResponse Successful Response
-     * @throws ApiError
-     */
-    public static workflowInstallList(
-        podId: string,
-        workflowName: string,
-    ): CancelablePromise<WorkflowInstallListResponse> {
-        return __request(OpenAPI, {
-            method: 'GET',
-            url: '/pods/{pod_id}/workflows/{workflow_name}/installs',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-            },
-            errors: {
-                422: `Validation Error`,
-            },
-        });
-    }
-    /**
-     * Uninstall Workflow
-     * Remove a previously created workflow installation binding.
-     * @param podId
-     * @param workflowName
-     * @param installId
-     * @returns void
-     * @throws ApiError
-     */
-    public static workflowInstallDelete(
-        podId: string,
-        workflowName: string,
-        installId: string,
-    ): CancelablePromise<void> {
-        return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/pods/{pod_id}/workflows/{workflow_name}/installs/{install_id}',
-            path: {
-                'pod_id': podId,
-                'workflow_name': workflowName,
-                'install_id': installId,
-            },
             errors: {
                 422: `Validation Error`,
             },
