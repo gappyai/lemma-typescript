@@ -1,9 +1,28 @@
 import type { HttpClient } from "../http.js";
-import type { FileUploadResponse } from "../openapi_client/models/FileUploadResponse.js";
-import type { ResourceFileListResponse } from "../openapi_client/models/ResourceFileListResponse.js";
-import type { ResourceType as OpenApiResourceType } from "../openapi_client/models/ResourceType.js";
 
-export type ResourceType = `${OpenApiResourceType}`;
+export type ResourceType = "pod" | "conversation" | (string & {});
+
+export interface ResourceFileInfo {
+  created?: string | null;
+  last_modified?: string | null;
+  name: string;
+  path: string;
+  size?: number | null;
+  type: "file" | "directory" | (string & {});
+}
+
+export interface ResourceFileListResponse {
+  items: ResourceFileInfo[];
+  limit: number;
+  next_page_token?: string | null;
+}
+
+export interface ResourceFileUploadResponse {
+  file_name: string;
+  message: string;
+  path: string;
+  success: boolean;
+}
 
 export class ResourcesNamespace {
   constructor(private readonly http: HttpClient) {}
@@ -27,12 +46,12 @@ export class ResourcesNamespace {
     resourceId: string,
     file: Blob,
     options: { path?: string; name?: string } = {},
-  ): Promise<FileUploadResponse> {
+  ): Promise<ResourceFileUploadResponse> {
     const formData = new FormData();
     const name = options.name ?? (file instanceof File ? file.name : "upload.bin");
     formData.append("file", file, name);
 
-    return this.http.request<FileUploadResponse>("POST", `/files/${resourceType}/${resourceId}/upload`, {
+    return this.http.request<ResourceFileUploadResponse>("POST", `/files/${resourceType}/${resourceId}/upload`, {
       params: {
         path: options.path,
       },

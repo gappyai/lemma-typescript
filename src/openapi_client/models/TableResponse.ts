@@ -16,5 +16,7 @@ export type TableResponse = {
     pod_id: string;
     primary_key_column: string;
     updated_at: string;
+    visibility?: string;
+    visibility_roles?: Array<string>;
 };
 

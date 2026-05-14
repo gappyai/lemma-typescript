@@ -5,6 +5,7 @@
 import type { AgentModelName } from './AgentModelName.js';
 export type CreateConversationRequest = {
     agent_name?: (string | null);
+    instructions?: (string | null);
     model_name?: (AgentModelName | null);
     parent_id?: (string | null);
     title?: (string | null);

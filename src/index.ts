@@ -106,7 +106,13 @@ export type { PodMembersNamespace } from "./namespaces/pod-members.js";
 export type { PodsNamespace } from "./namespaces/pods.js";
 export type { PodSurfacesNamespace } from "./namespaces/pod-surfaces.js";
 export type { RecordsNamespace } from "./namespaces/records.js";
-export type { ResourceType, ResourcesNamespace } from "./namespaces/resources.js";
+export type {
+  ResourceFileInfo,
+  ResourceFileListResponse,
+  ResourceFileUploadResponse,
+  ResourceType,
+  ResourcesNamespace,
+} from "./namespaces/resources.js";
 export type { ScheduleListOptions, SchedulesNamespace } from "./namespaces/schedules.js";
 export type { TablesNamespace } from "./namespaces/tables.js";
 export type { UsersNamespace } from "./namespaces/users.js";

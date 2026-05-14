@@ -75,6 +75,13 @@ export interface AssistantAction {
 export interface UseAssistantControllerOptions extends AssistantConversationScope {
   client: LemmaClient;
   enabled?: boolean;
+  instructions?: string | null;
+}
+
+export interface SendAssistantControllerMessageOptions {
+  forceNewConversation?: boolean;
+  metadata?: Record<string, unknown> | null;
+  instructions?: string | null;
 }
 
 export interface UseAssistantControllerResult {
@@ -96,7 +103,7 @@ export interface UseAssistantControllerResult {
   completedActions: AssistantAction[];
   selectConversation: (conversationId: string | null) => void;
   setConversationModel: (model: ConversationModel | null) => Promise<void>;
-  sendMessage: (content: string, options?: { forceNewConversation?: boolean }) => Promise<void>;
+  sendMessage: (content: string, options?: SendAssistantControllerMessageOptions) => Promise<void>;
   uploadFiles: (files: File[], options?: { deferUntilSend?: boolean }) => Promise<void>;
   removePendingFile: (fileKey: string) => void;
   clearPendingFiles: () => void;
@@ -781,6 +788,7 @@ export function useAssistantController({
   assistantId,
   organizationId,
   enabled = true,
+  instructions,
 }: UseAssistantControllerOptions): UseAssistantControllerResult {
   const [localError, setLocalError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -836,6 +844,7 @@ export function useAssistantController({
     assistantName: scope.assistantName ?? undefined,
     assistantId: scope.assistantId ?? undefined,
     organizationId: scope.organizationId ?? undefined,
+    instructions,
     conversationId: activeConversationId ?? undefined,
     autoLoad: false,
     onError: handleAssistantSessionError,
@@ -1247,7 +1256,10 @@ export function useAssistantController({
     resetConversationState(false);
   }, [resetConversationState]);
 
-  const ensureConversation = useCallback(async (titleSeed: string): Promise<string> => {
+  const ensureConversation = useCallback(async (
+    titleSeed: string,
+    options: { instructions?: string | null } = {},
+  ): Promise<string> => {
     const existingConversationId = activeConversationIdRef.current;
     if (existingConversationId) {
       return existingConversationId;
@@ -1255,6 +1267,7 @@ export function useAssistantController({
 
     const createdConversation = await sessionCreateConversation({
       title: titleSeed.slice(0, 120),
+      instructions: typeof options.instructions === "undefined" ? instructions : options.instructions,
       model: conversationModel as unknown as never,
       ...scope,
     });
@@ -1274,7 +1287,7 @@ export function useAssistantController({
     setOlderMessagesCursor(null);
 
     return createdConversation.id;
-  }, [clearRuntimeMessages, conversationModel, scope, sessionCreateConversation]);
+  }, [clearRuntimeMessages, conversationModel, instructions, scope, sessionCreateConversation]);
 
   const queuePendingFiles = useCallback((files: File[]) => {
     if (files.length === 0) return;
@@ -1294,10 +1307,10 @@ export function useAssistantController({
     setPendingFiles([]);
   }, []);
 
-  const sendMessage = useCallback(async (content: string, options?: { forceNewConversation?: boolean }) => {
+  const sendMessage = useCallback(async (content: string, options: SendAssistantControllerMessageOptions = {}) => {
     const trimmed = content.trim();
     if (!enabled || !trimmed || isStreaming || sessionIsStreaming) return;
-    const forceNewConversation = options?.forceNewConversation === true;
+    const forceNewConversation = options.forceNewConversation === true;
 
     setLocalError(null);
     if (forceNewConversation) {
@@ -1307,7 +1320,7 @@ export function useAssistantController({
     let conversationId = forceNewConversation ? null : activeConversationId;
     try {
       if (!conversationId) {
-        conversationId = await ensureConversation(trimmed);
+        conversationId = await ensureConversation(trimmed, { instructions: options.instructions });
       }
       if (!conversationId) {
         throw new Error("Conversation could not be initialized");
@@ -1336,6 +1349,7 @@ export function useAssistantController({
       touchConversation(finalConversationId, { status: "running" as Conversation["status"] });
       await sessionSendMessage(messageContent, {
         conversationId: finalConversationId,
+        metadata: options.metadata ?? undefined,
       });
       touchConversation(finalConversationId, { updated_at: new Date().toISOString() });
     } catch (err) {

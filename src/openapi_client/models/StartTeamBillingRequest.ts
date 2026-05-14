@@ -2,7 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export enum ResourceType {
-    POD = 'pod',
-    CONVERSATION = 'conversation',
-}
+/**
+ * Request to start monthly-invoiced team billing.
+ */
+export type StartTeamBillingRequest = {
+    plan_id: string;
+};
+

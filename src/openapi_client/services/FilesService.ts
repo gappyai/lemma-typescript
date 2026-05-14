@@ -30,7 +30,7 @@ export class FilesService {
     public static fileList(
         podId: string,
         directoryPath: string = '/',
-        namespace: FileNamespace = FileNamespace.PERSONAL,
+        namespace?: (FileNamespace | null),
         limit: number = 100,
         pageToken?: (string | null),
     ): CancelablePromise<FileListResponse> {
@@ -86,7 +86,7 @@ export class FilesService {
     public static fileDelete(
         podId: string,
         path: string,
-        namespace: FileNamespace = FileNamespace.PERSONAL,
+        namespace?: (FileNamespace | null),
     ): CancelablePromise<DatastoreMessageResponse> {
         return __request(OpenAPI, {
             method: 'DELETE',
@@ -114,7 +114,7 @@ export class FilesService {
     public static fileGet(
         podId: string,
         path: string,
-        namespace: FileNamespace = FileNamespace.PERSONAL,
+        namespace?: (FileNamespace | null),
     ): CancelablePromise<FileResponse> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -166,7 +166,7 @@ export class FilesService {
     public static fileConvertedGet(
         podId: string,
         path: string,
-        namespace: FileNamespace = FileNamespace.PERSONAL,
+        namespace?: (FileNamespace | null),
     ): CancelablePromise<ConvertedFileResponse> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -189,15 +189,15 @@ export class FilesService {
      * @param path
      * @param artifact
      * @param namespace
-     * @returns any Successful Response
+     * @returns binary File bytes
      * @throws ApiError
      */
     public static fileConvertedDownload(
         podId: string,
         path: string,
         artifact: string = 'document.md',
-        namespace: FileNamespace = FileNamespace.PERSONAL,
-    ): CancelablePromise<any> {
+        namespace?: (FileNamespace | null),
+    ): CancelablePromise<Blob> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/download',
@@ -219,14 +219,14 @@ export class FilesService {
      * @param podId
      * @param path
      * @param namespace
-     * @returns any Successful Response
+     * @returns string Rendered HTML
      * @throws ApiError
      */
     public static fileConvertedRender(
         podId: string,
         path: string,
-        namespace: FileNamespace = FileNamespace.PERSONAL,
-    ): CancelablePromise<any> {
+        namespace?: (FileNamespace | null),
+    ): CancelablePromise<string> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/render',
@@ -247,14 +247,14 @@ export class FilesService {
      * @param podId
      * @param path
      * @param namespace
-     * @returns any Successful Response
+     * @returns binary File bytes
      * @throws ApiError
      */
     public static fileDownload(
         podId: string,
         path: string,
-        namespace: FileNamespace = FileNamespace.PERSONAL,
-    ): CancelablePromise<any> {
+        namespace?: (FileNamespace | null),
+    ): CancelablePromise<Blob> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/download',

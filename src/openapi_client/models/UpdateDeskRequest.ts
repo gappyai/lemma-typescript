@@ -5,5 +5,7 @@
 export type UpdateDeskRequest = {
     description?: (string | null);
     public_slug?: (string | null);
+    visibility?: (string | null);
+    visibility_roles?: (Array<string> | null);
 };
 

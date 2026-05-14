@@ -27,5 +27,6 @@ export type CreateTableRequest = {
      * Primary key column name. If not `id`, it must also be declared in `columns`.
      */
     primary_key_column?: string;
+    visibility_roles?: (Array<string> | null);
 };
 

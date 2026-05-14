@@ -28,5 +28,6 @@ export type WorkflowCreateRequest = {
      * Start configuration. If omitted, the workflow can be started manually via `workflow.start`.
      */
     start?: ((ManualWorkflowStartInput | ScheduledWorkflowStartInput | EventWorkflowStartInput | DataStoreWorkflowStartInput) | null);
+    visibility_roles?: (Array<string> | null);
 };
 

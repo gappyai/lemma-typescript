@@ -11,6 +11,7 @@ export type UpdateScheduleRequest = {
     filter_instruction?: (string | null);
     filter_output_schema?: (Record<string, any> | null);
     is_active?: (boolean | null);
+    visibility_roles?: (Array<string> | null);
     workflow_name?: (string | null);
 };
 

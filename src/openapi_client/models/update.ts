@@ -10,5 +10,7 @@ export type update = {
     new_path?: (string | null);
     path: string;
     search_enabled?: (boolean | null);
+    visibility?: (string | null);
+    visibility_roles?: (string | null);
 };
 

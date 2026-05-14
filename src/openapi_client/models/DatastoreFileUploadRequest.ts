@@ -10,5 +10,6 @@ export type DatastoreFileUploadRequest = {
     name?: (string | null);
     namespace?: (FileNamespace | null);
     search_enabled?: boolean;
+    visibility_roles?: (string | null);
 };
 

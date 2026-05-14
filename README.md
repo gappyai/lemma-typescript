@@ -187,12 +187,16 @@ function AgentButton({ client }: { client: LemmaClient }) {
         void (async () => {
           const thread = await conversation.createConversation({
             title: "Triage ticket ticket_123",
+            instructions: "Triage the ticket, propose the next owner, and explain the confidence level.",
             setActive: true,
           });
           await conversation.sendMessage(JSON.stringify({
             ticket_id: "ticket_123",
             prompt: "Triage this ticket.",
-          }), { conversationId: thread.id });
+          }), {
+            conversationId: thread.id,
+            metadata: { source: "support_queue", ticket_id: "ticket_123" },
+          });
         })();
       }}
     >

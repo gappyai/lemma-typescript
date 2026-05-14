@@ -45,7 +45,7 @@ export class FunctionsService {
     }
     /**
      * Create Function
-     * Create a new function in a pod
+     * Create a new function in a pod. Do not send input_schema or output_schema; the platform derives those schemas from the function code and returns them in the response.
      * @param podId
      * @param requestBody
      * @returns FunctionResponse Successful Response
@@ -118,7 +118,7 @@ export class FunctionsService {
     }
     /**
      * Update Function
-     * Update a function
+     * Update a function. When code is supplied, the platform re-derives the function input_schema and output_schema and returns the refreshed function.
      * @param podId
      * @param functionName
      * @param requestBody

@@ -61,6 +61,8 @@ export interface LemmaWorkflowActionDefinition extends BaseLemmaActionDefinition
 export interface LemmaAgentActionDefinition extends BaseLemmaActionDefinition {
   kind: "agent";
   agentName: string;
+  instructions?: string | null;
+  messageMetadata?: Record<string, unknown> | null;
 }
 
 export type LemmaActionDefinition =
@@ -779,6 +781,7 @@ export function LemmaActionSurface({
         const conversation = await agentConversation.createConversation({
           agentName: action.agentName,
           title: content ? content.slice(0, 120) : action.agentName,
+          instructions: action.instructions ?? undefined,
           setActive: true,
         });
         if (conversation.id) {
@@ -787,6 +790,7 @@ export function LemmaActionSurface({
         if (content) {
           await agentConversation.sendMessage(content, {
             conversationId: conversation.id,
+            metadata: action.messageMetadata ?? undefined,
             syncOnTurnEnd: true,
           });
         } else {
@@ -880,6 +884,7 @@ export function LemmaActionSurface({
     try {
       await agentConversation.sendMessage(agentReply.trim(), {
         conversationId: execution?.id,
+        metadata: action.messageMetadata ?? undefined,
         syncOnTurnEnd: true,
       });
       setAgentReply("");
@@ -888,7 +893,7 @@ export function LemmaActionSurface({
       setLocalError(nextMessage);
       onError?.(error, execution);
     }
-  }, [action.kind, agentConversation, agentReply, execution, onError]);
+  }, [action, agentConversation, agentReply, execution, onError]);
 
   const currentStatus = execution?.status ?? "IDLE";
   const statusText = execution?.isRunning

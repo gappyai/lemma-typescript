@@ -4,6 +4,7 @@ import type {
   AssistantAction,
   AssistantRenderableMessage,
   AssistantToolInvocation,
+  SendAssistantControllerMessageOptions,
 } from "lemma-sdk/react";
 
 export type LemmaAssistantAppearance = "default" | "minimal" | "borderless" | "contained";
@@ -41,7 +42,7 @@ export interface AssistantControllerView {
   pendingActions: AssistantAction[];
   completedActions: AssistantAction[];
   selectConversation(conversationId: string | null): void;
-  sendMessage(content: string, options?: { forceNewConversation?: boolean }): Promise<void>;
+  sendMessage(content: string, options?: SendAssistantControllerMessageOptions): Promise<void>;
   uploadFiles(files: File[], options?: { deferUntilSend?: boolean }): Promise<void>;
   removePendingFile(fileKey: string): void;
   clearPendingFiles(): void;

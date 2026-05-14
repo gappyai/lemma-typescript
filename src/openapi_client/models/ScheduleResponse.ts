@@ -22,6 +22,8 @@ export type ScheduleResponse = {
     schedule_type: ScheduleType;
     updated_at: string;
     user_id: string;
+    visibility: string;
+    visibility_roles?: Array<string>;
     workflow_id: (string | null);
     workflow_name?: (string | null);
 };

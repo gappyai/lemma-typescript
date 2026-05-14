@@ -6,7 +6,7 @@ import type { TableAccessMode } from './TableAccessMode.js';
 /**
  * Per-table access configuration for workloads.
  */
-export type app__modules__agent__domain__value_objects__TableAccessEntry = {
+export type TableAccessEntry = {
     mode?: TableAccessMode;
     table_name: string;
 };

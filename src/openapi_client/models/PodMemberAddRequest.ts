@@ -9,5 +9,6 @@ import type { PodRole } from './PodRole.js';
 export type PodMemberAddRequest = {
     organization_member_id: string;
     role: PodRole;
+    roles?: (Array<string> | null);
 };
 

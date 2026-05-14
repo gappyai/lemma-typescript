@@ -2,8 +2,10 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type PodPermissionsResponse = {
-    actions: Array<string>;
-    pod_id: string;
-};
-
+/**
+ * Billing owner scope enum.
+ */
+export enum BillingScope {
+    PERSONAL = 'personal',
+    ORGANIZATION = 'organization',
+}

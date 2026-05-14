@@ -9,6 +9,7 @@ export type UpdateTableRequest = {
     /**
      * Replacement metadata/config payload for the table.
      */
-    config: Record<string, any>;
+    config?: (Record<string, any> | null);
+    visibility_roles?: (Array<string> | null);
 };
 

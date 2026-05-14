@@ -21,5 +21,7 @@ export type FileResponse = {
     size_bytes?: number;
     status: string;
     updated_at: string;
+    visibility?: string;
+    visibility_roles?: Array<string>;
 };
 

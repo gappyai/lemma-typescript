@@ -7,6 +7,7 @@ export type ConversationResponse = {
     agent_id?: (string | null);
     created_at: string;
     id: string;
+    instructions?: (string | null);
     metadata?: (Record<string, any> | null);
     model_name?: (AgentModelName | null);
     organization_id?: (string | null);

@@ -24,5 +24,6 @@ export type WorkflowUpdateRequest = {
      * Updated start trigger configuration.
      */
     start?: ((ManualWorkflowStartInput | ScheduledWorkflowStartInput | EventWorkflowStartInput | DataStoreWorkflowStartInput) | null);
+    visibility_roles?: (Array<string> | null);
 };
 

@@ -16,5 +16,7 @@ export type DeskResponse = {
     updated_at: any;
     readonly url: string;
     user_id: string;
+    visibility?: string;
+    visibility_roles?: Array<string>;
 };
 

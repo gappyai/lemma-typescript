@@ -139,6 +139,55 @@ export class DesksService {
         });
     }
     /**
+     * Get Desk Root Asset
+     * @param podId
+     * @param deskName
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deskAssetRootGet(
+        podId: string,
+        deskName: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/desks/{desk_name}/assets',
+            path: {
+                'pod_id': podId,
+                'desk_name': deskName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Desk Asset
+     * @param podId
+     * @param deskName
+     * @param assetPath
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    public static deskAssetGet(
+        podId: string,
+        deskName: string,
+        assetPath: string,
+    ): CancelablePromise<any> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/desks/{desk_name}/assets/{asset_path}',
+            path: {
+                'pod_id': podId,
+                'desk_name': deskName,
+                'asset_path': assetPath,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Upload Desk Bundle
      * @param podId
      * @param deskName
@@ -169,13 +218,13 @@ export class DesksService {
      * Download Desk Dist Archive
      * @param podId
      * @param deskName
-     * @returns any Successful Response
+     * @returns binary Zip archive bytes
      * @throws ApiError
      */
     public static deskDistArchiveGet(
         podId: string,
         deskName: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<Blob> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/desks/{desk_name}/dist/archive',
@@ -192,13 +241,13 @@ export class DesksService {
      * Download Desk Source Archive
      * @param podId
      * @param deskName
-     * @returns any Successful Response
+     * @returns binary Zip archive bytes
      * @throws ApiError
      */
     public static deskSourceArchiveGet(
         podId: string,
         deskName: string,
-    ): CancelablePromise<any> {
+    ): CancelablePromise<Blob> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/desks/{desk_name}/source/archive',

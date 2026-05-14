@@ -6,9 +6,9 @@ import type { BillingScope } from './BillingScope.js';
 import type { PlanResponse } from './PlanResponse.js';
 import type { SubscriptionStatus } from './SubscriptionStatus.js';
 /**
- * Subscription response with plan details.
+ * Response schema for a subscription.
  */
-export type SubscriptionWithPlanResponse = {
+export type SubscriptionResponse = {
     billing_scope: BillingScope;
     cancel_at_period_end: boolean;
     created_at: string;
@@ -17,7 +17,7 @@ export type SubscriptionWithPlanResponse = {
     dodo_subscription_id: (string | null);
     id: string;
     organization_id: (string | null);
-    plan: PlanResponse;
+    plan?: (PlanResponse | null);
     plan_id: string;
     seat_count: number;
     status: SubscriptionStatus;

@@ -174,6 +174,7 @@ export type {
   AssistantMessagePart,
   AssistantRenderableMessage,
   AssistantToolInvocation,
+  SendAssistantControllerMessageOptions,
   UseAssistantControllerOptions,
   UseAssistantControllerResult,
 } from "./useAssistantController.js";

@@ -191,4 +191,32 @@ export class PodMembersService {
             },
         });
     }
+    /**
+     * Update Member Roles
+     * Update a pod member's roles
+     * @param podId
+     * @param podMemberId
+     * @param requestBody
+     * @returns PodMemberResponse Successful Response
+     * @throws ApiError
+     */
+    public static podMemberUpdateRoles(
+        podId: string,
+        podMemberId: string,
+        requestBody: PodMemberUpdateRoleRequest,
+    ): CancelablePromise<PodMemberResponse> {
+        return __request(OpenAPI, {
+            method: 'PATCH',
+            url: '/pods/{pod_id}/members/{pod_member_id}/roles',
+            path: {
+                'pod_id': podId,
+                'pod_member_id': podMemberId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
 }

@@ -9,5 +9,7 @@ export type CreateFolderRequest = {
     namespace?: (FileNamespace | null);
     parent_id?: (string | null);
     path?: (string | null);
+    visibility?: (string | null);
+    visibility_roles?: (Array<string> | null);
 };
 

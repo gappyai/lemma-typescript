@@ -11,6 +11,7 @@ export type PodMemberResponse = {
     email: string;
     pod_member_id: string;
     role: PodRole;
+    roles?: Array<string>;
     updated_at: string;
     user_email: string;
     user_id: string;

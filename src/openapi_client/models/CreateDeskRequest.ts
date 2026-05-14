@@ -6,5 +6,6 @@ export type CreateDeskRequest = {
     description?: (string | null);
     name: string;
     public_slug?: (string | null);
+    visibility_roles?: (Array<string> | null);
 };
 

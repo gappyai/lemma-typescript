@@ -7,6 +7,7 @@ import type { PodRole } from './PodRole.js';
  * Pod member role update request schema.
  */
 export type PodMemberUpdateRoleRequest = {
-    role: PodRole;
+    role?: (PodRole | null);
+    roles?: (Array<string> | null);
 };
 

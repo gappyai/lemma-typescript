@@ -14,6 +14,7 @@ export type CreateScheduleRequest = {
     filter_instruction?: (string | null);
     filter_output_schema?: (Record<string, any> | null);
     schedule_type: ScheduleType;
+    visibility_roles?: (Array<string> | null);
     workflow_name?: (string | null);
 };
 

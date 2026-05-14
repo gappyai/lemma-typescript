@@ -4,13 +4,13 @@
 /* eslint-disable */
 import type { AgentModelName } from './AgentModelName.js';
 import type { AgentToolset } from './AgentToolset.js';
-import type { app__modules__agent__domain__value_objects__TableAccessEntry } from './app__modules__agent__domain__value_objects__TableAccessEntry.js';
 import type { ApplicationAccessConfig } from './ApplicationAccessConfig.js';
 import type { HarnessKind } from './HarnessKind.js';
+import type { TableAccessEntry } from './TableAccessEntry.js';
 export type AgentResponse = {
     accessible_applications?: Array<ApplicationAccessConfig>;
     accessible_folders?: Array<string>;
-    accessible_tables?: Array<app__modules__agent__domain__value_objects__TableAccessEntry>;
+    accessible_tables?: Array<TableAccessEntry>;
     agent_names?: Array<string>;
     created_at: string;
     description?: (string | null);
@@ -29,5 +29,6 @@ export type AgentResponse = {
     updated_at: string;
     user_id: string;
     visibility?: string;
+    visibility_roles?: Array<string>;
 };
 

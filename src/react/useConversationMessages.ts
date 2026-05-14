@@ -29,6 +29,7 @@ export interface UseConversationMessagesOptions {
    */
   assistantId?: string;
   organizationId?: string;
+  instructions?: string | null;
   conversationId?: string | null;
   enabled?: boolean;
   autoLoad?: boolean;
@@ -95,6 +96,7 @@ export function useConversationMessages({
   assistantName,
   assistantId,
   organizationId,
+  instructions,
   conversationId = null,
   enabled = true,
   autoLoad = true,
@@ -136,6 +138,7 @@ export function useConversationMessages({
     assistantName,
     assistantId,
     organizationId,
+    instructions,
     conversationId: conversationId ?? undefined,
     autoLoad: false,
     autoResume: false,

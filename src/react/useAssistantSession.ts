@@ -41,6 +41,7 @@ export interface UseAssistantSessionOptions {
    */
   assistantId?: string;
   organizationId?: string;
+  instructions?: string | null;
   conversationId?: string | null;
   autoLoad?: boolean;
   autoResume?: boolean;
@@ -53,6 +54,7 @@ export interface UseAssistantSessionOptions {
 
 export interface CreateConversationInput {
   title?: string | null;
+  instructions?: string | null;
   model?: ConversationModel | null;
   podId?: string | null;
   agentName?: string | null;
@@ -70,6 +72,7 @@ export interface CreateConversationInput {
 
 export interface SendAssistantMessageOptions {
   conversationId?: string | null;
+  metadata?: Record<string, unknown> | null;
   syncOnTurnEnd?: boolean;
 }
 
@@ -182,6 +185,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     assistantName: defaultAssistantName,
     assistantId: defaultAssistantId,
     organizationId: defaultOrganizationId,
+    instructions: defaultInstructions,
     conversationId: externalConversationId = null,
     autoLoad = true,
     autoResume = false,
@@ -358,6 +362,9 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
 
       const payload = {
         title: input.title ?? undefined,
+        instructions: typeof input.instructions === "undefined"
+          ? defaultInstructions ?? undefined
+          : input.instructions,
         pod_id: input.podId ?? defaultPodId ?? scopedClient.podId ?? undefined,
         agent_name: input.agentName
           ?? input.assistantName
@@ -395,6 +402,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
     defaultAgentName,
     defaultAssistantId,
     defaultAssistantName,
+    defaultInstructions,
     defaultPodId,
     setConversationStatus,
   ]);
@@ -594,7 +602,7 @@ export function useAssistantSession(options: UseAssistantSessionOptions): UseAss
 
       const stream = await scopedClient.conversations.sendMessageStream(
         resolvedConversationId,
-        { content },
+        { content, metadata: input.metadata ?? undefined },
         {
           pod_id: scope.podId ?? undefined,
           signal: controller.signal,

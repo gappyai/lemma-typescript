@@ -28,5 +28,7 @@ export type FlowResponse = {
     pod_id: string;
     start?: ((ManualWorkflowStartOutput | ScheduledWorkflowStartOutput | EventWorkflowStartOutput | DataStoreWorkflowStartOutput) | null);
     updated_at?: (string | null);
+    visibility?: string;
+    visibility_roles?: Array<string>;
 };
 

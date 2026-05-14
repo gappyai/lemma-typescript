@@ -1913,6 +1913,48 @@ class DesksService {
         });
     }
     /**
+     * Get Desk Root Asset
+     * @param podId
+     * @param deskName
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static deskAssetRootGet(podId, deskName) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/desks/{desk_name}/assets',
+            path: {
+                'pod_id': podId,
+                'desk_name': deskName,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Get Desk Asset
+     * @param podId
+     * @param deskName
+     * @param assetPath
+     * @returns any Successful Response
+     * @throws ApiError
+     */
+    static deskAssetGet(podId, deskName, assetPath) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/desks/{desk_name}/assets/{asset_path}',
+            path: {
+                'pod_id': podId,
+                'desk_name': deskName,
+                'asset_path': assetPath,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
      * Upload Desk Bundle
      * @param podId
      * @param deskName
@@ -1939,7 +1981,7 @@ class DesksService {
      * Download Desk Dist Archive
      * @param podId
      * @param deskName
-     * @returns any Successful Response
+     * @returns binary Zip archive bytes
      * @throws ApiError
      */
     static deskDistArchiveGet(podId, deskName) {
@@ -1959,7 +2001,7 @@ class DesksService {
      * Download Desk Source Archive
      * @param podId
      * @param deskName
-     * @returns any Successful Response
+     * @returns binary Zip archive bytes
      * @throws ApiError
      */
     static deskSourceArchiveGet(podId, deskName) {
@@ -2156,7 +2198,7 @@ class FilesService {
      * @returns FileListResponse Successful Response
      * @throws ApiError
      */
-    static fileList(podId, directoryPath = '/', namespace = FileNamespace_js_1.FileNamespace.PERSONAL, limit = 100, pageToken) {
+    static fileList(podId, directoryPath = '/', namespace, limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files',
@@ -2203,7 +2245,7 @@ class FilesService {
      * @returns DatastoreMessageResponse Successful Response
      * @throws ApiError
      */
-    static fileDelete(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
+    static fileDelete(podId, path, namespace) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'DELETE',
             url: '/pods/{pod_id}/datastore/files/by-path',
@@ -2227,7 +2269,7 @@ class FilesService {
      * @returns FileResponse Successful Response
      * @throws ApiError
      */
-    static fileGet(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
+    static fileGet(podId, path, namespace) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/by-path',
@@ -2272,7 +2314,7 @@ class FilesService {
      * @returns ConvertedFileResponse Successful Response
      * @throws ApiError
      */
-    static fileConvertedGet(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
+    static fileConvertedGet(podId, path, namespace) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/by-path',
@@ -2294,10 +2336,10 @@ class FilesService {
      * @param path
      * @param artifact
      * @param namespace
-     * @returns any Successful Response
+     * @returns binary File bytes
      * @throws ApiError
      */
-    static fileConvertedDownload(podId, path, artifact = 'document.md', namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
+    static fileConvertedDownload(podId, path, artifact = 'document.md', namespace) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/download',
@@ -2319,10 +2361,10 @@ class FilesService {
      * @param podId
      * @param path
      * @param namespace
-     * @returns any Successful Response
+     * @returns string Rendered HTML
      * @throws ApiError
      */
-    static fileConvertedRender(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
+    static fileConvertedRender(podId, path, namespace) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/render',
@@ -2343,10 +2385,10 @@ class FilesService {
      * @param podId
      * @param path
      * @param namespace
-     * @returns any Successful Response
+     * @returns binary File bytes
      * @throws ApiError
      */
-    static fileDownload(podId, path, namespace = FileNamespace_js_1.FileNamespace.PERSONAL) {
+    static fileDownload(podId, path, namespace) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/download',
@@ -2505,7 +2547,7 @@ class FunctionsService {
     }
     /**
      * Create Function
-     * Create a new function in a pod
+     * Create a new function in a pod. Do not send input_schema or output_schema; the platform derives those schemas from the function code and returns them in the response.
      * @param podId
      * @param requestBody
      * @returns FunctionResponse Successful Response
@@ -2569,7 +2611,7 @@ class FunctionsService {
     }
     /**
      * Update Function
-     * Update a function
+     * Update a function. When code is supplied, the platform re-derives the function input_schema and output_schema and returns the refreshed function.
      * @param podId
      * @param functionName
      * @param requestBody
@@ -3765,6 +3807,30 @@ class PodMembersService {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'PATCH',
             url: '/pods/{pod_id}/members/{pod_member_id}/role',
+            path: {
+                'pod_id': podId,
+                'pod_member_id': podMemberId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Update Member Roles
+     * Update a pod member's roles
+     * @param podId
+     * @param podMemberId
+     * @param requestBody
+     * @returns PodMemberResponse Successful Response
+     * @throws ApiError
+     */
+    static podMemberUpdateRoles(podId, podMemberId, requestBody) {
+        return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
+            method: 'PATCH',
+            url: '/pods/{pod_id}/members/{pod_member_id}/roles',
             path: {
                 'pod_id': podId,
                 'pod_member_id': podMemberId,
