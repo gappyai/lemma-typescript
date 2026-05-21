@@ -14,7 +14,7 @@ export type CreateAgentRequest = {
     agent_names?: Array<string>;
     description?: (string | null);
     function_names?: Array<string>;
-    harness_kind?: HarnessKind;
+    harness_kind?: (HarnessKind | null);
     icon_url?: (string | null);
     input_schema?: (Record<string, any> | null);
     instruction: string;

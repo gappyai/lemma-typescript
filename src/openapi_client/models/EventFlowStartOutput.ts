@@ -11,14 +11,6 @@ export type EventFlowStartOutput = {
      * Integration trigger identifier to subscribe to.
      */
     application_trigger_id: string;
-    /**
-     * Optional LLM filter instruction executed before flow continuation.
-     */
-    filter_instruction?: (string | null);
-    /**
-     * Optional expected schema for filter output.
-     */
-    filter_output_schema?: (Record<string, any> | null);
     trigger_config?: Record<string, any>;
 };
 

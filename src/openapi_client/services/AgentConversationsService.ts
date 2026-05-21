@@ -4,10 +4,15 @@
 /* eslint-disable */
 import type { ConversationListResponse } from '../models/ConversationListResponse.js';
 import type { ConversationResponse } from '../models/ConversationResponse.js';
+import type { ConversationStatus } from '../models/ConversationStatus.js';
+import type { ConversationType } from '../models/ConversationType.js';
 import type { CreateConversationRequest } from '../models/CreateConversationRequest.js';
 import type { MessageListResponse } from '../models/MessageListResponse.js';
+import type { MessageResponse } from '../models/MessageResponse.js';
+import type { ResolveUserApprovalRequest } from '../models/ResolveUserApprovalRequest.js';
 import type { SendMessageRequest } from '../models/SendMessageRequest.js';
 import type { UpdateConversationRequest } from '../models/UpdateConversationRequest.js';
+import type { UserApprovalListResponse } from '../models/UserApprovalListResponse.js';
 import type { CancelablePromise } from '../core/CancelablePromise.js';
 import { OpenAPI } from '../core/OpenAPI.js';
 import { request as __request } from '../core/request.js';
@@ -17,6 +22,8 @@ export class AgentConversationsService {
      * List root conversations for the current user in a pod. Use agent_name to list conversations for a specific pod agent; omit it to list default pod assistant conversations. Child conversations are omitted from this root list.
      * @param podId
      * @param agentName
+     * @param status
+     * @param type
      * @param pageToken
      * @param limit
      * @returns ConversationListResponse Successful Response
@@ -25,6 +32,8 @@ export class AgentConversationsService {
     public static agentConversationList(
         podId: string,
         agentName?: (string | null),
+        status?: (ConversationStatus | null),
+        type?: (ConversationType | null),
         pageToken?: (string | null),
         limit: number = 20,
     ): CancelablePromise<ConversationListResponse> {
@@ -36,6 +45,8 @@ export class AgentConversationsService {
             },
             query: {
                 'agent_name': agentName,
+                'status': status,
+                'type': type,
                 'page_token': pageToken,
                 'limit': limit,
             },
@@ -113,6 +124,61 @@ export class AgentConversationsService {
             path: {
                 'pod_id': podId,
                 'conversation_id': conversationId,
+            },
+            body: requestBody,
+            mediaType: 'application/json',
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * List Agent Run Approvals
+     * List pending user_approval tool calls in a conversation.
+     * @param podId
+     * @param conversationId
+     * @returns UserApprovalListResponse Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationApprovalList(
+        podId: string,
+        conversationId: string,
+    ): CancelablePromise<UserApprovalListResponse> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/pods/{pod_id}/conversations/{conversation_id}/approvals',
+            path: {
+                'pod_id': podId,
+                'conversation_id': conversationId,
+            },
+            errors: {
+                422: `Validation Error`,
+            },
+        });
+    }
+    /**
+     * Resolve User Approval
+     * Append a user_approval tool result and resume the live local turn.
+     * @param podId
+     * @param conversationId
+     * @param approvalId
+     * @param requestBody
+     * @returns MessageResponse Successful Response
+     * @throws ApiError
+     */
+    public static agentConversationApprovalResolve(
+        podId: string,
+        conversationId: string,
+        approvalId: string,
+        requestBody: ResolveUserApprovalRequest,
+    ): CancelablePromise<MessageResponse> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/pods/{pod_id}/conversations/{conversation_id}/approvals/{approval_id}/decision',
+            path: {
+                'pod_id': podId,
+                'conversation_id': conversationId,
+                'approval_id': approvalId,
             },
             body: requestBody,
             mediaType: 'application/json',

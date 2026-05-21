@@ -4,7 +4,6 @@ import type { ConvertedFileResponse } from "../openapi_client/models/ConvertedFi
 import type { CreateFolderRequest } from "../openapi_client/models/CreateFolderRequest.js";
 import type { DatastoreFileUploadRequest } from "../openapi_client/models/DatastoreFileUploadRequest.js";
 import type { DirectoryTreeResponse } from "../openapi_client/models/DirectoryTreeResponse.js";
-import { FileNamespace } from "../openapi_client/models/FileNamespace.js";
 import { SearchMethod } from "../openapi_client/models/SearchMethod.js";
 import type { update } from "../openapi_client/models/update.js";
 import { FilesService } from "../openapi_client/services/FilesService.js";
@@ -42,14 +41,6 @@ function getBaseName(path: string): string {
   return normalized.slice(index + 1);
 }
 
-function normalizeFileNamespace(namespace?: DatastoreFileNamespace | null): FileNamespace {
-  const normalized = String(namespace ?? "").trim().toUpperCase();
-  if (normalized === FileNamespace.PERSONAL || normalized === "PRIVATE") {
-    return FileNamespace.PERSONAL;
-  }
-  return FileNamespace.POD;
-}
-
 export class FilesNamespace {
   constructor(
     private readonly client: GeneratedClientAdapter,
@@ -68,18 +59,19 @@ export class FilesNamespace {
     return this.client.request(() => FilesService.fileList(
       this.podId(),
       directoryPath,
-      normalizeFileNamespace(options.namespace),
       options.limit ?? 100,
       options.pageToken,
     ));
   }
 
   get(path: string, options: { namespace?: DatastoreFileNamespace | null } = {}) {
-    return this.client.request(() => FilesService.fileGet(this.podId(), path, normalizeFileNamespace(options.namespace)));
+    void options;
+    return this.client.request(() => FilesService.fileGet(this.podId(), path));
   }
 
   delete(path: string, options: { namespace?: DatastoreFileNamespace | null } = {}) {
-    return this.client.request(() => FilesService.fileDelete(this.podId(), path, normalizeFileNamespace(options.namespace)));
+    void options;
+    return this.client.request(() => FilesService.fileDelete(this.podId(), path));
   }
 
   search(query: string, options: { limit?: number; searchMethod?: SearchMethod } = {}) {
@@ -91,11 +83,11 @@ export class FilesNamespace {
   }
 
   download(path: string, options: { namespace?: DatastoreFileNamespace | null } = {}): Promise<Blob> {
+    void options;
     const encodedPath = encodeURIComponent(path);
-    const encodedNamespace = encodeURIComponent(normalizeFileNamespace(options.namespace));
     return this.http.requestBytes(
       "GET",
-      `/pods/${this.podId()}/datastore/files/download?path=${encodedPath}&namespace=${encodedNamespace}`,
+      `/pods/${this.podId()}/datastore/files/download?path=${encodedPath}`,
     );
   }
 
@@ -105,12 +97,11 @@ export class FilesNamespace {
     namespace?: DatastoreFileNamespace | null;
   } = {}): Promise<DirectoryTreeResponse> {
     return this.client.request(() =>
-      FilesService.fileTree(
-        this.podId(),
-        options.rootPath ?? "/",
-        normalizeFileNamespace(options.namespace),
-        options.filesPerDirectory ?? 3,
-      ),
+        FilesService.fileTree(
+          this.podId(),
+          options.rootPath ?? "/",
+          options.filesPerDirectory ?? 3,
+        ),
     );
   }
 
@@ -131,7 +122,6 @@ export class FilesNamespace {
       description: options.description,
       directory_path: options.directoryPath ?? options.parentId ?? "/",
       search_enabled: options.searchEnabled ?? true,
-      namespace: normalizeFileNamespace(options.namespace),
     };
     return this.client.request(() => FilesService.fileUpload(this.podId(), payload));
   }
@@ -164,7 +154,6 @@ export class FilesNamespace {
       description: options.description,
       new_path: resolvedNewPath,
       search_enabled: options.searchEnabled,
-      namespace: normalizeFileNamespace(options.namespace),
     };
     return this.client.request(() => FilesService.fileUpdate(this.podId(), payload));
   }
@@ -182,7 +171,6 @@ export class FilesNamespace {
       const payload: CreateFolderRequest = {
         path: joinDatastorePath(options.directoryPath ?? options.parentId, name),
         description: options.description,
-        namespace: normalizeFileNamespace(options.namespace),
       };
       return this.client.request(() => FilesService.fileFolderCreate(this.podId(), payload));
     },
@@ -190,30 +178,28 @@ export class FilesNamespace {
 
   readonly converted = {
     get: (path: string, options: { namespace?: DatastoreFileNamespace | null } = {}): Promise<ConvertedFileResponse> =>
-      this.client.request(() => FilesService.fileConvertedGet(
-        this.podId(),
-        path,
-        normalizeFileNamespace(options.namespace),
-      )),
+      this.client.request(() => {
+        void options;
+        return FilesService.fileConvertedGet(this.podId(), path);
+      }),
 
     render: (path: string, options: { namespace?: DatastoreFileNamespace | null } = {}): Promise<string> =>
-      this.client.request(() => FilesService.fileConvertedRender(
-        this.podId(),
-        path,
-        normalizeFileNamespace(options.namespace),
-      )),
+      this.client.request(() => {
+        void options;
+        return FilesService.fileConvertedRender(this.podId(), path);
+      }),
 
     download: (
       path: string,
       artifact = "document.md",
       options: { namespace?: DatastoreFileNamespace | null } = {},
     ): Promise<Blob> => {
+      void options;
       const encodedPath = encodeURIComponent(path);
       const encodedArtifact = encodeURIComponent(artifact);
-      const encodedNamespace = encodeURIComponent(normalizeFileNamespace(options.namespace));
       return this.http.requestBytes(
         "GET",
-        `/pods/${this.podId()}/datastore/files/converted/download?path=${encodedPath}&artifact=${encodedArtifact}&namespace=${encodedNamespace}`,
+        `/pods/${this.podId()}/datastore/files/converted/download?path=${encodedPath}&artifact=${encodedArtifact}`,
       );
     },
   };

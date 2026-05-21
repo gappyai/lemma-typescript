@@ -8,5 +8,9 @@
 export type OperationSummary = {
     description?: (string | null);
     name: string;
+    /**
+     * Relative relevance for the discovery query, from 0 to 1.
+     */
+    relevance_score?: (number | null);
 };
 

@@ -8,4 +8,7 @@
 export enum HarnessKind {
     PYDANTIC_AI = 'pydantic_ai',
     PYDANTIC_DEEP = 'pydantic_deep',
+    CODEX = 'codex',
+    CLAUDE_CODE = 'claude_code',
+    OPENCODE = 'opencode',
 }

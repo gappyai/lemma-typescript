@@ -2,7 +2,6 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { FileNamespace } from './FileNamespace.js';
 export type FileResponse = {
     created_at: string;
     description: (string | null);
@@ -13,7 +12,6 @@ export type FileResponse = {
     metadata?: (Record<string, any> | null);
     mime_type?: (string | null);
     name: string;
-    namespace?: FileNamespace;
     owner_user_id?: (string | null);
     path: string;
     pod_id: string;

@@ -1605,12 +1605,11 @@ class ConversationsNamespace {
         this.messages = {
             list: (conversationId, options = {}) => {
                 const podId = this.requirePodId(options.pod_id);
-                const parsedPageToken = typeof options.page_token === "string" && options.page_token.trim().length > 0
-                    ? Number(options.page_token)
-                    : null;
                 return this.http.request("GET", `/pods/${podId}/conversations/${conversationId}/messages`, {
                     params: {
-                        after_sequence: options.after_sequence ?? (Number.isFinite(parsedPageToken) ? parsedPageToken : undefined),
+                        page_token: options.page_token,
+                        before_sequence: options.before_sequence,
+                        after_sequence: options.after_sequence,
                         limit: options.limit ?? 100,
                     },
                 }).then((response) => ({
@@ -2025,7 +2024,6 @@ exports.DesksService = DesksService;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilesNamespace = void 0;
-const FileNamespace_js_1 = require("./openapi_client/models/FileNamespace.js");
 const SearchMethod_js_1 = require("./openapi_client/models/SearchMethod.js");
 const FilesService_js_1 = require("./openapi_client/services/FilesService.js");
 function joinDatastorePath(basePath, leaf) {
@@ -2057,13 +2055,6 @@ function getBaseName(path) {
     }
     return normalized.slice(index + 1);
 }
-function normalizeFileNamespace(namespace) {
-    const normalized = String(namespace ?? "").trim().toUpperCase();
-    if (normalized === FileNamespace_js_1.FileNamespace.PERSONAL || normalized === "PRIVATE") {
-        return FileNamespace_js_1.FileNamespace.PERSONAL;
-    }
-    return FileNamespace_js_1.FileNamespace.POD;
-}
 class FilesNamespace {
     constructor(client, http, podId) {
         this.client = client;
@@ -2074,31 +2065,38 @@ class FilesNamespace {
                 const payload = {
                     path: joinDatastorePath(options.directoryPath ?? options.parentId, name),
                     description: options.description,
-                    namespace: normalizeFileNamespace(options.namespace),
                 };
                 return this.client.request(() => FilesService_js_1.FilesService.fileFolderCreate(this.podId(), payload));
             },
         };
         this.converted = {
-            get: (path, options = {}) => this.client.request(() => FilesService_js_1.FilesService.fileConvertedGet(this.podId(), path, normalizeFileNamespace(options.namespace))),
-            render: (path, options = {}) => this.client.request(() => FilesService_js_1.FilesService.fileConvertedRender(this.podId(), path, normalizeFileNamespace(options.namespace))),
+            get: (path, options = {}) => this.client.request(() => {
+                void options;
+                return FilesService_js_1.FilesService.fileConvertedGet(this.podId(), path);
+            }),
+            render: (path, options = {}) => this.client.request(() => {
+                void options;
+                return FilesService_js_1.FilesService.fileConvertedRender(this.podId(), path);
+            }),
             download: (path, artifact = "document.md", options = {}) => {
+                void options;
                 const encodedPath = encodeURIComponent(path);
                 const encodedArtifact = encodeURIComponent(artifact);
-                const encodedNamespace = encodeURIComponent(normalizeFileNamespace(options.namespace));
-                return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/converted/download?path=${encodedPath}&artifact=${encodedArtifact}&namespace=${encodedNamespace}`);
+                return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/converted/download?path=${encodedPath}&artifact=${encodedArtifact}`);
             },
         };
     }
     list(options = {}) {
         const directoryPath = options.directoryPath ?? options.parentId ?? "/";
-        return this.client.request(() => FilesService_js_1.FilesService.fileList(this.podId(), directoryPath, normalizeFileNamespace(options.namespace), options.limit ?? 100, options.pageToken));
+        return this.client.request(() => FilesService_js_1.FilesService.fileList(this.podId(), directoryPath, options.limit ?? 100, options.pageToken));
     }
     get(path, options = {}) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileGet(this.podId(), path, normalizeFileNamespace(options.namespace)));
+        void options;
+        return this.client.request(() => FilesService_js_1.FilesService.fileGet(this.podId(), path));
     }
     delete(path, options = {}) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileDelete(this.podId(), path, normalizeFileNamespace(options.namespace)));
+        void options;
+        return this.client.request(() => FilesService_js_1.FilesService.fileDelete(this.podId(), path));
     }
     search(query, options = {}) {
         return this.client.request(() => FilesService_js_1.FilesService.fileSearch(this.podId(), {
@@ -2108,12 +2106,12 @@ class FilesNamespace {
         }));
     }
     download(path, options = {}) {
+        void options;
         const encodedPath = encodeURIComponent(path);
-        const encodedNamespace = encodeURIComponent(normalizeFileNamespace(options.namespace));
-        return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/download?path=${encodedPath}&namespace=${encodedNamespace}`);
+        return this.http.requestBytes("GET", `/pods/${this.podId()}/datastore/files/download?path=${encodedPath}`);
     }
     tree(options = {}) {
-        return this.client.request(() => FilesService_js_1.FilesService.fileTree(this.podId(), options.rootPath ?? "/", normalizeFileNamespace(options.namespace), options.filesPerDirectory ?? 3));
+        return this.client.request(() => FilesService_js_1.FilesService.fileTree(this.podId(), options.rootPath ?? "/", options.filesPerDirectory ?? 3));
     }
     upload(file, options = {}) {
         const payload = {
@@ -2122,7 +2120,6 @@ class FilesNamespace {
             description: options.description,
             directory_path: options.directoryPath ?? options.parentId ?? "/",
             search_enabled: options.searchEnabled ?? true,
-            namespace: normalizeFileNamespace(options.namespace),
         };
         return this.client.request(() => FilesService_js_1.FilesService.fileUpload(this.podId(), payload));
     }
@@ -2141,27 +2138,11 @@ class FilesNamespace {
             description: options.description,
             new_path: resolvedNewPath,
             search_enabled: options.searchEnabled,
-            namespace: normalizeFileNamespace(options.namespace),
         };
         return this.client.request(() => FilesService_js_1.FilesService.fileUpdate(this.podId(), payload));
     }
 }
 exports.FilesNamespace = FilesNamespace;
-
-},
-"./openapi_client/models/FileNamespace.js": function (module, exports, require) {
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.FileNamespace = void 0;
-/* generated using openapi-typescript-codegen -- do not edit */
-/* istanbul ignore file */
-/* tslint:disable */
-/* eslint-disable */
-var FileNamespace;
-(function (FileNamespace) {
-    FileNamespace["PERSONAL"] = "PERSONAL";
-    FileNamespace["POD"] = "POD";
-})(FileNamespace || (exports.FileNamespace = FileNamespace = {}));
 
 },
 "./openapi_client/models/SearchMethod.js": function (module, exports, require) {
@@ -2184,7 +2165,6 @@ var SearchMethod;
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FilesService = void 0;
-const FileNamespace_js_1 = require("./openapi_client/models/FileNamespace.js");
 const OpenAPI_js_1 = require("./openapi_client/core/OpenAPI.js");
 const request_js_1 = require("./openapi_client/core/request.js");
 class FilesService {
@@ -2192,13 +2172,12 @@ class FilesService {
      * List Files
      * @param podId
      * @param directoryPath
-     * @param namespace
      * @param limit
      * @param pageToken
      * @returns FileListResponse Successful Response
      * @throws ApiError
      */
-    static fileList(podId, directoryPath = '/', namespace, limit = 100, pageToken) {
+    static fileList(podId, directoryPath = '/', limit = 100, pageToken) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files',
@@ -2207,7 +2186,6 @@ class FilesService {
             },
             query: {
                 'directory_path': directoryPath,
-                'namespace': namespace,
                 'limit': limit,
                 'page_token': pageToken,
             },
@@ -2241,11 +2219,10 @@ class FilesService {
      * Delete File Or Folder
      * @param podId
      * @param path
-     * @param namespace
      * @returns DatastoreMessageResponse Successful Response
      * @throws ApiError
      */
-    static fileDelete(podId, path, namespace) {
+    static fileDelete(podId, path) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'DELETE',
             url: '/pods/{pod_id}/datastore/files/by-path',
@@ -2254,7 +2231,6 @@ class FilesService {
             },
             query: {
                 'path': path,
-                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2265,11 +2241,10 @@ class FilesService {
      * Get File
      * @param podId
      * @param path
-     * @param namespace
      * @returns FileResponse Successful Response
      * @throws ApiError
      */
-    static fileGet(podId, path, namespace) {
+    static fileGet(podId, path) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/by-path',
@@ -2278,7 +2253,6 @@ class FilesService {
             },
             query: {
                 'path': path,
-                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2310,11 +2284,10 @@ class FilesService {
      * Get Converted File Metadata
      * @param podId
      * @param path
-     * @param namespace
      * @returns ConvertedFileResponse Successful Response
      * @throws ApiError
      */
-    static fileConvertedGet(podId, path, namespace) {
+    static fileConvertedGet(podId, path) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/by-path',
@@ -2323,7 +2296,6 @@ class FilesService {
             },
             query: {
                 'path': path,
-                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2335,11 +2307,10 @@ class FilesService {
      * @param podId
      * @param path
      * @param artifact
-     * @param namespace
      * @returns binary File bytes
      * @throws ApiError
      */
-    static fileConvertedDownload(podId, path, artifact = 'document.md', namespace) {
+    static fileConvertedDownload(podId, path, artifact = 'document.md') {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/download',
@@ -2349,7 +2320,6 @@ class FilesService {
             query: {
                 'path': path,
                 'artifact': artifact,
-                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2360,11 +2330,10 @@ class FilesService {
      * Render Converted File As HTML
      * @param podId
      * @param path
-     * @param namespace
      * @returns string Rendered HTML
      * @throws ApiError
      */
-    static fileConvertedRender(podId, path, namespace) {
+    static fileConvertedRender(podId, path) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/converted/render',
@@ -2373,7 +2342,6 @@ class FilesService {
             },
             query: {
                 'path': path,
-                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2384,11 +2352,10 @@ class FilesService {
      * Download File
      * @param podId
      * @param path
-     * @param namespace
      * @returns binary File bytes
      * @throws ApiError
      */
-    static fileDownload(podId, path, namespace) {
+    static fileDownload(podId, path) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/download',
@@ -2397,7 +2364,6 @@ class FilesService {
             },
             query: {
                 'path': path,
-                'namespace': namespace,
             },
             errors: {
                 422: `Validation Error`,
@@ -2450,12 +2416,11 @@ class FilesService {
      * Get Directory Tree
      * @param podId
      * @param rootPath
-     * @param namespace
      * @param filesPerDirectory
      * @returns DirectoryTreeResponse Successful Response
      * @throws ApiError
      */
-    static fileTree(podId, rootPath = '/', namespace = FileNamespace_js_1.FileNamespace.PERSONAL, filesPerDirectory = 3) {
+    static fileTree(podId, rootPath = '/', filesPerDirectory = 3) {
         return (0, request_js_1.request)(OpenAPI_js_1.OpenAPI, {
             method: 'GET',
             url: '/pods/{pod_id}/datastore/files/tree',
@@ -2464,7 +2429,6 @@ class FilesService {
             },
             query: {
                 'root_path': rootPath,
-                'namespace': namespace,
                 'files_per_directory': filesPerDirectory,
             },
             errors: {

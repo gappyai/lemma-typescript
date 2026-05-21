@@ -8,7 +8,6 @@ import type {
   DirectoryTreeNode,
   DirectoryTreeResponse,
   FileResponse,
-  FileNamespace,
   FileSearchResponse,
   FileSearchResultSchema,
   FlowRunEntity,
@@ -121,7 +120,7 @@ export type DatastoreFileSearchResponse = FileSearchResponse;
 export type DatastoreFileSearchResult = FileSearchResultSchema;
 export type DatastoreDirectoryTree = DirectoryTreeResponse;
 export type DatastoreDirectoryTreeNode = DirectoryTreeNode;
-export type DatastoreFileNamespace = FileNamespace | "PRIVATE" | "PERSONAL" | "POD";
+export type DatastoreFileNamespace = "PRIVATE" | "PERSONAL" | "POD";
 
 export type Pod = PodResponse;
 export type PodConfig = PodConfigResponse;
