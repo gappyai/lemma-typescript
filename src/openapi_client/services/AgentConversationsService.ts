@@ -123,9 +123,11 @@ export class AgentConversationsService {
     }
     /**
      * List Pod Conversation Messages
-     * List persisted messages in a pod-scoped conversation in sequence order.
+     * List the latest persisted messages in chronological order. Pass next_page_token as page_token to fetch the next older page above the current page.
      * @param podId
      * @param conversationId
+     * @param pageToken
+     * @param beforeSequence
      * @param afterSequence
      * @param limit
      * @returns MessageListResponse Successful Response
@@ -134,6 +136,8 @@ export class AgentConversationsService {
     public static agentConversationMessageList(
         podId: string,
         conversationId: string,
+        pageToken?: (string | null),
+        beforeSequence?: (number | null),
         afterSequence?: (number | null),
         limit: number = 100,
     ): CancelablePromise<MessageListResponse> {
@@ -145,6 +149,8 @@ export class AgentConversationsService {
                 'conversation_id': conversationId,
             },
             query: {
+                'page_token': pageToken,
+                'before_sequence': beforeSequence,
                 'after_sequence': afterSequence,
                 'limit': limit,
             },

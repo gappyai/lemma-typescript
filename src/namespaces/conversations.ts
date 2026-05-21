@@ -205,20 +205,20 @@ export class ConversationsNamespace {
       options: {
         limit?: number;
         page_token?: string | null;
+        before_sequence?: number | null;
         after_sequence?: number | null;
         pod_id?: string | null;
       } = {},
     ): Promise<CursorPage<ConversationMessage>> => {
       const podId = this.requirePodId(options.pod_id);
-      const parsedPageToken = typeof options.page_token === "string" && options.page_token.trim().length > 0
-        ? Number(options.page_token)
-        : null;
       return this.http.request<CursorPage<ConversationMessage>>(
         "GET",
         `/pods/${podId}/conversations/${conversationId}/messages`,
         {
           params: {
-            after_sequence: options.after_sequence ?? (Number.isFinite(parsedPageToken) ? parsedPageToken : undefined),
+            page_token: options.page_token,
+            before_sequence: options.before_sequence,
+            after_sequence: options.after_sequence,
             limit: options.limit ?? 100,
           },
         },
